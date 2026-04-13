@@ -13,7 +13,7 @@ struct StreakView: View {
     @AppStorage("currentStreak") private var currentStreak: Int = 0
     @AppStorage("bestStreak") private var bestStreak: Int = 0
     @State var test: Bool = true
-
+    
     var body: some View {
         VStack(spacing: 8) {
             HStack(alignment: .lastTextBaseline) {
@@ -38,9 +38,7 @@ struct StreakView: View {
         .navigationTitle("Streak")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    test.toggle()
-                } label: {
+                ShareLink(item: "Check out my \(currentStreak) day task streak!") {
                     Label("Share", systemImage: "square.and.arrow.up")
                 }
             }
