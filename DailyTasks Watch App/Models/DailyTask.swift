@@ -21,7 +21,8 @@ final class DailyTask: Identifiable {
     /// Task streak
     var streak: Int = 0
     
-    init(title: String) {
+    init(title: String, streak: Int = 0) {
         self.title = title
+        self.streak = streak
     }
 }
