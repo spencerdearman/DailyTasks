@@ -8,8 +8,24 @@
 import SwiftUI
 
 struct ContentView: View {
+    @State var selectedTab: Int = 0
+    
     var body: some View {
-        TaskListView()
+        NavigationStack {
+            TabView(selection: $selectedTab) {
+                Tab("Tasks", systemImage: "checkmark.circle", value: 0) {
+                    TaskListView()
+                }
+                
+                Tab("Streak", systemImage: "flame.fill", value: 1) {
+                    StreakView()
+                }
+                
+                Tab("Reminder", systemImage: "bell.fill", value: 2) {
+                    TaskListView()
+                }
+            }
+        }
     }
 }
 

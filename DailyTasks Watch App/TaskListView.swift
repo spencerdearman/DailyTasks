@@ -16,69 +16,71 @@ struct TaskListView: View {
     // App storage to persist app terminations
     @AppStorage("lastResetDate") private var lastResetDateInterval: TimeInterval = Calendar.current.startOfDay(for: .now).timeIntervalSince1970
     
+    // Storing current streak and best streak in App Storage
+    @AppStorage("currentStreak") private var currentStreak: Int = 0
+    @AppStorage("bestStreak") private var bestStreak: Int = 0
+    
     @State private var isShowingSheet = false
     @State private var newTaskTitle = ""
     
     var body: some View {
-        NavigationStack {
-            List {
-                ForEach(tasks) { task in
-                    TaskRow(task: task)
-                        .listRowBackground(
-                            RoundedRectangle(cornerRadius: 24)
-                                .fill(Color(white: 0.15))
-                        )
-                }
-                .onDelete(perform: deleteTasks)
+        List {
+            ForEach(tasks) { task in
+                TaskRow(task: task)
+                    .listRowBackground(
+                        RoundedRectangle(cornerRadius: 24)
+                            .fill(Color(white: 0.15))
+                    )
             }
-            .navigationTitle("Tasks")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        isShowingSheet = true
-                    } label: {
-                        Label("Add Task", systemImage: "plus")
-                    }
+            .onDelete(perform: deleteTasks)
+        }
+        .navigationTitle("Tasks")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    isShowingSheet = true
+                } label: {
+                    Label("Add Task", systemImage: "plus")
                 }
             }
-            .sheet(isPresented: $isShowingSheet) {
-                NavigationStack {
-                    Form {
-                        TextField("Task Title", text: $newTaskTitle)
-                    }
-                    .navigationTitle("New Task")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button(role: .close) {
-                                isShowingSheet = false
-                                newTaskTitle = ""
-                            } label: {
-                                Label("Cancel", systemImage: "xmark")
-                            }
-                        }
-                        ToolbarItem(placement: .confirmationAction) {
-                            let inputEmpty = newTaskTitle.trimmingCharacters(in: .whitespaces).isEmpty
-                            Button(role: .confirm) {
-                                addTask()
-                            } label: {
-                                Label("Save", systemImage: "checkmark")
-                            }
-                            .disabled(inputEmpty)
-                            .tint(inputEmpty ? .clear : .accentColor)
+        }
+        .sheet(isPresented: $isShowingSheet) {
+            NavigationStack {
+                Form {
+                    TextField("Task Title", text: $newTaskTitle)
+                }
+                .navigationTitle("New Task")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(role: .close) {
+                            isShowingSheet = false
+                            newTaskTitle = ""
+                        } label: {
+                            Label("Cancel", systemImage: "xmark")
                         }
                     }
+                    ToolbarItem(placement: .confirmationAction) {
+                        let inputEmpty = newTaskTitle.trimmingCharacters(in: .whitespaces).isEmpty
+                        Button(role: .confirm) {
+                            addTask()
+                        } label: {
+                            Label("Save", systemImage: "checkmark")
+                        }
+                        .disabled(inputEmpty)
+                        .tint(inputEmpty ? .clear : .accentColor)
+                    }
                 }
-                .presentationDetents([.medium])
             }
-            .onAppear {
-                seedDefaultTasks()
-            }
-            .onChange(of: scenePhase) { oldPhase, newPhase in
-                if newPhase == .active {
-                    dailyReset()
-                }
+            .presentationDetents([.medium])
+        }
+        .onAppear {
+            seedDefaultTasks()
+        }
+        .onChange(of: scenePhase) { oldPhase, newPhase in
+            if newPhase == .active {
+                dailyReset()
             }
         }
     }
@@ -119,6 +121,17 @@ struct TaskListView: View {
         
         // Update tasks and streaks for a new day
         if lastReset < today {
+            // Handle general streak trends
+            if tasks.allSatisfy(\.isCompleted) {
+                currentStreak += 1
+                if currentStreak > bestStreak {
+                    bestStreak = currentStreak
+                }
+            } else {
+                currentStreak = 0
+            }
+            
+            // Handle individual task streaks and completion
             for task in tasks {
                 if task.isCompleted {
                     task.streak += 1
