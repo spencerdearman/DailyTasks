@@ -31,7 +31,9 @@ struct TaskListView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: { isShowingSheet = true }) {
+                    Button {
+                        isShowingSheet = true
+                    } label: {
                         Label("Add Task", systemImage: "plus")
                     }
                 }
@@ -45,7 +47,7 @@ struct TaskListView: View {
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
-                            Button {
+                            Button(role: .close) {
                                 isShowingSheet = false
                                 newTaskTitle = ""
                             } label: {
@@ -53,12 +55,14 @@ struct TaskListView: View {
                             }
                         }
                         ToolbarItem(placement: .confirmationAction) {
+                            let inputEmpty = newTaskTitle.trimmingCharacters(in: .whitespaces).isEmpty
                             Button(role: .confirm) {
                                 addTask()
                             } label: {
                                 Label("Save", systemImage: "checkmark")
                             }
-                            .disabled(newTaskTitle.trimmingCharacters(in: .whitespaces).isEmpty)
+                            .disabled(inputEmpty)
+                            .tint(inputEmpty ? .clear : .accentColor)
                         }
                     }
                 }
