@@ -75,7 +75,7 @@
 		4D9CB8C02F8DAB1F00F536E1 /* Exceptions for "DailyTasks Watch App" folder in "DailyTasksWidgetExtensionExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				SharedWidgetData.swift,
+				Models/SharedWidgetData.swift,
 			);
 			target = 4D9CB89F2F8DA9CB00F536E1 /* DailyTasksWidgetExtensionExtension */;
 		};
@@ -443,6 +443,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = DailyTasks;
+				INFOPLIST_KEY_NSMotionUsageDescription = "We need motion data to track your daily walks automatically.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKWatchOnly = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -477,6 +478,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = DailyTasks;
+				INFOPLIST_KEY_NSMotionUsageDescription = "We need motion data to track your daily walks automatically.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKWatchOnly = YES;
 				LD_RUNPATH_SEARCH_PATHS = (

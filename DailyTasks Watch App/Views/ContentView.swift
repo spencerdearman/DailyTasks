@@ -23,6 +23,12 @@ struct ContentView: View {
                 Tab("Reminder", systemImage: "bell.fill", value: 2) {
                     ReminderView()
                 }
+                
+                #if DEBUG
+                Tab("Debug", systemImage: "ladybug.fill", value: 3) {
+                    DebugView()
+                }
+                #endif
             }
     }
 }
