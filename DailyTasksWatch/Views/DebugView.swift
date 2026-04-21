@@ -35,7 +35,7 @@ struct DebugView: View {
                                 let remaining = tasks.filter { !$0.isCompleted }.count
                                 let content = UNMutableNotificationContent()
                                 content.title = "Test Reminder 🛠️"
-                                content.body = "You have \(remaining) tasks left. (Simulated)"
+                                content.body = "You have \(remaining) tasks left. (TEST)"
                                 content.sound = .default
                                 
                                 let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)

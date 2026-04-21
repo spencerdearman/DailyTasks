@@ -96,6 +96,39 @@
 			);
 			target = 4D058B382F9712AC0065CADF /* DailyTasksApp */;
 		};
+		4D058B6B2F9737100065CADF /* Exceptions for "DailyTasksWidgetExtension" folder in "DailyTasks Watch App" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Widgets/DailyTasksIntent.swift,
+				Widgets/DailyTasksWidget.swift,
+				Widgets/DailyTasksWidgetEntryView.swift,
+				Widgets/TaskEntry.swift,
+				Widgets/TimelineProvider.swift,
+			);
+			target = 4D9CB8082F8C41AC00F536E1 /* DailyTasks Watch App */;
+		};
+		4D058B6C2F9737100065CADF /* Exceptions for "DailyTasksWidgetExtension" folder in "DailyTasksMac" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Widgets/DailyTasksIntent.swift,
+				Widgets/DailyTasksWidget.swift,
+				Widgets/DailyTasksWidgetEntryView.swift,
+				Widgets/TaskEntry.swift,
+				Widgets/TimelineProvider.swift,
+			);
+			target = 4D058B242F970F440065CADF /* DailyTasksMac */;
+		};
+		4D058B6D2F9737100065CADF /* Exceptions for "DailyTasksWidgetExtension" folder in "DailyTasksApp" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Widgets/DailyTasksIntent.swift,
+				Widgets/DailyTasksWidget.swift,
+				Widgets/DailyTasksWidgetEntryView.swift,
+				Widgets/TaskEntry.swift,
+				Widgets/TimelineProvider.swift,
+			);
+			target = 4D058B382F9712AC0065CADF /* DailyTasksApp */;
+		};
 		4D9CB8B52F8DA9CD00F536E1 /* Exceptions for "DailyTasksWidgetExtension" folder in "DailyTasksWidgetExtensionExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -139,7 +172,10 @@
 		4D9CB8A62F8DA9CB00F536E1 /* DailyTasksWidgetExtension */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
+				4D058B6B2F9737100065CADF /* Exceptions for "DailyTasksWidgetExtension" folder in "DailyTasks Watch App" target */,
 				4D9CB8B52F8DA9CD00F536E1 /* Exceptions for "DailyTasksWidgetExtension" folder in "DailyTasksWidgetExtensionExtension" target */,
+				4D058B6C2F9737100065CADF /* Exceptions for "DailyTasksWidgetExtension" folder in "DailyTasksMac" target */,
+				4D058B6D2F9737100065CADF /* Exceptions for "DailyTasksWidgetExtension" folder in "DailyTasksApp" target */,
 			);
 			path = DailyTasksWidgetExtension;
 			sourceTree = "<group>";
@@ -346,6 +382,7 @@
 					};
 					4D9CB8022F8C41AC00F536E1 = {
 						CreatedOnToolsVersion = 26.4;
+						LastSwiftMigration = 2640;
 					};
 					4D9CB8082F8C41AC00F536E1 = {
 						CreatedOnToolsVersion = 26.4;
@@ -800,6 +837,7 @@
 		4D9CB81B2F8C41AD00F536E1 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = T64WR5HWCN;
@@ -809,6 +847,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 			};
@@ -817,6 +856,7 @@
 		4D9CB81C2F8C41AD00F536E1 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = T64WR5HWCN;
