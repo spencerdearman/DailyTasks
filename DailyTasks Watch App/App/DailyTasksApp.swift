@@ -23,7 +23,7 @@ struct DailyTasks_Watch_AppApp: App {
         
         // 2. Create the store URL and ensure the directory exists
         let storeURL = groupURL.appendingPathComponent("DailyTasks.sqlite")
-        let modelConfiguration = ModelConfiguration(schema: schema, url: storeURL)
+        let modelConfiguration = ModelConfiguration(schema: schema, url: storeURL, cloudKitDatabase: .automatic)
 
         do {
             let container = try ModelContainer(for: schema, configurations: [modelConfiguration])

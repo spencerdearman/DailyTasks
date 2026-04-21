@@ -13,7 +13,7 @@ final class DailyTask: Identifiable {
     /// Task ID
     var id: UUID = UUID()
     /// Task title
-    var title: String
+    var title: String = ""
     /// Task notes
     var notes: String = ""
     /// Task completion status
