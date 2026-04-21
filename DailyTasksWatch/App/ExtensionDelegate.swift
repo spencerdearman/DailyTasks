@@ -65,13 +65,13 @@ class ExtensionDelegate: NSObject, WKApplicationDelegate, UNUserNotificationCent
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         completionHandler([.banner, .sound])
     }
-
+    
     @MainActor
     private func makeModelContext() throws -> ModelContext {
         if let container = TaskManager.shared.modelContainer {
             return container.mainContext
         }
-
+        
         let schema = Schema([DailyTask.self])
         let configuration = ModelConfiguration(
             "DailyTasks",

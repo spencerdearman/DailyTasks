@@ -25,7 +25,7 @@ struct TimelineProvider: AppIntentTimelineProvider {
     func snapshot(for configuration: DailyTasksIntent, in context: Context) async -> TaskEntry {
         TaskEntry(date: Date(), configuration: configuration, taskData: fetchSharedData())
     }
-     
+    
     func timeline(for configuration: DailyTasksIntent, in context: Context) async -> Timeline<TaskEntry> {
         let entry = TaskEntry(date: Date(), configuration: configuration, taskData: fetchSharedData())
         

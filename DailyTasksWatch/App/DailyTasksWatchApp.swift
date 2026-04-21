@@ -40,14 +40,14 @@ struct DailyTasksWatchApp: App {
         }
         .modelContainer(sharedModelContainer)
     }
-
+    
     private static func logCloudKitAccountStatus() {
         CKContainer(identifier: cloudKitContainerIdentifier).accountStatus { status, error in
             if let error {
                 print("Watch CloudKit account status error: \(error.localizedDescription)")
                 return
             }
-
+            
             let description: String
             switch status {
             case .available:
@@ -63,7 +63,7 @@ struct DailyTasksWatchApp: App {
             @unknown default:
                 description = "unknown"
             }
-
+            
             print("Watch CloudKit account status: \(description)")
         }
     }

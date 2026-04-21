@@ -18,7 +18,7 @@ struct ConfettiParticle: Identifiable {
 struct ConfettiView: View {
     @State private var particles: [ConfettiParticle] = []
     @State private var animate = false
-
+    
     var body: some View {
         ZStack {
             ForEach(particles) { particle in

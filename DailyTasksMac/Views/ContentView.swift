@@ -92,22 +92,22 @@ struct ContentView: View {
         }
         .frame(minWidth: 320, minHeight: 450)
     }
-
+    
     private func toggleTask(_ task: DailyTask) {
         task.isCompleted.toggle()
-
+        
         if task.isCompleted {
             task.streak += 1
         } else {
             task.streak = max(0, task.streak - 1)
         }
-
+        
         saveChanges()
     }
-
+    
     private func saveChanges() {
         guard modelContext.hasChanges else { return }
-
+        
         do {
             try modelContext.save()
         } catch {

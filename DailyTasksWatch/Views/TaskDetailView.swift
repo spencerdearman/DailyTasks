@@ -99,10 +99,10 @@ struct TaskDetailView: View {
             dismiss()
         }
     }
-
+    
     private func saveChanges() {
         guard modelContext.hasChanges else { return }
-
+        
         do {
             try modelContext.save()
         } catch {

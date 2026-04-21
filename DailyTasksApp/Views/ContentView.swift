@@ -79,10 +79,10 @@ struct ContentView: View {
         }
         .preferredColorScheme(.dark)
     }
-
+    
     private func saveChanges() {
         guard modelContext.hasChanges else { return }
-
+        
         do {
             try modelContext.save()
         } catch {
@@ -149,10 +149,10 @@ struct iOS_TaskRow: View {
         }
         .buttonStyle(.plain)
     }
-
+    
     private func saveChanges() {
         guard modelContext.hasChanges else { return }
-
+        
         do {
             try modelContext.save()
         } catch {
@@ -206,10 +206,10 @@ struct iOS_AddTaskView: View {
         }
         .preferredColorScheme(.dark)
     }
-
+    
     private func saveChanges() {
         guard modelContext.hasChanges else { return }
-
+        
         do {
             try modelContext.save()
         } catch {

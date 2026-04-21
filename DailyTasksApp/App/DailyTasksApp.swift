@@ -20,14 +20,14 @@ struct DailyTasksApp: App {
             schema: schema,
             cloudKitDatabase: .private(Self.cloudKitContainerIdentifier)
         )
-
+        
         do {
             self.sharedModelContainer = try ModelContainer(for: schema, configurations: [modelConfiguration])
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
     }
-
+    
     var body: some Scene {
         WindowGroup {
             ContentView()

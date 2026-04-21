@@ -199,11 +199,11 @@ struct TaskListView: View {
                 Text("We noticed you've been walking. Mark your walk task as complete?")
             }
             .confirmationDialog("Delete Task?", 
-                isPresented: Binding(
-                    get: { taskToDelete != nil },
-                    set: { if !$0 { taskToDelete = nil } }
-                ), 
-                titleVisibility: .visible
+                                isPresented: Binding(
+                                    get: { taskToDelete != nil },
+                                    set: { if !$0 { taskToDelete = nil } }
+                                ), 
+                                titleVisibility: .visible
             ) {
                 Button("Delete", role: .destructive) {
                     if let task = taskToDelete {
@@ -270,7 +270,7 @@ struct TaskListView: View {
                 let task = DailyTask(title: title, streak: 2)
                 modelContext.insert(task)
             }
-
+            
             saveChanges()
         }
     }
@@ -303,15 +303,15 @@ struct TaskListView: View {
                 
                 task.isCompleted = false
             }
-
+            
             saveChanges()
         }
         lastResetDateInterval = today.timeIntervalSince1970
     }
-
+    
     private func saveChanges() {
         guard modelContext.hasChanges else { return }
-
+        
         do {
             try modelContext.save()
         } catch {

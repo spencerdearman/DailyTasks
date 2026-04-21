@@ -99,33 +99,29 @@
 		4D058B6B2F9737100065CADF /* Exceptions for "DailyTasksWidgetExtension" folder in "DailyTasks Watch App" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Widgets/DailyTasksIntent.swift,
-				Widgets/DailyTasksWidget.swift,
-				Widgets/DailyTasksWidgetEntryView.swift,
-				Widgets/TaskEntry.swift,
-				Widgets/TimelineProvider.swift,
+				Widget/DailyTasksIntent.swift,
+				Widget/DailyTasksWidget.swift,
+				Widget/DailyTasksWidgetEntryView.swift,
+				Widget/TaskEntry.swift,
+				Widget/TimelineProvider.swift,
 			);
 			target = 4D9CB8082F8C41AC00F536E1 /* DailyTasks Watch App */;
 		};
 		4D058B6C2F9737100065CADF /* Exceptions for "DailyTasksWidgetExtension" folder in "DailyTasksMac" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Widgets/DailyTasksIntent.swift,
-				Widgets/DailyTasksWidget.swift,
-				Widgets/DailyTasksWidgetEntryView.swift,
-				Widgets/TaskEntry.swift,
-				Widgets/TimelineProvider.swift,
+				Widget/DailyTasksIntent.swift,
+				Widget/TaskEntry.swift,
+				Widget/TimelineProvider.swift,
 			);
 			target = 4D058B242F970F440065CADF /* DailyTasksMac */;
 		};
 		4D058B6D2F9737100065CADF /* Exceptions for "DailyTasksWidgetExtension" folder in "DailyTasksApp" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Widgets/DailyTasksIntent.swift,
-				Widgets/DailyTasksWidget.swift,
-				Widgets/DailyTasksWidgetEntryView.swift,
-				Widgets/TaskEntry.swift,
-				Widgets/TimelineProvider.swift,
+				Widget/DailyTasksIntent.swift,
+				Widget/TaskEntry.swift,
+				Widget/TimelineProvider.swift,
 			);
 			target = 4D058B382F9712AC0065CADF /* DailyTasksApp */;
 		};
