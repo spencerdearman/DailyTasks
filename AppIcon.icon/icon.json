@@ -1,18 +1,43 @@
 {
   "fill" : {
-    "solid" : "srgb:0.00000,0.00000,0.00000,1.00000"
+    "automatic-gradient" : "srgb:1.00000,1.00000,1.00000,1.00000"
   },
   "groups" : [
     {
       "layers" : [
         {
-          "image-name" : "􀁢 2.svg",
-          "name" : "􀁢 2",
+          "fill-specializations" : [
+            {
+              "value" : {
+                "solid" : "srgb:0.00000,0.00000,0.00000,1.00000"
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "solid" : "srgb:1.00000,1.00000,1.00000,1.00000"
+              }
+            },
+            {
+              "appearance" : "tinted",
+              "value" : {
+                "solid" : "srgb:1.00000,1.00000,1.00000,1.00000"
+              }
+            }
+          ],
+          "image-name" : "􃏡.svg",
+          "name" : "􃏡",
+          "opacity-specializations" : [
+            {
+              "appearance" : "tinted",
+              "value" : 0.7
+            }
+          ],
           "position" : {
-            "scale" : 60,
+            "scale" : 50,
             "translation-in-points" : [
-              26.835000000000036,
-              26.835000000000036
+              23.395746978814714,
+              24.1703793723035
             ]
           }
         }

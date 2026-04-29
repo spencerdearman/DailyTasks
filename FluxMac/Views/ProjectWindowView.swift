@@ -1,0 +1,40 @@
+//
+//  ProjectWindowView.swift
+//  FluxMac
+//
+//  Created by Spencer Dearman.
+//
+
+import SwiftData
+import SwiftUI
+
+struct ProjectWindowView: View {
+    let projectID: UUID?
+
+    @Query(sort: \FluxProject.sortOrder) private var projects: [FluxProject]
+    @State private var expandedTaskID: UUID?
+    @State private var completingTaskIDs: Set<UUID> = []
+
+    var body: some View {
+        Group {
+            if let project = projects.first(where: { $0.id == projectID }) {
+                FluxProjectDetailView(
+                    project: project,
+                    expandedTaskID: $expandedTaskID,
+                    completingTaskIDs: $completingTaskIDs
+                )
+                .padding(24)
+                .background(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.92), Color.white.opacity(0.74)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+            } else {
+                ContentUnavailableView("Project unavailable", systemImage: "square.stack.3d.up.slash")
+            }
+        }
+        .frame(minWidth: 760, minHeight: 640)
+    }
+}

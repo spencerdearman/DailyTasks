@@ -1,0 +1,160 @@
+{
+  "source": "/Users/spencerdearman/DailyTasks/FluxMac/Views/ContentView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Type Travel",
+        "location": {
+          "startingColumn": 69,
+          "startingLine": 32
+        }
+      },
+      {
+        "comment": "",
+        "key": "Core",
+        "location": {
+          "startingColumn": 21,
+          "startingLine": 70
+        }
+      },
+      {
+        "comment": "",
+        "key": "Areas",
+        "location": {
+          "startingColumn": 21,
+          "startingLine": 79
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 88
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 102
+        }
+      },
+      {
+        "comment": "",
+        "key": "New List",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 119
+        }
+      },
+      {
+        "comment": "",
+        "key": "Area unavailable",
+        "location": {
+          "startingColumn": 44,
+          "startingLine": 234
+        }
+      },
+      {
+        "comment": "",
+        "key": "Project unavailable",
+        "location": {
+          "startingColumn": 44,
+          "startingLine": 240
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 372
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open in Window",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 495
+        }
+      },
+      {
+        "comment": "",
+        "key": "Notes Mode",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 503
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld active",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 612
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 632
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld/%lld checklist items complete",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 695
+        }
+      },
+      {
+        "comment": "",
+        "key": "Calendar",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 743
+        }
+      },
+      {
+        "comment": "",
+        "key": "Nothing in %@ right now.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 774
+        }
+      },
+      {
+        "comment": "",
+        "key": "Use Quick Entry to capture something new, or drag tasks in from another project or area.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 776
+        }
+      },
+      {
+        "comment": "",
+        "key": "Progress",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 802
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld percent",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 803
+        }
+      }
+    ]
+  },
+  "version": 1
+}

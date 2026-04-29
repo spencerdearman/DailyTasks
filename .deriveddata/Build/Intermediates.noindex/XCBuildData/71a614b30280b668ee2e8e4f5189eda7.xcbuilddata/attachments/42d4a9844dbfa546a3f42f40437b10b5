@@ -1,0 +1,149 @@
+{
+  "" : {
+    "diagnostics" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMac-primary.dia",
+    "emit-module-dependencies" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMac-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMac-primary-emit-module.dia",
+    "pch" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMac-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMac-primary.swiftdeps"
+  },
+  "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "const-values" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/GeneratedAssetSymbols.swiftconstvalues",
+    "dependencies" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/GeneratedAssetSymbols.d",
+    "diagnostics" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/GeneratedAssetSymbols.dia",
+    "index-unit-output-path" : "/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "swift-dependencies" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/GeneratedAssetSymbols.swiftdeps",
+    "swiftmodule" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/GeneratedAssetSymbols~partial.swiftmodule"
+  },
+  "/Users/spencerdearman/DailyTasks/FluxMac/App/FluxMacApp.swift" : {
+    "const-values" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacApp.swiftconstvalues",
+    "dependencies" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacApp.d",
+    "diagnostics" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacApp.dia",
+    "index-unit-output-path" : "/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacApp.o",
+    "llvm-bc" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacApp.bc",
+    "object" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacApp.o",
+    "swift-dependencies" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacApp.swiftdeps",
+    "swiftmodule" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacApp~partial.swiftmodule"
+  },
+  "/Users/spencerdearman/DailyTasks/FluxMac/Models/FluxMacModels.swift" : {
+    "const-values" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacModels.swiftconstvalues",
+    "dependencies" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacModels.d",
+    "diagnostics" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacModels.dia",
+    "index-unit-output-path" : "/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacModels.o",
+    "llvm-bc" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacModels.bc",
+    "object" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacModels.o",
+    "swift-dependencies" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacModels.swiftdeps",
+    "swiftmodule" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacModels~partial.swiftmodule"
+  },
+  "/Users/spencerdearman/DailyTasks/FluxMac/Services/FluxMacCalendarService.swift" : {
+    "const-values" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacCalendarService.swiftconstvalues",
+    "dependencies" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacCalendarService.d",
+    "diagnostics" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacCalendarService.dia",
+    "index-unit-output-path" : "/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacCalendarService.o",
+    "llvm-bc" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacCalendarService.bc",
+    "object" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacCalendarService.o",
+    "swift-dependencies" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacCalendarService.swiftdeps",
+    "swiftmodule" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacCalendarService~partial.swiftmodule"
+  },
+  "/Users/spencerdearman/DailyTasks/FluxMac/Services/FluxMacSampleData.swift" : {
+    "const-values" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacSampleData.swiftconstvalues",
+    "dependencies" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacSampleData.d",
+    "diagnostics" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacSampleData.dia",
+    "index-unit-output-path" : "/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacSampleData.o",
+    "llvm-bc" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacSampleData.bc",
+    "object" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacSampleData.o",
+    "swift-dependencies" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacSampleData.swiftdeps",
+    "swiftmodule" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacSampleData~partial.swiftmodule"
+  },
+  "/Users/spencerdearman/DailyTasks/FluxMac/Services/FluxMacSemanticRouter.swift" : {
+    "const-values" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacSemanticRouter.swiftconstvalues",
+    "dependencies" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacSemanticRouter.d",
+    "diagnostics" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacSemanticRouter.dia",
+    "index-unit-output-path" : "/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacSemanticRouter.o",
+    "llvm-bc" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacSemanticRouter.bc",
+    "object" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacSemanticRouter.o",
+    "swift-dependencies" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacSemanticRouter.swiftdeps",
+    "swiftmodule" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxMacSemanticRouter~partial.swiftmodule"
+  },
+  "/Users/spencerdearman/DailyTasks/FluxMac/Views/ContentView.swift" : {
+    "const-values" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/ContentView.swiftconstvalues",
+    "dependencies" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/ContentView.d",
+    "diagnostics" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/ContentView.dia",
+    "index-unit-output-path" : "/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/ContentView.o",
+    "llvm-bc" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/ContentView.bc",
+    "object" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/ContentView.o",
+    "swift-dependencies" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/ContentView.swiftdeps",
+    "swiftmodule" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/ContentView~partial.swiftmodule"
+  },
+  "/Users/spencerdearman/DailyTasks/FluxMac/Views/ProjectWindowView.swift" : {
+    "const-values" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/ProjectWindowView.swiftconstvalues",
+    "dependencies" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/ProjectWindowView.d",
+    "diagnostics" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/ProjectWindowView.dia",
+    "index-unit-output-path" : "/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/ProjectWindowView.o",
+    "llvm-bc" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/ProjectWindowView.bc",
+    "object" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/ProjectWindowView.o",
+    "swift-dependencies" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/ProjectWindowView.swiftdeps",
+    "swiftmodule" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/ProjectWindowView~partial.swiftmodule"
+  },
+  "/Users/spencerdearman/DailyTasks/FluxMac/Views/QuickEntryView.swift" : {
+    "const-values" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/QuickEntryView.swiftconstvalues",
+    "dependencies" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/QuickEntryView.d",
+    "diagnostics" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/QuickEntryView.dia",
+    "index-unit-output-path" : "/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/QuickEntryView.o",
+    "llvm-bc" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/QuickEntryView.bc",
+    "object" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/QuickEntryView.o",
+    "swift-dependencies" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/QuickEntryView.swiftdeps",
+    "swiftmodule" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/QuickEntryView~partial.swiftmodule"
+  },
+  "/Users/spencerdearman/DailyTasks/FluxWatch/Models/DailyTask.swift" : {
+    "const-values" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/DailyTask.swiftconstvalues",
+    "dependencies" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/DailyTask.d",
+    "diagnostics" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/DailyTask.dia",
+    "index-unit-output-path" : "/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/DailyTask.o",
+    "llvm-bc" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/DailyTask.bc",
+    "object" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/DailyTask.o",
+    "swift-dependencies" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/DailyTask.swiftdeps",
+    "swiftmodule" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/DailyTask~partial.swiftmodule"
+  },
+  "/Users/spencerdearman/DailyTasks/FluxWatch/Models/SharedWidgetData.swift" : {
+    "const-values" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/SharedWidgetData.swiftconstvalues",
+    "dependencies" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/SharedWidgetData.d",
+    "diagnostics" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/SharedWidgetData.dia",
+    "index-unit-output-path" : "/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/SharedWidgetData.o",
+    "llvm-bc" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/SharedWidgetData.bc",
+    "object" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/SharedWidgetData.o",
+    "swift-dependencies" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/SharedWidgetData.swiftdeps",
+    "swiftmodule" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/SharedWidgetData~partial.swiftmodule"
+  },
+  "/Users/spencerdearman/DailyTasks/FluxWidgetExtension/Widget/FluxIntent.swift" : {
+    "const-values" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxIntent.swiftconstvalues",
+    "dependencies" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxIntent.d",
+    "diagnostics" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxIntent.dia",
+    "index-unit-output-path" : "/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxIntent.o",
+    "llvm-bc" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxIntent.bc",
+    "object" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxIntent.o",
+    "swift-dependencies" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxIntent.swiftdeps",
+    "swiftmodule" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/FluxIntent~partial.swiftmodule"
+  },
+  "/Users/spencerdearman/DailyTasks/FluxWidgetExtension/Widget/TaskEntry.swift" : {
+    "const-values" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/TaskEntry.swiftconstvalues",
+    "dependencies" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/TaskEntry.d",
+    "diagnostics" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/TaskEntry.dia",
+    "index-unit-output-path" : "/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/TaskEntry.o",
+    "llvm-bc" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/TaskEntry.bc",
+    "object" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/TaskEntry.o",
+    "swift-dependencies" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/TaskEntry.swiftdeps",
+    "swiftmodule" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/TaskEntry~partial.swiftmodule"
+  },
+  "/Users/spencerdearman/DailyTasks/FluxWidgetExtension/Widget/TimelineProvider.swift" : {
+    "const-values" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/TimelineProvider.swiftconstvalues",
+    "dependencies" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/TimelineProvider.d",
+    "diagnostics" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/TimelineProvider.dia",
+    "index-unit-output-path" : "/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/TimelineProvider.o",
+    "llvm-bc" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/TimelineProvider.bc",
+    "object" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/TimelineProvider.o",
+    "swift-dependencies" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/TimelineProvider.swiftdeps",
+    "swiftmodule" : "/Users/spencerdearman/DailyTasks/.deriveddata/Build/Intermediates.noindex/Flux.build/Debug/FluxMac.build/Objects-normal/arm64/TimelineProvider~partial.swiftmodule"
+  }
+}

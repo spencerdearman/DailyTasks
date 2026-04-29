@@ -1,0 +1,1012 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		4D9CB80A2F8C41AC00F536E1 /* Flux Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 4D9CB8092F8C41AC00F536E1 /* Flux Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		4D9CB8A32F8DA9CB00F536E1 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4D9CB8A22F8DA9CB00F536E1 /* WidgetKit.framework */; };
+		4D9CB8A52F8DA9CB00F536E1 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4D9CB8A42F8DA9CB00F536E1 /* SwiftUI.framework */; };
+		4D9CB8B42F8DA9CD00F536E1 /* FluxWidgetExtensionExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4D9CB8A02F8DA9CB00F536E1 /* FluxWidgetExtensionExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		4DA258D82FA29C5100DCA196 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 4DA258D72FA29C5100DCA196 /* AppIcon.icon */; };
+		4DA258D92FA29C5100DCA196 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 4DA258D72FA29C5100DCA196 /* AppIcon.icon */; };
+		4DA258DA2FA29C5100DCA196 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 4DA258D72FA29C5100DCA196 /* AppIcon.icon */; };
+		4DA258DB2FA29C5100DCA196 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 4DA258D72FA29C5100DCA196 /* AppIcon.icon */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		4D9CB80B2F8C41AC00F536E1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4D9CB7FD2F8C41AC00F536E1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4D9CB8082F8C41AC00F536E1;
+			remoteInfo = "Flux Watch App";
+		};
+		4D9CB8B22F8DA9CD00F536E1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4D9CB7FD2F8C41AC00F536E1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4D9CB89F2F8DA9CB00F536E1;
+			remoteInfo = FluxWidgetExtensionExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		4D9CB8192F8C41AD00F536E1 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				4D9CB80A2F8C41AC00F536E1 /* Flux Watch App.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D9CB8B92F8DA9CD00F536E1 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				4D9CB8B42F8DA9CD00F536E1 /* FluxWidgetExtensionExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		4D058B252F970F440065CADF /* FluxMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FluxMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4D058B392F9712AC0065CADF /* FluxApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FluxApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4D058B492F9719A30065CADF /* Flux-Watch-App-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Flux-Watch-App-Info.plist"; sourceTree = "<group>"; };
+		4D9CB8032F8C41AC00F536E1 /* Flux.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Flux.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4D9CB8092F8C41AC00F536E1 /* Flux Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Flux Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		4D9CB8A02F8DA9CB00F536E1 /* FluxWidgetExtensionExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = FluxWidgetExtensionExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		4D9CB8A22F8DA9CB00F536E1 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		4D9CB8A42F8DA9CB00F536E1 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		4D9CB8BB2F8DAA9400F536E1 /* FluxWidgetExtensionExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FluxWidgetExtensionExtension.entitlements; sourceTree = "<group>"; };
+		4DA258D72FA29C5100DCA196 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		4D058B312F970F8B0065CADF /* Exceptions for "FluxWatch" folder in "FluxMac" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Models/DailyTask.swift,
+				Models/SharedWidgetData.swift,
+			);
+			target = 4D058B242F970F440065CADF /* FluxMac */;
+		};
+		4D058B462F9714720065CADF /* Exceptions for "FluxWatch" folder in "FluxApp" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Models/DailyTask.swift,
+				Models/SharedWidgetData.swift,
+			);
+			target = 4D058B382F9712AC0065CADF /* FluxApp */;
+		};
+		4D058B4B2F9719B50065CADF /* Exceptions for "FluxApp" folder in "FluxApp" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 4D058B382F9712AC0065CADF /* FluxApp */;
+		};
+		4D058B6B2F9737100065CADF /* Exceptions for "FluxWidgetExtension" folder in "Flux Watch App" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Widget/FluxIntent.swift,
+				Widget/FluxWidget.swift,
+				Widget/FluxWidgetEntryView.swift,
+				Widget/TaskEntry.swift,
+				Widget/TimelineProvider.swift,
+			);
+			target = 4D9CB8082F8C41AC00F536E1 /* Flux Watch App */;
+		};
+		4D058B6C2F9737100065CADF /* Exceptions for "FluxWidgetExtension" folder in "FluxMac" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Widget/FluxIntent.swift,
+				Widget/TaskEntry.swift,
+				Widget/TimelineProvider.swift,
+			);
+			target = 4D058B242F970F440065CADF /* FluxMac */;
+		};
+		4D058B6D2F9737100065CADF /* Exceptions for "FluxWidgetExtension" folder in "FluxApp" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Widget/FluxIntent.swift,
+				Widget/TaskEntry.swift,
+				Widget/TimelineProvider.swift,
+			);
+			target = 4D058B382F9712AC0065CADF /* FluxApp */;
+		};
+		4D9CB8B52F8DA9CD00F536E1 /* Exceptions for "FluxWidgetExtension" folder in "FluxWidgetExtensionExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 4D9CB89F2F8DA9CB00F536E1 /* FluxWidgetExtensionExtension */;
+		};
+		4D9CB8C02F8DAB1F00F536E1 /* Exceptions for "FluxWatch" folder in "FluxWidgetExtensionExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Models/SharedWidgetData.swift,
+			);
+			target = 4D9CB89F2F8DA9CB00F536E1 /* FluxWidgetExtensionExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		4D058B262F970F440065CADF /* FluxMac */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = FluxMac;
+			sourceTree = "<group>";
+		};
+		4D058B3A2F9712AC0065CADF /* FluxApp */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				4D058B4B2F9719B50065CADF /* Exceptions for "FluxApp" folder in "FluxApp" target */,
+			);
+			path = FluxApp;
+			sourceTree = "<group>";
+		};
+		4D9CB80D2F8C41AC00F536E1 /* FluxWatch */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				4D9CB8C02F8DAB1F00F536E1 /* Exceptions for "FluxWatch" folder in "FluxWidgetExtensionExtension" target */,
+				4D058B312F970F8B0065CADF /* Exceptions for "FluxWatch" folder in "FluxMac" target */,
+				4D058B462F9714720065CADF /* Exceptions for "FluxWatch" folder in "FluxApp" target */,
+			);
+			path = FluxWatch;
+			sourceTree = "<group>";
+		};
+		4D9CB8A62F8DA9CB00F536E1 /* FluxWidgetExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				4D058B6B2F9737100065CADF /* Exceptions for "FluxWidgetExtension" folder in "Flux Watch App" target */,
+				4D9CB8B52F8DA9CD00F536E1 /* Exceptions for "FluxWidgetExtension" folder in "FluxWidgetExtensionExtension" target */,
+				4D058B6C2F9737100065CADF /* Exceptions for "FluxWidgetExtension" folder in "FluxMac" target */,
+				4D058B6D2F9737100065CADF /* Exceptions for "FluxWidgetExtension" folder in "FluxApp" target */,
+			);
+			path = FluxWidgetExtension;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		4D058B222F970F440065CADF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D058B362F9712AC0065CADF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D9CB8062F8C41AC00F536E1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D9CB89D2F8DA9CB00F536E1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4D9CB8A52F8DA9CB00F536E1 /* SwiftUI.framework in Frameworks */,
+				4D9CB8A32F8DA9CB00F536E1 /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		4D9CB7FC2F8C41AC00F536E1 = {
+			isa = PBXGroup;
+			children = (
+				4D058B492F9719A30065CADF /* Flux-Watch-App-Info.plist */,
+				4D9CB8BB2F8DAA9400F536E1 /* FluxWidgetExtensionExtension.entitlements */,
+				4D9CB80D2F8C41AC00F536E1 /* FluxWatch */,
+				4D9CB8A62F8DA9CB00F536E1 /* FluxWidgetExtension */,
+				4D058B262F970F440065CADF /* FluxMac */,
+				4D058B3A2F9712AC0065CADF /* FluxApp */,
+				4D9CB8A12F8DA9CB00F536E1 /* Frameworks */,
+				4D9CB8042F8C41AC00F536E1 /* Products */,
+				4DA258D72FA29C5100DCA196 /* AppIcon.icon */,
+			);
+			sourceTree = "<group>";
+		};
+		4D9CB8042F8C41AC00F536E1 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				4D9CB8032F8C41AC00F536E1 /* Flux.app */,
+				4D9CB8092F8C41AC00F536E1 /* Flux Watch App.app */,
+				4D9CB8A02F8DA9CB00F536E1 /* FluxWidgetExtensionExtension.appex */,
+				4D058B252F970F440065CADF /* FluxMac.app */,
+				4D058B392F9712AC0065CADF /* FluxApp.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		4D9CB8A12F8DA9CB00F536E1 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				4D9CB8A22F8DA9CB00F536E1 /* WidgetKit.framework */,
+				4D9CB8A42F8DA9CB00F536E1 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		4D058B242F970F440065CADF /* FluxMac */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4D058B2D2F970F460065CADF /* Build configuration list for PBXNativeTarget "FluxMac" */;
+			buildPhases = (
+				4D058B212F970F440065CADF /* Sources */,
+				4D058B222F970F440065CADF /* Frameworks */,
+				4D058B232F970F440065CADF /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				4D058B262F970F440065CADF /* FluxMac */,
+			);
+			name = FluxMac;
+			packageProductDependencies = (
+			);
+			productName = FluxMac;
+			productReference = 4D058B252F970F440065CADF /* FluxMac.app */;
+			productType = "com.apple.product-type.application";
+		};
+		4D058B382F9712AC0065CADF /* FluxApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4D058B412F9712AD0065CADF /* Build configuration list for PBXNativeTarget "FluxApp" */;
+			buildPhases = (
+				4D058B352F9712AC0065CADF /* Sources */,
+				4D058B362F9712AC0065CADF /* Frameworks */,
+				4D058B372F9712AC0065CADF /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				4D058B3A2F9712AC0065CADF /* FluxApp */,
+			);
+			name = FluxApp;
+			packageProductDependencies = (
+			);
+			productName = FluxApp;
+			productReference = 4D058B392F9712AC0065CADF /* FluxApp.app */;
+			productType = "com.apple.product-type.application";
+		};
+		4D9CB8022F8C41AC00F536E1 /* Flux */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4D9CB81A2F8C41AD00F536E1 /* Build configuration list for PBXNativeTarget "Flux" */;
+			buildPhases = (
+				4D9CB8012F8C41AC00F536E1 /* Resources */,
+				4D9CB8192F8C41AD00F536E1 /* Embed Watch Content */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4D9CB80C2F8C41AC00F536E1 /* PBXTargetDependency */,
+			);
+			name = Flux;
+			packageProductDependencies = (
+			);
+			productName = Flux;
+			productReference = 4D9CB8032F8C41AC00F536E1 /* Flux.app */;
+			productType = "com.apple.product-type.application.watchapp2-container";
+		};
+		4D9CB8082F8C41AC00F536E1 /* Flux Watch App */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4D9CB8162F8C41AD00F536E1 /* Build configuration list for PBXNativeTarget "Flux Watch App" */;
+			buildPhases = (
+				4D9CB8052F8C41AC00F536E1 /* Sources */,
+				4D9CB8062F8C41AC00F536E1 /* Frameworks */,
+				4D9CB8072F8C41AC00F536E1 /* Resources */,
+				4D9CB8B92F8DA9CD00F536E1 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4D9CB8B32F8DA9CD00F536E1 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				4D9CB80D2F8C41AC00F536E1 /* FluxWatch */,
+			);
+			name = "Flux Watch App";
+			packageProductDependencies = (
+			);
+			productName = "Flux Watch App";
+			productReference = 4D9CB8092F8C41AC00F536E1 /* Flux Watch App.app */;
+			productType = "com.apple.product-type.application";
+		};
+		4D9CB89F2F8DA9CB00F536E1 /* FluxWidgetExtensionExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4D9CB8B62F8DA9CD00F536E1 /* Build configuration list for PBXNativeTarget "FluxWidgetExtensionExtension" */;
+			buildPhases = (
+				4D9CB89C2F8DA9CB00F536E1 /* Sources */,
+				4D9CB89D2F8DA9CB00F536E1 /* Frameworks */,
+				4D9CB89E2F8DA9CB00F536E1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				4D9CB8A62F8DA9CB00F536E1 /* FluxWidgetExtension */,
+			);
+			name = FluxWidgetExtensionExtension;
+			packageProductDependencies = (
+			);
+			productName = FluxWidgetExtensionExtension;
+			productReference = 4D9CB8A02F8DA9CB00F536E1 /* FluxWidgetExtensionExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		4D9CB7FD2F8C41AC00F536E1 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2640;
+				LastUpgradeCheck = 2640;
+				TargetAttributes = {
+					4D058B242F970F440065CADF = {
+						CreatedOnToolsVersion = 26.4.1;
+					};
+					4D058B382F9712AC0065CADF = {
+						CreatedOnToolsVersion = 26.4.1;
+					};
+					4D9CB8022F8C41AC00F536E1 = {
+						CreatedOnToolsVersion = 26.4;
+						LastSwiftMigration = 2640;
+					};
+					4D9CB8082F8C41AC00F536E1 = {
+						CreatedOnToolsVersion = 26.4;
+					};
+					4D9CB89F2F8DA9CB00F536E1 = {
+						CreatedOnToolsVersion = 26.4;
+					};
+				};
+			};
+			buildConfigurationList = 4D9CB8002F8C41AC00F536E1 /* Build configuration list for PBXProject "Flux" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 4D9CB7FC2F8C41AC00F536E1;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 4D9CB8042F8C41AC00F536E1 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				4D9CB8022F8C41AC00F536E1 /* Flux */,
+				4D9CB8082F8C41AC00F536E1 /* Flux Watch App */,
+				4D9CB89F2F8DA9CB00F536E1 /* FluxWidgetExtensionExtension */,
+				4D058B242F970F440065CADF /* FluxMac */,
+				4D058B382F9712AC0065CADF /* FluxApp */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		4D058B232F970F440065CADF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4DA258D82FA29C5100DCA196 /* AppIcon.icon in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D058B372F9712AC0065CADF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4DA258DB2FA29C5100DCA196 /* AppIcon.icon in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D9CB8012F8C41AC00F536E1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4DA258DA2FA29C5100DCA196 /* AppIcon.icon in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D9CB8072F8C41AC00F536E1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4DA258D92FA29C5100DCA196 /* AppIcon.icon in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D9CB89E2F8DA9CB00F536E1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		4D058B212F970F440065CADF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D058B352F9712AC0065CADF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D9CB8052F8C41AC00F536E1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D9CB89C2F8DA9CB00F536E1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		4D9CB80C2F8C41AC00F536E1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4D9CB8082F8C41AC00F536E1 /* Flux Watch App */;
+			targetProxy = 4D9CB80B2F8C41AC00F536E1 /* PBXContainerItemProxy */;
+		};
+		4D9CB8B32F8DA9CD00F536E1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4D9CB89F2F8DA9CB00F536E1 /* FluxWidgetExtensionExtension */;
+			targetProxy = 4D9CB8B22F8DA9CD00F536E1 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		4D058B2E2F970F460065CADF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = FluxMac/FluxMac.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = T64WR5HWCN;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCalendarsUsageDescription = "Flux displays your calendar events alongside your tasks in Today and Upcoming.";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSRemindersUsageDescription = "Flux can import reminders into your inbox so you can organize them with projects and areas.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.3;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.spencerdearman.FluxMac;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		4D058B2F2F970F460065CADF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = FluxMac/FluxMac.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = T64WR5HWCN;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCalendarsUsageDescription = "Flux displays your calendar events alongside your tasks in Today and Upcoming.";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSRemindersUsageDescription = "Flux can import reminders into your inbox so you can organize them with projects and areas.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.3;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.spencerdearman.FluxMac;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		4D058B422F9712AD0065CADF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = FluxApp/FluxApp.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = T64WR5HWCN;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = FluxApp/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.spencerdearman.FluxApp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		4D058B432F9712AD0065CADF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = FluxApp/FluxApp.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = T64WR5HWCN;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = FluxApp/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.spencerdearman.FluxApp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		4D9CB8142F8C41AD00F536E1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = T64WR5HWCN;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		4D9CB8152F8C41AD00F536E1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = T64WR5HWCN;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		4D9CB8172F8C41AD00F536E1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = FluxWatch/FluxWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = T64WR5HWCN;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Flux-Watch-App-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Flux;
+				INFOPLIST_KEY_NSMotionUsageDescription = "We need motion data to track your daily walks automatically.";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKWatchOnly = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.spencerdearman.Flux.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Debug;
+		};
+		4D9CB8182F8C41AD00F536E1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = FluxWatch/FluxWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = T64WR5HWCN;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Flux-Watch-App-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Flux;
+				INFOPLIST_KEY_NSMotionUsageDescription = "We need motion data to track your daily walks automatically.";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKWatchOnly = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.spencerdearman.Flux.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Release;
+		};
+		4D9CB81B2F8C41AD00F536E1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = T64WR5HWCN;
+				INFOPLIST_KEY_CFBundleDisplayName = Flux;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.spencerdearman.Flux;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		4D9CB81C2F8C41AD00F536E1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = T64WR5HWCN;
+				INFOPLIST_KEY_CFBundleDisplayName = Flux;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.spencerdearman.Flux;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		4D9CB8B72F8DA9CD00F536E1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = FluxWidgetExtensionExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = T64WR5HWCN;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = FluxWidgetExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = FluxWidgetExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.spencerdearman.Flux.watchkitapp.FluxWidgetExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Debug;
+		};
+		4D9CB8B82F8DA9CD00F536E1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = FluxWidgetExtensionExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = T64WR5HWCN;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = FluxWidgetExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = FluxWidgetExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.spencerdearman.Flux.watchkitapp.FluxWidgetExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		4D058B2D2F970F460065CADF /* Build configuration list for PBXNativeTarget "FluxMac" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4D058B2E2F970F460065CADF /* Debug */,
+				4D058B2F2F970F460065CADF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4D058B412F9712AD0065CADF /* Build configuration list for PBXNativeTarget "FluxApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4D058B422F9712AD0065CADF /* Debug */,
+				4D058B432F9712AD0065CADF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4D9CB8002F8C41AC00F536E1 /* Build configuration list for PBXProject "Flux" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4D9CB8142F8C41AD00F536E1 /* Debug */,
+				4D9CB8152F8C41AD00F536E1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4D9CB8162F8C41AD00F536E1 /* Build configuration list for PBXNativeTarget "Flux Watch App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4D9CB8172F8C41AD00F536E1 /* Debug */,
+				4D9CB8182F8C41AD00F536E1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4D9CB81A2F8C41AD00F536E1 /* Build configuration list for PBXNativeTarget "Flux" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4D9CB81B2F8C41AD00F536E1 /* Debug */,
+				4D9CB81C2F8C41AD00F536E1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4D9CB8B62F8DA9CD00F536E1 /* Build configuration list for PBXNativeTarget "FluxWidgetExtensionExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4D9CB8B72F8DA9CD00F536E1 /* Debug */,
+				4D9CB8B82F8DA9CD00F536E1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 4D9CB7FD2F8C41AC00F536E1 /* Project object */;
+}
