@@ -5,6 +5,10 @@
 - **UChicago Email:** dearmanspencer@uchicago.edu
 - **Slack Username:** Spencer Dearman
 
+### Demo
+https://github.com/user-attachments/assets/e34ca83f-e926-4552-ac2c-65e14b9be1ea
+
+
 ### AI Completion Summary
   **A lot more has been done but it was over multiple Claude/Antigravity/Codex sessions"**
   Expanded Task Row - Things3-style redesign
