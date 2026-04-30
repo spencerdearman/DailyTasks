@@ -1,36 +1,53 @@
-## MPCS 51032 - Assignment 2
+## Flux
 ### Author
 - **Name:** Spencer Dearman
 - **UCID:** 12340675
 - **UChicago Email:** dearmanspencer@uchicago.edu
 - **Slack Username:** Spencer Dearman
 
-### One (Two?) More Thing(s)
-I added a Mac Menu Bar App and I created a new iOS App target. **Note:** I made sure to keep the Watch App disconnected so that it can exist as a standalone watch app. 
+### Demo
+https://github.com/user-attachments/assets/e34ca83f-e926-4552-ac2c-65e14b9be1ea
 
-<img width="493" height="528" alt="mac-demo" src="https://github.com/user-attachments/assets/dbbfeb4d-a371-4d80-a86b-b0695dd8340d" />
-<img width="660" height="1434" alt="ios-demo" src="https://github.com/user-attachments/assets/11ef14a7-267c-4ed5-a4e3-f8b87f6d286c" />
 
-I also decided to do an AppIntentConfiguration instead of StaticConfiguration because I want to expand on this with more app intents and it is easier to just set it up from the beginning with AppIntentConfiguration (I had to convert a static --> intent before and it was painful).
+### AI Completion Summary
+  **A lot more has been done but it was over multiple Claude/Antigravity/Codex sessions"**
+  Expanded Task Row - Things3-style redesign
 
-### Known Issues
-- No known build errors, but getting this running on all three devices at the same time was a bit of a nightmare. I have it working between the Watch App, Mac App, and iOS App, so let me know if you would like to see it in action.
+  - Notes are now an inline editable TextEditor with a "Notes" placeholder (like
+   the Things3 screenshot)
+  - Tag badges display inline above the action bar, each with an x to remove
+  - Existing subtasks show directly in the expanded area
+  - Bottom action bar: date/evening label on the left, 4 icon buttons on the
+  right:
+    - Calendar (calendar) - expands into a panel with "Today", "This Evening",
+  "Someday" quick buttons plus a graphical calendar picker
+    - Tags (tag) - expands into a search field with dropdown list of existing
+  tags; type to filter or create new
+    - Subtasks (list.bullet) - expands into an inline text field that adds
+  subtasks directly
+    - Deadline (flag) - expands into a graphical date picker for the deadline
+  - Icons show filled when they have data, and highlight when their panel is
+  active
 
-## Resources & Attributions
-- Accessory Corner: https://developer.apple.com/documentation/widgetkit/widgetfamily/accessorycorner
-- Corner Complication: https://stackoverflow.com/questions/74339034/how-can-one-write-a-watchos-widget-for-accessorycorner-family-that-renders-appro
-- Liquid Glass: https://developer.apple.com/documentation/SwiftUI/Applying-Liquid-Glass-to-custom-views
-- ProgressView: https://developer.apple.com/documentation/swiftui/progressview
-- LinearProgressViewStyle: https://developer.apple.com/documentation/swiftui/linearprogressviewstyle
-- Section Init: https://developer.apple.com/documentation/swiftui/section/init(content:header:footer:)
-- Pickers: https://developer.apple.com/design/human-interface-guidelines/pickers
-- DatePicker: https://developer.apple.com/documentation/SwiftUI/DatePicker
-- ScenePhase: https://developer.apple.com/documentation/swiftui/scenephase
-- Calendar: https://developer.apple.com/documentation/foundation/calendar/startofday(for:)
-- AppStorage: https://developer.apple.com/documentation/swiftui/appstorage
-- ShareLink: https://developer.apple.com/documentation/swiftui/sharelink
-- UNUserNotificationCenter: https://developer.apple.com/documentation/usernotifications/unusernotificationcenter
-- UNCalendarNotificationTrigger: https://developer.apple.com/documentation/usernotifications/uncalendarnotificationtrigger
-- WidgetKit: https://developer.apple.com/documentation/widgetkit
-- TimelineProvider: https://developer.apple.com/documentation/widgetkit/timelineprovider
-- AppIntentConfiguration: https://developer.apple.com/documentation/widgetkit/appintentconfiguration
+  Collapsed task row - richer inline meta
+
+  - Shows: project/area badge, tag badges (up to 3), when date, deadline with
+  flag icon and orange styling, subtask count with checklist icon, recurrence
+  repeat icon
+
+  Quick Entry - clean redesign
+
+  - Clean title field without borders, notes with placeholder
+  - Compact area/project pickers
+  - Selected tags shown as removable badges
+  - Date/deadline shown inline when set
+  - Same 3-button action bar at bottom: calendar, tags, flag - each expands the
+  same style panels
+  - Save/Cancel buttons in the bottom bar
+
+  Project headings
+
+  - "Add Heading" button at the bottom of project detail
+  - Click to show an inline text field to name the heading
+  - Creates a FluxHeading attached to the project
+  - Changed "Loose tasks" label to just "Tasks"
