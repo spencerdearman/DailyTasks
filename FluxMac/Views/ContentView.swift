@@ -84,9 +84,9 @@ struct ContentView: View {
                 navLink("Inbox", systemImage: "tray.fill", selection: .inbox, count: inboxTasks.count)
                 navLink("Today", systemImage: "sun.max.fill", selection: .today, count: todayTasks.count)
                 navLink("Upcoming", systemImage: "calendar", selection: .upcoming, count: upcomingTasks.count)
-                navLink("Anytime", systemImage: "square.stack.3d.up.fill", selection: .anytime, count: anytimeTasks.count)
-                navLink("Someday", systemImage: "shippingbox.fill", selection: .someday, count: somedayTasks.count)
-                navLink("Logbook", systemImage: "checkmark.square.fill", selection: .logbook, count: logbookTasks.count)
+                navLink("Open", systemImage: "tray.2.fill", selection: .anytime, count: anytimeTasks.count)
+                navLink("Later", systemImage: "moon.zzz.fill", selection: .someday, count: somedayTasks.count)
+                navLink("Done", systemImage: "checkmark.circle.fill", selection: .logbook, count: logbookTasks.count)
             }
 
             Section("Areas") {
@@ -95,8 +95,7 @@ struct ContentView: View {
                         ForEach(filteredProjects(in: area)) { project in
                             NavigationLink(value: FluxSidebarSelection.project(project.id)) {
                                 HStack(spacing: 10) {
-                                    FluxProgressPie(progress: project.completionRatio, tint: project.tintHex)
-                                        .frame(width: 16, height: 16)
+                                    Image(systemName: "paperplane")
                                     Text(project.title)
                                         .lineLimit(1)
                                     Spacer()
@@ -179,22 +178,40 @@ struct ContentView: View {
     private var detailContainer: some View {
         detailContent
             .safeAreaInset(edge: .bottom) {
-                HStack(spacing: 28) {
-                    detailFooterButton(systemImage: "plus") {
+                HStack(spacing: 0) {
+                    detailFooterTab(systemImage: "plus", label: "New") {
                         showQuickEntrySheet = true
                     }
-                    detailFooterButton(systemImage: "calendar") {}
-                    detailFooterButton(systemImage: "arrow.down.circle") {
+                    detailFooterTab(systemImage: "calendar", label: "Today") {
+                        selection = .today
+                    }
+                    detailFooterTab(systemImage: "arrow.down.circle", label: "Import") {
                         calendarStore.importReminders(into: modelContext, areas: areas)
                     }
                 }
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .padding(.vertical, 12)
-                .padding(.horizontal, 26)
-                .glassEffect(.regular, in: .capsule)
+                .font(.caption2)
+                .padding(.top, 8)
+                .padding(.bottom, 6)
+                .padding(.horizontal, 16)
+                .frame(maxWidth: 280)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .shadow(color: .black.opacity(0.06), radius: 8, y: 2)
                 .padding(.bottom, 10)
             }
+    }
+
+    private func detailFooterTab(systemImage: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 3) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 18, weight: .medium))
+                Text(label)
+                    .font(.system(size: 10, weight: .medium))
+            }
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder
@@ -202,7 +219,6 @@ struct ContentView: View {
         if !searchText.isEmpty {
             FluxTaskCollectionView(
                 title: "Search",
-                subtitle: "Jump quickly between tasks, areas, and projects as you type.",
                 tasks: searchResults,
                 events: [],
                 expandedTaskID: $expandedTaskID,
@@ -214,7 +230,6 @@ struct ContentView: View {
             case .inbox:
                 FluxTaskCollectionView(
                     title: "Inbox",
-                    subtitle: "The landing zone for everything new before it gets organized.",
                     tasks: inboxTasks,
                     events: [],
                     expandedTaskID: $expandedTaskID,
@@ -224,7 +239,6 @@ struct ContentView: View {
             case .today:
                 FluxTaskCollectionView(
                     title: "Today",
-                    subtitle: "Tasks scheduled for now, plus a dedicated evening lane.",
                     tasks: todayTasks,
                     eveningTasks: eveningTasks,
                     events: calendarStore.todayEvents,
@@ -235,7 +249,6 @@ struct ContentView: View {
             case .upcoming:
                 FluxTaskCollectionView(
                     title: "Upcoming",
-                    subtitle: "A longer runway for deadlines, scheduled work, and next-week planning.",
                     tasks: upcomingTasks,
                     events: calendarStore.upcomingEvents,
                     expandedTaskID: $expandedTaskID,
@@ -244,8 +257,7 @@ struct ContentView: View {
                 )
             case .anytime:
                 FluxTaskCollectionView(
-                    title: "Anytime",
-                    subtitle: "Active work without a date attached yet.",
+                    title: "Open",
                     tasks: anytimeTasks,
                     events: [],
                     expandedTaskID: $expandedTaskID,
@@ -254,8 +266,7 @@ struct ContentView: View {
                 )
             case .someday:
                 FluxTaskCollectionView(
-                    title: "Someday",
-                    subtitle: "Ideas and long-burn possibilities that should stay visible but calm.",
+                    title: "Later",
                     tasks: somedayTasks,
                     events: [],
                     expandedTaskID: $expandedTaskID,
@@ -264,8 +275,7 @@ struct ContentView: View {
                 )
             case .logbook:
                 FluxTaskCollectionView(
-                    title: "Logbook",
-                    subtitle: "Everything you have completed, ordered by completion date.",
+                    title: "Done",
                     tasks: logbookTasks,
                     events: [],
                     expandedTaskID: $expandedTaskID,
@@ -441,20 +451,12 @@ struct ContentView: View {
         }
     }
 
-    private func detailFooterButton(systemImage: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: systemImage)
-                .frame(width: 20, height: 20)
-        }
-        .buttonStyle(.plain)
-    }
 }
 
 // MARK: - Task Collection View
 
 private struct FluxTaskCollectionView: View {
     let title: String
-    let subtitle: String
     let tasks: [FluxTask]
     var eveningTasks: [FluxTask] = []
     let events: [FluxCalendarEvent]
@@ -465,7 +467,7 @@ private struct FluxTaskCollectionView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
-                FluxHeaderCard(title: title, subtitle: subtitle)
+                FluxHeaderCard(title: title)
 
                 if !events.isEmpty {
                     FluxEventStrip(events: events)
@@ -510,7 +512,7 @@ struct FluxAreaDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
-                FluxHeaderCard(title: area.title, subtitle: area.notes)
+                FluxHeaderCard(title: area.title)
 
                 ForEach(area.projects.sorted(by: { $0.sortOrder < $1.sortOrder })) { project in
                     FluxProjectCard(project: project)
@@ -539,7 +541,6 @@ struct FluxProjectDetailView: View {
     let project: FluxProject
     @Binding var expandedTaskID: UUID?
     @Binding var completingTaskIDs: Set<UUID>
-    @State private var noteMode: NoteMode = .preview
     @State private var newHeadingTitle = ""
     @State private var showAddHeading = false
 
@@ -547,9 +548,6 @@ struct FluxProjectDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 HStack(alignment: .top, spacing: 18) {
-                    FluxProgressPie(progress: project.completionRatio, tint: project.tintHex, lineWidth: 10)
-                        .frame(width: 64, height: 64)
-
                     VStack(alignment: .leading, spacing: 8) {
                         Text(project.title)
                             .font(.system(size: 32, weight: .bold))
@@ -566,35 +564,29 @@ struct FluxProjectDetailView: View {
                 .padding(24)
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
 
-                VStack(alignment: .leading, spacing: 12) {
-                    Picker("Notes Mode", selection: $noteMode) {
-                        ForEach(NoteMode.allCases) { mode in
-                            Text(mode.title).tag(mode)
-                        }
+                // Simple notes editor
+                TextEditor(text: Binding(
+                    get: { project.notes },
+                    set: {
+                        project.notes = $0
+                        try? modelContext.save()
                     }
-                    .pickerStyle(.segmented)
-                    .frame(maxWidth: 240)
-
-                    if noteMode == .edit {
-                        TextEditor(text: Binding(
-                            get: { project.notes },
-                            set: {
-                                project.notes = $0
-                                try? modelContext.save()
-                            }
-                        ))
-                        .font(.body)
-                        .frame(minHeight: 180)
-                        .padding(14)
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-                    } else {
-                        ScrollView {
-                            Text(.init(project.notes.isEmpty ? "No notes yet." : project.notes))
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(20)
-                        }
-                        .frame(minHeight: 180)
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                ))
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .scrollContentBackground(.hidden)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(minHeight: 40)
+                .padding(16)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .overlay(alignment: .topLeading) {
+                    if project.notes.isEmpty {
+                        Text("Notes…")
+                            .font(.body)
+                            .foregroundStyle(.tertiary)
+                            .padding(16)
+                            .padding(.top, 2)
+                            .allowsHitTesting(false)
                     }
                 }
 
@@ -682,19 +674,13 @@ struct FluxProjectDetailView: View {
 
 private struct FluxHeaderCard: View {
     let title: String
-    let subtitle: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(title)
-                .font(.system(size: 34, weight: .bold))
-            Text(subtitle)
-                .font(.title3)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(24)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 30, style: .continuous))
+        Text(title)
+            .font(.system(size: 34, weight: .bold))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(24)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 30, style: .continuous))
     }
 }
 
@@ -705,8 +691,6 @@ private struct FluxProjectCard: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            FluxProgressPie(progress: project.completionRatio, tint: project.tintHex)
-                .frame(width: 26, height: 26)
             VStack(alignment: .leading, spacing: 4) {
                 Text(project.title)
                     .font(.headline)
@@ -725,6 +709,7 @@ private struct FluxProjectCard: View {
 // MARK: - Task Section
 
 private struct FluxTaskSection: View {
+    @Environment(\.modelContext) private var modelContext
     let title: String
     let tasks: [FluxTask]
     @Binding var expandedTaskID: UUID?
@@ -752,6 +737,14 @@ private struct FluxTaskSection: View {
                         onTap: {
                             withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
                                 expandedTaskID = expandedTaskID == task.id ? nil : task.id
+                            }
+                        },
+                        onDelete: {
+                            withAnimation(.easeOut(duration: 0.25)) {
+                                if expandedTaskID == task.id { expandedTaskID = nil }
+                                completingTaskIDs.remove(task.id)
+                                modelContext.delete(task)
+                                try? modelContext.save()
                             }
                         }
                     )
@@ -783,8 +776,10 @@ private struct FluxTaskRow: View {
     let isCompleting: Bool
     let onToggle: () -> Void
     let onTap: () -> Void
+    var onDelete: (() -> Void)?
 
     @State private var activeAction: TaskActionMode?
+    @State private var showTagsPopover = false
     @State private var newSubtaskTitle = ""
 
     private var isDone: Bool { isCompleting || task.isCompleted }
@@ -834,6 +829,24 @@ private struct FluxTaskRow: View {
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 0))
+        .contextMenu {
+            Button {
+                onToggle()
+            } label: {
+                Label(task.isCompleted ? "Mark Incomplete" : "Mark Complete",
+                      systemImage: task.isCompleted ? "circle" : "checkmark.circle")
+            }
+
+            Divider()
+
+            if let onDelete {
+                Button(role: .destructive) {
+                    onDelete()
+                } label: {
+                    Label("Delete Task", systemImage: "trash")
+                }
+            }
+        }
         .draggable(task.id.uuidString)
     }
 
@@ -876,6 +889,9 @@ private struct FluxTaskRow: View {
                 }
                 .font(.caption.weight(.medium))
                 .foregroundStyle(.secondary)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.black.opacity(0.06), in: Capsule())
             }
 
             if task.recurrenceRule != nil {
@@ -890,34 +906,9 @@ private struct FluxTaskRow: View {
 
     private var expandedContent: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Notes - editable
-            TextEditor(text: Binding(
-                get: { task.notes },
-                set: {
-                    task.notes = $0
-                    task.updatedAt = .now
-                    try? modelContext.save()
-                }
-            ))
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
-            .scrollContentBackground(.hidden)
-            .frame(minHeight: 36, maxHeight: 80)
-            .padding(.horizontal, 56)
-            .overlay(alignment: .topLeading) {
-                if task.notes.isEmpty {
-                    Text("Notes")
-                        .font(.subheadline)
-                        .foregroundStyle(.tertiary)
-                        .padding(.horizontal, 56)
-                        .padding(.top, 8)
-                        .allowsHitTesting(false)
-                }
-            }
-
-            // Tag badges (if any)
+            // Tag badges — directly under title
             if !task.tags.isEmpty {
-                HStack(spacing: 6) {
+                FlowLayout(spacing: 6) {
                     ForEach(task.tags) { tag in
                         HStack(spacing: 4) {
                             Text(tag.title)
@@ -940,42 +931,141 @@ private struct FluxTaskRow: View {
                     }
                 }
                 .padding(.horizontal, 56)
-                .padding(.top, 8)
+                .padding(.bottom, 4)
             }
 
-            // Existing subtasks
-            if !task.checklist.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    ForEach(task.checklist.sorted(by: { $0.sortOrder < $1.sortOrder })) { item in
-                        FluxChecklistRow(item: item)
+            // Notes - editable
+            ZStack(alignment: .topLeading) {
+                if task.notes.isEmpty {
+                    Text("Notes")
+                        .font(.subheadline)
+                        .foregroundStyle(.tertiary)
+                        .padding(.top, 8)
+                        .padding(.leading, 5)
+                        .allowsHitTesting(false)
+                }
+
+                TextEditor(text: Binding(
+                    get: { task.notes },
+                    set: {
+                        task.notes = $0
+                        task.updatedAt = .now
+                        try? modelContext.save()
+                    }
+                ))
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .scrollContentBackground(.hidden)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(minHeight: 36)
+            }
+            .padding(.horizontal, 56)
+
+            // Subtasks section
+            if !task.checklist.isEmpty || activeAction == .subtasks {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Subtasks")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .textCase(.uppercase)
+                        .tracking(0.5)
+                        .padding(.horizontal, 56)
+                        .padding(.top, 14)
+
+                    if !task.checklist.isEmpty {
+                        VStack(alignment: .leading, spacing: 2) {
+                            ForEach(task.checklist.sorted(by: { $0.sortOrder < $1.sortOrder })) { item in
+                                FluxChecklistRow(item: item)
+                            }
+                        }
+                        .padding(.horizontal, 38)
+                    }
+
+                    // Add subtask inline
+                    if activeAction == .subtasks {
+                        HStack(spacing: 10) {
+                            Image(systemName: "plus.circle")
+                                .font(.subheadline)
+                                .foregroundStyle(.tertiary)
+
+                            TextField("Add subtask…", text: $newSubtaskTitle)
+                                .textFieldStyle(.plain)
+                                .font(.subheadline)
+                                .onSubmit {
+                                    addSubtask()
+                                }
+                        }
+                        .padding(.horizontal, 56)
+                        .padding(.top, 2)
+                        .transition(.opacity)
                     }
                 }
-                .padding(.horizontal, 38)
-                .padding(.top, 10)
+                .padding(.bottom, 4)
             }
 
-            // Action bar: date/evening on left, 4 icon buttons on right
+            // Bottom bar: breadcrumb on left, action buttons on right
             HStack(spacing: 0) {
-                // Left: date/evening info
-                dateLabel
-                    .font(.subheadline)
+                // Left: breadcrumb
+                if let area = task.area {
+                    HStack(spacing: 5) {
+                        Image(systemName: area.symbolName)
+                            .font(.system(size: 10))
+                            .foregroundStyle(Color(hex: area.tintHex))
+                        Text(area.title)
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(Color(hex: area.tintHex))
+
+                        if let project = task.project {
+                            Text("›")
+                                .font(.caption)
+                                .foregroundStyle(.quaternary)
+                            Text(project.title)
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
 
                 Spacer()
 
-                // Right: 4 action buttons
+                // Date / evening badge
+                dateLabel
+                    .font(.caption.weight(.medium))
+
+                Spacer()
+                    .frame(maxWidth: 16)
+
+                // Right: action buttons
                 HStack(spacing: 2) {
-                    actionButton(.calendar, icon: "calendar", active: task.whenDate != nil)
-                    actionButton(.tags, icon: "tag", active: !task.tags.isEmpty)
-                    actionButton(.subtasks, icon: "list.bullet", active: !task.checklist.isEmpty)
-                    actionButton(.deadline, icon: "flag", active: task.deadline != nil)
+                    actionButton(.calendar, icon: "calendar", filledIcon: "calendar.circle.fill", active: task.whenDate != nil)
+
+                    // Tags as popover
+                    Button {
+                        showTagsPopover.toggle()
+                    } label: {
+                        Image(systemName: !task.tags.isEmpty ? "tag.fill" : "tag")
+                            .font(.system(size: 14))
+                            .foregroundStyle(showTagsPopover ? .primary : (!task.tags.isEmpty ? .primary : .secondary))
+                            .frame(width: 30, height: 28)
+                            .background(showTagsPopover ? Color.primary.opacity(0.08) : Color.clear, in: RoundedRectangle(cornerRadius: 6))
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showTagsPopover, arrowEdge: .bottom) {
+                        FluxTagPanel(task: task)
+                            .frame(width: 220)
+                            .padding(4)
+                    }
+
+                    actionButton(.subtasks, icon: "checklist", filledIcon: "checklist.checked", active: !task.checklist.isEmpty)
+                    actionButton(.deadline, icon: "flag", filledIcon: "flag.fill", active: task.deadline != nil)
                 }
             }
             .padding(.horizontal, 56)
             .padding(.top, 12)
             .padding(.bottom, 8)
 
-            // Expanded action panel
-            if let action = activeAction {
+            // Expanded action panel (calendar/deadline — subtasks panel is inline above)
+            if let action = activeAction, action != .subtasks {
                 actionPanel(for: action)
                     .padding(.horizontal, 56)
                     .padding(.bottom, 10)
@@ -1021,15 +1111,15 @@ private struct FluxTaskRow: View {
         }
     }
 
-    private func actionButton(_ mode: TaskActionMode, icon: String, active: Bool) -> some View {
+    private func actionButton(_ mode: TaskActionMode, icon: String, filledIcon: String, active: Bool) -> some View {
         Button {
             withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
                 activeAction = activeAction == mode ? nil : mode
             }
         } label: {
-            Image(systemName: active ? "\(icon).fill" : icon)
+            Image(systemName: active ? filledIcon : icon)
                 .font(.system(size: 14))
-                .foregroundStyle(activeAction == mode ? .primary : (active ? .primary : .tertiary))
+                .foregroundStyle(activeAction == mode ? .primary : (active ? .primary : .secondary))
                 .frame(width: 30, height: 28)
                 .background(activeAction == mode ? Color.primary.opacity(0.08) : Color.clear, in: RoundedRectangle(cornerRadius: 6))
         }
@@ -1044,149 +1134,120 @@ private struct FluxTaskRow: View {
         case .calendar:
             calendarPanel
         case .tags:
-            tagsPanel
+            EmptyView()
         case .subtasks:
-            subtasksPanel
+            EmptyView()
         case .deadline:
             deadlinePanel
         }
     }
 
     private var calendarPanel: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 12) {
-                Button {
+        VStack(alignment: .leading, spacing: 12) {
+            // Quick-pick buttons
+            HStack(spacing: 8) {
+                calendarQuickButton(icon: "star.fill", iconColor: .yellow, label: "Today") {
                     task.whenDate = Calendar.current.startOfDay(for: .now)
                     task.isEvening = false
                     task.updatedAt = .now
                     try? modelContext.save()
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "star.fill").font(.system(size: 11)).foregroundStyle(.yellow)
-                        Text("Today").font(.subheadline)
-                    }
-                    .padding(.horizontal, 10).padding(.vertical, 6)
-                    .background(Color.primary.opacity(0.06), in: Capsule())
                 }
-                .buttonStyle(.plain)
 
-                Button {
+                calendarQuickButton(icon: "moon.fill", iconColor: .indigo, label: "Evening") {
                     task.whenDate = Calendar.current.startOfDay(for: .now)
                     task.isEvening = true
                     task.updatedAt = .now
                     try? modelContext.save()
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "moon.fill").font(.system(size: 11)).foregroundStyle(.indigo)
-                        Text("This Evening").font(.subheadline)
-                    }
-                    .padding(.horizontal, 10).padding(.vertical, 6)
-                    .background(Color.primary.opacity(0.06), in: Capsule())
                 }
-                .buttonStyle(.plain)
 
-                Button {
+                calendarQuickButton(icon: "shippingbox", iconColor: .secondary, label: "Someday") {
                     task.status = .someday
                     task.whenDate = nil
                     task.updatedAt = .now
                     try? modelContext.save()
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "shippingbox").font(.system(size: 11))
-                        Text("Someday").font(.subheadline)
-                    }
-                    .padding(.horizontal, 10).padding(.vertical, 6)
-                    .background(Color.primary.opacity(0.06), in: Capsule())
                 }
-                .buttonStyle(.plain)
 
                 if task.whenDate != nil {
-                    Button {
+                    calendarQuickButton(icon: "xmark", iconColor: .secondary, label: "Clear") {
                         task.whenDate = nil
                         task.isEvening = false
                         task.updatedAt = .now
                         try? modelContext.save()
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.subheadline)
-                            .foregroundStyle(.tertiary)
                     }
-                    .buttonStyle(.plain)
                 }
             }
 
-            DatePicker("", selection: Binding(
-                get: { task.whenDate ?? .now },
-                set: {
-                    task.whenDate = $0
+            // Calendar grid
+            FluxCalendarGrid(
+                selectedDate: task.whenDate,
+                onSelect: { date in
+                    task.whenDate = date
                     task.isEvening = false
                     task.updatedAt = .now
                     try? modelContext.save()
                 }
-            ), displayedComponents: [.date])
-            .datePickerStyle(.graphical)
-            .labelsHidden()
-            .frame(maxWidth: 280, maxHeight: 240)
+            )
         }
-        .padding(12)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .padding(16)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
-    private var tagsPanel: some View {
-        FluxTagPanel(task: task)
-    }
-
-    private var subtasksPanel: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "list.bullet")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-
-            TextField("Add subtask…", text: $newSubtaskTitle)
-                .textFieldStyle(.plain)
-                .font(.subheadline)
-                .onSubmit {
-                    addSubtask()
-                }
+    private func calendarQuickButton(icon: String, iconColor: Color, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 14))
+                    .foregroundStyle(iconColor)
+                Text(label)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.secondary)
+            }
+            .frame(width: 64, height: 48)
+            .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
-        .padding(10)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .buttonStyle(.plain)
     }
 
     private var deadlinePanel: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if task.deadline != nil {
-                HStack(spacing: 8) {
-                    Text("Due \(task.deadline!.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()))")
-                        .font(.subheadline)
-                        .foregroundStyle(.orange)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "flag.fill")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.orange)
+                Text("Deadline")
+                    .font(.subheadline.weight(.medium))
+
+                Spacer()
+
+                if task.deadline != nil {
                     Button {
                         task.deadline = nil
                         task.updatedAt = .now
                         try? modelContext.save()
                     } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.subheadline)
-                            .foregroundStyle(.tertiary)
+                        Text("Clear")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.primary.opacity(0.06), in: Capsule())
                     }
                     .buttonStyle(.plain)
                 }
             }
 
-            DatePicker("", selection: Binding(
-                get: { task.deadline ?? Calendar.current.date(byAdding: .day, value: 7, to: .now) ?? .now },
-                set: {
-                    task.deadline = $0
+            FluxCalendarGrid(
+                selectedDate: task.deadline,
+                accentColor: .orange,
+                onSelect: { date in
+                    task.deadline = date
                     task.updatedAt = .now
                     try? modelContext.save()
                 }
-            ), displayedComponents: [.date])
-            .datePickerStyle(.graphical)
-            .labelsHidden()
-            .frame(maxWidth: 280, maxHeight: 240)
+            )
         }
-        .padding(12)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .padding(16)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private func addSubtask() {
@@ -1313,6 +1374,127 @@ private struct FluxChecklistRow: View {
     }
 }
 
+// MARK: - Custom Calendar Grid
+
+private struct FluxCalendarGrid: View {
+    let selectedDate: Date?
+    var accentColor: Color = .blue
+    let onSelect: (Date) -> Void
+
+    @State private var displayedMonth: Date = Date()
+
+    private let calendar = Calendar.current
+    private let dayOfWeekSymbols = Calendar.current.shortWeekdaySymbols
+
+    private var monthTitle: String {
+        displayedMonth.formatted(.dateTime.month(.wide).year())
+    }
+
+    private var daysInGrid: [Date?] {
+        let comps = calendar.dateComponents([.year, .month], from: displayedMonth)
+        guard let firstOfMonth = calendar.date(from: comps),
+              let range = calendar.range(of: .day, in: .month, for: firstOfMonth) else { return [] }
+
+        let weekdayOfFirst = calendar.component(.weekday, from: firstOfMonth)
+        let leadingBlanks = weekdayOfFirst - calendar.firstWeekday
+        let adjustedBlanks = (leadingBlanks + 7) % 7
+
+        var days: [Date?] = Array(repeating: nil, count: adjustedBlanks)
+        for day in range {
+            if let date = calendar.date(bySetting: .day, value: day, of: firstOfMonth) {
+                days.append(date)
+            }
+        }
+        return days
+    }
+
+    private func isSelected(_ date: Date) -> Bool {
+        guard let sel = selectedDate else { return false }
+        return calendar.isDate(date, inSameDayAs: sel)
+    }
+
+    private func isToday(_ date: Date) -> Bool {
+        calendar.isDateInToday(date)
+    }
+
+    var body: some View {
+        VStack(spacing: 10) {
+            // Month header with navigation
+            HStack {
+                Text(monthTitle)
+                    .font(.subheadline.weight(.semibold))
+
+                Spacer()
+
+                HStack(spacing: 16) {
+                    Button {
+                        shiftMonth(-1)
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(accentColor)
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        shiftMonth(1)
+                    } label: {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(accentColor)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            // Weekday headers
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: 7), spacing: 0) {
+                ForEach(dayOfWeekSymbols, id: \.self) { symbol in
+                    Text(symbol.uppercased())
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.tertiary)
+                        .frame(height: 20)
+                }
+            }
+
+            // Day grid
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: 7), spacing: 4) {
+                ForEach(Array(daysInGrid.enumerated()), id: \.offset) { _, date in
+                    if let date {
+                        Button {
+                            onSelect(date)
+                        } label: {
+                            Text("\(calendar.component(.day, from: date))")
+                                .font(.system(size: 14, weight: isSelected(date) ? .semibold : .regular))
+                                .foregroundStyle(isSelected(date) ? .white : (isToday(date) ? accentColor : .primary))
+                                .frame(width: 32, height: 32)
+                                .background {
+                                    if isSelected(date) {
+                                        Circle().fill(accentColor)
+                                    } else if isToday(date) {
+                                        Circle().fill(accentColor.opacity(0.1))
+                                    }
+                                }
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        Text("")
+                            .frame(width: 32, height: 32)
+                    }
+                }
+            }
+        }
+    }
+
+    private func shiftMonth(_ delta: Int) {
+        if let newMonth = calendar.date(byAdding: .month, value: delta, to: displayedMonth) {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                displayedMonth = newMonth
+            }
+        }
+    }
+}
+
 // MARK: - Badges
 
 private struct FluxBadge: View {
@@ -1391,30 +1573,6 @@ private struct FluxEmptyState: View {
         .padding(28)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
-    }
-}
-
-// MARK: - Progress Pie
-
-struct FluxProgressPie: View {
-    let progress: Double
-    let tint: String
-    var lineWidth: CGFloat = 6
-
-    var body: some View {
-        ZStack {
-            Circle()
-                .stroke(Color(hex: tint).opacity(0.16), lineWidth: lineWidth)
-            Circle()
-                .trim(from: 0, to: progress)
-                .stroke(
-                    Color(hex: tint),
-                    style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
-                )
-                .rotationEffect(.degrees(-90))
-        }
-        .accessibilityLabel("Progress")
-        .accessibilityValue("\(Int(progress * 100)) percent")
     }
 }
 
@@ -1639,14 +1797,6 @@ struct SettingsSheet: View {
 
 // MARK: - Supporting Types
 
-private enum NoteMode: String, CaseIterable, Identifiable {
-    case preview
-    case edit
-
-    var id: String { rawValue }
-    var title: String { rawValue.capitalized }
-}
-
 private struct SelectedProjectIDKey: FocusedValueKey {
     typealias Value = UUID
 }
@@ -1655,6 +1805,49 @@ extension FocusedValues {
     var selectedProjectID: UUID? {
         get { self[SelectedProjectIDKey.self] }
         set { self[SelectedProjectIDKey.self] = newValue }
+    }
+}
+
+// MARK: - Flow Layout (for tag chips)
+
+private struct FlowLayout: Layout {
+    var spacing: CGFloat = 6
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let maxWidth = proposal.width ?? .infinity
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var rowHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x + size.width > maxWidth && x > 0 {
+                x = 0
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
+        return CGSize(width: maxWidth, height: y + rowHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var x: CGFloat = bounds.minX
+        var y: CGFloat = bounds.minY
+        var rowHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x + size.width > bounds.maxX && x > bounds.minX {
+                x = bounds.minX
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+            subview.place(at: CGPoint(x: x, y: y), proposal: .unspecified)
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
     }
 }
 
