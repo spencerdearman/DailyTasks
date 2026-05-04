@@ -9,13 +9,13 @@ final class Area {
     var symbolName: String = "square.grid.2x2"
     var tintHex: String = "#5B83B7"
     var sortOrder: Double = 0
-
+    
     @Relationship(deleteRule: .cascade, inverse: \Project.area)
     var projects: [Project]?
-
+    
     @Relationship(deleteRule: .nullify, inverse: \TaskItem.area)
     var tasks: [TaskItem]?
-
+    
     init(
         id: UUID = UUID(),
         title: String,

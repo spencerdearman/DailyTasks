@@ -25,42 +25,48 @@ final class CalendarStore: ObservableObject {
     @Published private(set) var upcomingEvents: [CalendarEvent] = []
     @Published private(set) var calendarAccessGranted = false
     @Published private(set) var remindersAccessGranted = false
-
-    private let eventStore = EKEventStore()
-
+    
+    private let syncService = EventKitSyncService()
+    
     func refresh() {
-        requestAccessIfNeeded()
-        guard calendarAccessGranted else { return }
-
-        let calendar = Calendar.current
-        let start = calendar.startOfDay(for: .now)
-        let weekAhead = calendar.date(byAdding: .day, value: 7, to: start) ?? .now
-        let tomorrow = calendar.date(byAdding: .day, value: 1, to: start) ?? .now
-
-        let todayPredicate = eventStore.predicateForEvents(withStart: start, end: tomorrow, calendars: nil)
-        let weekPredicate = eventStore.predicateForEvents(withStart: tomorrow, end: weekAhead, calendars: nil)
-
-        todayEvents = eventStore.events(matching: todayPredicate)
-            .sorted { $0.startDate < $1.startDate }
-            .map(CalendarEvent.init)
-        upcomingEvents = eventStore.events(matching: weekPredicate)
-            .sorted { $0.startDate < $1.startDate }
-            .map(CalendarEvent.init)
+        Task {
+            do {
+                let granted = try await syncService.requestCalendarAccess()
+                calendarAccessGranted = granted
+                
+                guard granted else {
+                    todayEvents = []
+                    upcomingEvents = []
+                    return
+                }
+                
+                let calendar = Calendar.current
+                let start = calendar.startOfDay(for: .now)
+                let weekAhead = calendar.date(byAdding: .day, value: 7, to: start) ?? .now
+                let tomorrow = calendar.date(byAdding: .day, value: 1, to: start) ?? .now
+                
+                todayEvents = syncService.events(from: start, to: tomorrow)
+                upcomingEvents = syncService.events(from: tomorrow, to: weekAhead)
+            } catch {
+                calendarAccessGranted = false
+                todayEvents = []
+                upcomingEvents = []
+            }
+        }
     }
-
+    
     func importReminders(into context: ModelContext, areas: [Area]) {
-        requestAccessIfNeeded()
-        guard remindersAccessGranted else { return }
-
-        let predicate = eventStore.predicateForIncompleteReminders(withDueDateStarting: nil, ending: nil, calendars: nil)
-        eventStore.fetchReminders(matching: predicate) { reminders in
-            guard let reminders else { return }
-
-            Task { @MainActor in
+        Task {
+            do {
+                let granted = try await syncService.requestRemindersAccess()
+                remindersAccessGranted = granted
+                guard granted else { return }
+                
+                let reminders = try await syncService.incompleteReminders()
                 let existingTitles = Set(
                     (try? context.fetch(FetchDescriptor<TaskItem>()))?.map { $0.title.lowercased() } ?? []
                 )
-
+                
                 for reminder in reminders where !existingTitles.contains(reminder.title.lowercased()) {
                     let notes = reminder.notes ?? ""
                     let decision = SemanticRouter.analyze(title: reminder.title, notes: notes, areas: areas)
@@ -76,27 +82,10 @@ final class CalendarStore: ObservableObject {
                     )
                     context.insert(task)
                 }
-
+                
                 try? context.save()
-            }
-        }
-    }
-
-    private func requestAccessIfNeeded() {
-        eventStore.requestAccess(to: .event) { [weak self] granted, _ in
-            guard let self else { return }
-            Task { @MainActor [granted] in
-                self.calendarAccessGranted = granted
-                if granted {
-                    self.refresh()
-                }
-            }
-        }
-
-        eventStore.requestAccess(to: .reminder) { [weak self] granted, _ in
-            guard let self else { return }
-            Task { @MainActor [granted] in
-                self.remindersAccessGranted = granted
+            } catch {
+                remindersAccessGranted = false
             }
         }
     }

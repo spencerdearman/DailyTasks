@@ -15,11 +15,11 @@ enum SampleDataSeeder {
         if let existing = try? context.fetch(descriptor), !existing.isEmpty {
             return
         }
-
+        
         let work = Area(title: "Work", notes: "Professional commitments and shipping work.", symbolName: "briefcase.fill", tintHex: "#62666D", sortOrder: 0)
         let health = Area(title: "Health", notes: "Body, energy, appointments, and routines.", symbolName: "heart.fill", tintHex: "#FF383C", sortOrder: 1)
         let personal = Area(title: "Personal", notes: "Life admin and personal projects.", symbolName: "house.fill", tintHex: "#8A7D6A", sortOrder: 2)
-
+        
         let keynote = Project(
             title: "Prepare Presentation",
             notes: """
@@ -34,11 +34,11 @@ enum SampleDataSeeder {
         let slides = Heading(title: "Slides and notes", sortOrder: 0, project: keynote)
         let prep = Heading(title: "Preparation", sortOrder: 1, project: keynote)
         let facilities = Heading(title: "Facilities", sortOrder: 2, project: keynote)
-
+        
         let important = Tag(title: "Important", symbolName: "exclamationmark.circle", tintHex: "#7A7068")
         let john = Tag(title: "John", symbolName: "person.fill", tintHex: "#8A8E95")
         let errands = Tag(title: "Errand", symbolName: "car.fill", tintHex: "#72767D")
-
+        
         let task1 = TaskItem(
             title: "Revise introduction",
             notes: "Tighten the opening two slides and simplify the problem statement.",
@@ -98,11 +98,11 @@ enum SampleDataSeeder {
         )
         task7.completedAt = Calendar.current.date(byAdding: .day, value: -1, to: .now)
         let task7John = TaskTagAssignment(task: task7, tag: john)
-
+        
         let checklist1 = ChecklistItem(title: "Capture revised numbers", sortOrder: 0, task: task1)
         let checklist2 = ChecklistItem(title: "Shorten slide 2", isCompleted: true, sortOrder: 1, task: task1)
         task1.checklist = [checklist1, checklist2]
-
+        
         context.insert(work)
         context.insert(health)
         context.insert(personal)
@@ -124,7 +124,7 @@ enum SampleDataSeeder {
         context.insert(task5)
         context.insert(task6)
         context.insert(task7)
-
+        
         try? context.save()
     }
 }

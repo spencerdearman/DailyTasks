@@ -3,13 +3,14 @@ import SwiftUI
 
 struct TaskRow: View {
     @Environment(\.modelContext) private var modelContext
+    private let eventKitSync = EventKitSyncService()
     let task: TaskItem
     let isExpanded: Bool
     let isCompleting: Bool
     let onToggle: () -> Void
     let onTap: () -> Void
     var onDelete: (() -> Void)?
-
+    
     @State private var activeAction: TaskActionMode?
     @State private var showTagsPopover = false
     @State private var showCalendarPopover = false
@@ -17,19 +18,21 @@ struct TaskRow: View {
     @State private var showMovePopover = false
     @State private var newSubtaskTitle = ""
     @State private var notesExpanded = false
+    @State private var showCalendarTime = false
     @State private var showDeadlineTime = false
-
+    @State private var calendarSyncErrorMessage: String?
+    
     @Query(sort: \Area.sortOrder) private var allAreas: [Area]
     @Query(sort: \Project.sortOrder) private var allProjects: [Project]
-
+    
     private var isDone: Bool { isCompleting || task.isCompleted }
-
+    
     private var hasCompactMeta: Bool {
         task.project != nil || task.area != nil || !task.tagList.isEmpty
-            || task.effectiveDate != nil || !task.checklistItems.isEmpty
-            || task.recurrenceRule != nil || task.deadline != nil
+        || task.effectiveDate != nil || !task.checklistItems.isEmpty
+        || task.recurrenceRule != nil || task.deadline != nil
     }
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Main row: checkbox + title
@@ -42,13 +45,13 @@ struct TaskRow: View {
                 }
                 .buttonStyle(.plain)
                 .frame(width: 24, height: 24)
-
+                
                 VStack(alignment: .leading, spacing: 6) {
                     Text(task.title)
                         .font(.body.weight(.medium))
                         .strikethrough(isDone)
                         .foregroundStyle(isDone ? .secondary : .primary)
-
+                    
                     // Collapsed inline meta
                     if !isExpanded && hasCompactMeta {
                         compactMeta
@@ -61,7 +64,7 @@ struct TaskRow: View {
             .padding(.horizontal, 18)
             .padding(.vertical, 14)
             .opacity(isCompleting ? 0.5 : 1.0)
-
+            
             // Expanded
             if isExpanded {
                 expandedContent
@@ -69,6 +72,13 @@ struct TaskRow: View {
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 0))
+        .alert("Calendar Sync", isPresented: calendarSyncAlertIsPresented) {
+            Button("OK", role: .cancel) {
+                calendarSyncErrorMessage = nil
+            }
+        } message: {
+            Text(calendarSyncErrorMessage ?? "Something went wrong while updating Calendar.")
+        }
         .contextMenu {
             Button {
                 onToggle()
@@ -76,9 +86,32 @@ struct TaskRow: View {
                 Label(task.isCompleted ? "Mark Incomplete" : "Mark Complete",
                       systemImage: task.isCompleted ? "circle" : "checkmark.circle")
             }
-
+            
             Divider()
-
+            
+            Button {
+                Task {
+                    try? await eventKitSync.upsertCalendarEvent(for: task)
+                    try? modelContext.save()
+                }
+            } label: {
+                Label(task.hasCalendarEvent ? "Update Calendar Event" : "Schedule on Calendar",
+                      systemImage: task.hasCalendarEvent ? "calendar.badge.clock" : "calendar.badge.plus")
+            }
+            
+            if task.hasCalendarEvent {
+                Button(role: .destructive) {
+                    Task {
+                        try? await eventKitSync.removeCalendarEvent(for: task)
+                        try? modelContext.save()
+                    }
+                } label: {
+                    Label("Remove from Calendar", systemImage: "calendar.badge.minus")
+                }
+            }
+            
+            Divider()
+            
             if let onDelete {
                 Button(role: .destructive) {
                     onDelete()
@@ -88,9 +121,9 @@ struct TaskRow: View {
             }
         }
     }
-
+    
     // MARK: Collapsed meta badges
-
+    
     private var compactMeta: some View {
         HStack(spacing: 6) {
             // 1. Area / Project
@@ -99,12 +132,12 @@ struct TaskRow: View {
             } else if let area = task.area {
                 Badge(text: area.title, tint: area.tintHex)
             }
-
+            
             // 2. When date
             if let date = task.whenDate {
                 DateBadge(date: date, isDeadline: false)
             }
-
+            
             // 3. Deadline
             if let deadline = task.deadline {
                 HStack(spacing: 3) {
@@ -118,12 +151,25 @@ struct TaskRow: View {
                 .padding(.vertical, 4)
                 .background(Color.orange.opacity(0.1), in: Capsule())
             }
-
+            
+            if task.hasCalendarEvent {
+                HStack(spacing: 3) {
+                    Image(systemName: "calendar.badge.clock")
+                        .font(.system(size: 9))
+                    Text(task.suggestedCalendarStartAt.formatted(.dateTime.month(.abbreviated).day().hour(.defaultDigits(amPM: .abbreviated)).minute()))
+                }
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.blue)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.blue.opacity(0.1), in: Capsule())
+            }
+            
             // 4. Tags
             ForEach(task.tagList.prefix(3)) { tag in
                 Badge(text: tag.title, tint: tag.tintHex)
             }
-
+            
             // 5. Checklist
             if !task.checklistItems.isEmpty {
                 HStack(spacing: 3) {
@@ -139,9 +185,9 @@ struct TaskRow: View {
             }
         }
     }
-
+    
     // MARK: Expanded content
-
+    
     private var expandedContent: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Tag badges — directly under title
@@ -174,7 +220,7 @@ struct TaskRow: View {
                 .padding(.top, 2)
                 .padding(.bottom, 10)
             }
-
+            
             // Notes
             VStack(alignment: .leading, spacing: 2) {
                 TextField("Notes", text: Binding(
@@ -189,7 +235,7 @@ struct TaskRow: View {
                 .foregroundStyle(.secondary)
                 .textFieldStyle(.plain)
                 .lineLimit(notesExpanded ? nil : 5)
-
+                
                 if task.notes.count > 100 && !notesExpanded {
                     Button {
                         withAnimation(.easeInOut(duration: 0.2)) {
@@ -215,7 +261,7 @@ struct TaskRow: View {
                 }
             }
             .padding(.horizontal, 56)
-
+            
             // Subtasks section
             if !task.checklistItems.isEmpty || activeAction == .subtasks {
                 VStack(alignment: .leading, spacing: 6) {
@@ -226,7 +272,7 @@ struct TaskRow: View {
                         .tracking(0.5)
                         .padding(.horizontal, 56)
                         .padding(.top, 14)
-
+                    
                     if !task.checklistItems.isEmpty {
                         VStack(alignment: .leading, spacing: 2) {
                             ForEach(task.checklistItems.sorted(by: { $0.sortOrder < $1.sortOrder })) { item in
@@ -235,14 +281,14 @@ struct TaskRow: View {
                         }
                         .padding(.horizontal, 38)
                     }
-
+                    
                     // Add subtask inline
                     if activeAction == .subtasks {
                         HStack(spacing: 10) {
                             Image(systemName: "plus.circle")
                                 .font(.subheadline)
                                 .foregroundStyle(.tertiary)
-
+                            
                             TextField("Add subtask…", text: $newSubtaskTitle)
                                 .textFieldStyle(.plain)
                                 .font(.subheadline)
@@ -257,7 +303,7 @@ struct TaskRow: View {
                 }
                 .padding(.bottom, 4)
             }
-
+            
             // Bottom bar: breadcrumb on left, action buttons on right
             HStack(spacing: 0) {
                 // Left: breadcrumb
@@ -269,7 +315,7 @@ struct TaskRow: View {
                         Text(area.title)
                             .font(.caption.weight(.medium))
                             .foregroundStyle(Color(hex: area.tintHex))
-
+                        
                         if let project = task.project {
                             Text("›")
                                 .font(.caption)
@@ -280,13 +326,13 @@ struct TaskRow: View {
                         }
                     }
                 }
-
+                
                 Spacer()
-
+                
                 // Date / evening badge + deadline
                 HStack(spacing: 8) {
                     dateLabel
-
+                    
                     if let deadline = task.deadline {
                         HStack(spacing: 3) {
                             Image(systemName: "flag.fill")
@@ -298,10 +344,10 @@ struct TaskRow: View {
                     }
                 }
                 .font(.caption.weight(.medium))
-
+                
                 Spacer()
                     .frame(maxWidth: 16)
-
+                
                 // Right: action buttons
                 HStack(spacing: 2) {
                     // Calendar popover
@@ -320,7 +366,7 @@ struct TaskRow: View {
                             .frame(width: 300)
                             .padding(4)
                     }
-
+                    
                     // Tags popover
                     Button {
                         showTagsPopover.toggle()
@@ -337,10 +383,10 @@ struct TaskRow: View {
                             .frame(width: 220)
                             .padding(4)
                     }
-
+                    
                     // Subtasks toggle (inline)
                     actionButton(.subtasks, icon: "checklist", filledIcon: "checklist.checked", active: !task.checklistItems.isEmpty)
-
+                    
                     // Deadline popover
                     Button {
                         showDeadlinePopover.toggle()
@@ -357,7 +403,7 @@ struct TaskRow: View {
                             .frame(width: 300)
                             .padding(4)
                     }
-
+                    
                     // Move to popover
                     Button {
                         showMovePopover.toggle()
@@ -382,7 +428,7 @@ struct TaskRow: View {
         }
         .padding(.bottom, 6)
     }
-
+    
     @ViewBuilder
     private var dateLabel: some View {
         if let date = task.whenDate {
@@ -427,7 +473,7 @@ struct TaskRow: View {
             Text("")
         }
     }
-
+    
     private func deadlineDisplayText(_ deadline: Date) -> String {
         let cal = Calendar.current
         let hour = cal.component(.hour, from: deadline)
@@ -439,7 +485,7 @@ struct TaskRow: View {
         let timeStr = deadline.formatted(.dateTime.hour(.defaultDigits(amPM: .abbreviated)).minute())
         return "\(dateStr) \(timeStr)"
     }
-
+    
     private func actionButton(_ mode: TaskActionMode, icon: String, filledIcon: String, active: Bool) -> some View {
         Button {
             withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
@@ -454,9 +500,9 @@ struct TaskRow: View {
         }
         .buttonStyle(.plain)
     }
-
+    
     // MARK: Action panels
-
+    
     private var calendarPanel: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Quick-pick buttons
@@ -464,7 +510,7 @@ struct TaskRow: View {
                 let isToday = task.whenDate != nil && Calendar.current.isDateInToday(task.whenDate!) && !task.isEvening
                 let isEvening = task.isEvening
                 let isLater = task.status == .someday && task.whenDate == nil
-
+                
                 calendarQuickButton(icon: "star.fill", iconColor: .yellow, label: "Today", isSelected: isToday) {
                     task.whenDate = Calendar.current.startOfDay(for: .now)
                     task.isEvening = false
@@ -472,7 +518,7 @@ struct TaskRow: View {
                     task.updatedAt = .now
                     try? modelContext.save()
                 }
-
+                
                 calendarQuickButton(icon: "moon.fill", iconColor: .indigo, label: "Evening", isSelected: isEvening) {
                     task.whenDate = Calendar.current.startOfDay(for: .now)
                     task.isEvening = true
@@ -480,7 +526,7 @@ struct TaskRow: View {
                     task.updatedAt = .now
                     try? modelContext.save()
                 }
-
+                
                 calendarQuickButton(icon: "moon.zzz.fill", iconColor: .secondary, label: "Later", isSelected: isLater) {
                     task.status = .someday
                     task.whenDate = nil
@@ -488,7 +534,7 @@ struct TaskRow: View {
                     task.updatedAt = .now
                     try? modelContext.save()
                 }
-
+                
                 if task.whenDate != nil || isLater {
                     calendarQuickButton(icon: "xmark", iconColor: .secondary, label: "Clear") {
                         task.whenDate = nil
@@ -499,23 +545,126 @@ struct TaskRow: View {
                     }
                 }
             }
-
+            
             // Calendar grid
             CalendarGrid(
                 selectedDate: task.whenDate,
                 onSelect: { date in
                     task.whenDate = date
                     task.isEvening = false
+                    if showCalendarTime || task.calendarStartAt != nil {
+                        let calendar = Calendar.current
+                        let existing = task.calendarStartAt ?? task.suggestedCalendarStartAt
+                        let time = calendar.dateComponents([.hour, .minute], from: existing)
+                        var day = calendar.dateComponents([.year, .month, .day], from: date)
+                        day.hour = time.hour
+                        day.minute = time.minute
+                        task.calendarStartAt = calendar.date(from: day) ?? existing
+                    }
                     task.updatedAt = .now
                     try? modelContext.save()
                 }
             )
+            
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 8) {
+                    Button {
+                        toggleCalendarTime()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "clock")
+                                .font(.system(size: 11))
+                            Text(showCalendarTime ? "Remove time" : "Add time")
+                                .font(.caption.weight(.medium))
+                        }
+                        .foregroundStyle(showCalendarTime ? .blue : .secondary)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    if showCalendarTime {
+                        Spacer()
+                        calendarTimeControls
+                    }
+                }
+                
+                if showCalendarTime {
+                    HStack(spacing: 8) {
+                        Text("Duration")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.secondary)
+                        
+                        Spacer()
+                        
+                        Stepper(value: calendarDurationBinding, in: 15...480, step: 15) {
+                            Text("\(task.calendarDurationMinutes) min")
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(.primary)
+                                .monospacedDigit()
+                        }
+                        .labelsHidden()
+                        
+                        Text("\(task.calendarDurationMinutes) min")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.primary)
+                            .monospacedDigit()
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    }
+                }
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    Button {
+                        scheduleOnCalendar()
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: task.hasCalendarEvent ? "calendar.badge.clock" : "calendar.badge.plus")
+                                .font(.system(size: 12, weight: .semibold))
+                            Text(task.hasCalendarEvent ? "Update Calendar Event" : "Schedule on Calendar")
+                                .font(.caption.weight(.semibold))
+                            Spacer()
+                            if let startAt = task.calendarStartAt ?? (showCalendarTime ? task.suggestedCalendarStartAt : nil) {
+                                Text(startAt.formatted(.dateTime.month(.abbreviated).day().hour(.defaultDigits(amPM: .abbreviated)).minute()))
+                                    .font(.caption2.weight(.medium))
+                                    .foregroundStyle(.white.opacity(0.85))
+                            }
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    
+                    if task.hasCalendarEvent {
+                        Button {
+                            removeFromCalendar()
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "calendar.badge.minus")
+                                    .font(.system(size: 12, weight: .semibold))
+                                Text("Remove from Calendar")
+                                    .font(.caption.weight(.medium))
+                                Spacer()
+                            }
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 9)
+                            .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
         }
         .frame(minWidth: 280)
         .padding(16)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .onAppear {
+            syncCalendarPanelState()
+        }
     }
-
+    
     private func calendarQuickButton(icon: String, iconColor: Color, label: String, isSelected: Bool = false, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 4) {
@@ -532,7 +681,7 @@ struct TaskRow: View {
         }
         .buttonStyle(.plain)
     }
-
+    
     private var deadlinePanel: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
@@ -541,9 +690,9 @@ struct TaskRow: View {
                     .foregroundStyle(.orange)
                 Text("Deadline")
                     .font(.subheadline.weight(.medium))
-
+                
                 Spacer()
-
+                
                 if task.deadline != nil {
                     Button {
                         task.deadline = nil
@@ -561,7 +710,7 @@ struct TaskRow: View {
                     .buttonStyle(.plain)
                 }
             }
-
+            
             CalendarGrid(
                 selectedDate: task.deadline,
                 accentColor: .orange,
@@ -581,7 +730,7 @@ struct TaskRow: View {
                     try? modelContext.save()
                 }
             )
-
+            
             // Time toggle
             HStack(spacing: 8) {
                 Button {
@@ -616,15 +765,15 @@ struct TaskRow: View {
                     .foregroundStyle(showDeadlineTime ? .orange : .secondary)
                 }
                 .buttonStyle(.plain)
-
+                
                 if showDeadlineTime, let deadline = task.deadline {
                     Spacer()
-
+                    
                     let cal = Calendar.current
                     let hour = cal.component(.hour, from: deadline)
                     let minute = cal.component(.minute, from: deadline)
                     let is12Hour = hour % 12 == 0 ? 12 : hour % 12
-
+                    
                     HStack(spacing: 0) {
                         // Hour
                         Menu {
@@ -644,11 +793,11 @@ struct TaskRow: View {
                         }
                         .menuStyle(.borderlessButton)
                         .fixedSize()
-
+                        
                         Text(":")
                             .font(.subheadline.weight(.medium))
                             .foregroundStyle(.secondary)
-
+                        
                         // Minute
                         Menu {
                             ForEach(Array(stride(from: 0, through: 55, by: 5)), id: \.self) { m in
@@ -666,7 +815,7 @@ struct TaskRow: View {
                         }
                         .menuStyle(.borderlessButton)
                         .fixedSize()
-
+                        
                         // AM/PM
                         Menu {
                             Button("AM") {
@@ -711,7 +860,7 @@ struct TaskRow: View {
             }
         }
     }
-
+    
     private var movePanel: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 8) {
@@ -722,7 +871,7 @@ struct TaskRow: View {
                     .font(.subheadline.weight(.medium))
                 Spacer()
             }
-
+            
             Button {
                 moveToInbox()
             } label: {
@@ -739,7 +888,7 @@ struct TaskRow: View {
                 .background(task.isInInbox ? Color.primary.opacity(0.08) : Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
             .buttonStyle(.plain)
-
+            
             if !allAreas.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Areas")
@@ -747,12 +896,12 @@ struct TaskRow: View {
                         .foregroundStyle(.secondary)
                         .textCase(.uppercase)
                         .tracking(0.5)
-
+                    
                     ScrollView {
                         VStack(alignment: .leading, spacing: 6) {
                             ForEach(allAreas) { area in
                                 areaMoveRow(area)
-
+                                
                                 let projectsInArea = allProjects.filter { $0.area?.id == area.id }
                                 if !projectsInArea.isEmpty {
                                     ForEach(projectsInArea) { project in
@@ -770,10 +919,10 @@ struct TaskRow: View {
         .padding(16)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
-
+    
     private func areaMoveRow(_ area: Area) -> some View {
         let isSelected = task.area?.id == area.id && task.project == nil
-
+        
         return Button {
             moveToArea(area)
         } label: {
@@ -798,10 +947,10 @@ struct TaskRow: View {
         }
         .buttonStyle(.plain)
     }
-
+    
     private func projectMoveRow(_ project: Project, in area: Area) -> some View {
         let isSelected = task.project?.id == project.id
-
+        
         return Button {
             moveToProject(project, in: area)
         } label: {
@@ -827,7 +976,7 @@ struct TaskRow: View {
         }
         .buttonStyle(.plain)
     }
-
+    
     private func moveToInbox() {
         task.area = nil
         task.project = nil
@@ -837,7 +986,7 @@ struct TaskRow: View {
         try? modelContext.save()
         showMovePopover = false
     }
-
+    
     private func moveToArea(_ area: Area) {
         task.area = area
         task.project = nil
@@ -847,7 +996,7 @@ struct TaskRow: View {
         try? modelContext.save()
         showMovePopover = false
     }
-
+    
     private func moveToProject(_ project: Project, in area: Area) {
         task.area = area
         task.project = project
@@ -857,11 +1006,11 @@ struct TaskRow: View {
         try? modelContext.save()
         showMovePopover = false
     }
-
+    
     private func addSubtask() {
         let title = newSubtaskTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty else { return }
-
+        
         let item = ChecklistItem(
             title: title,
             sortOrder: Double(task.checklistItems.count),
@@ -875,6 +1024,158 @@ struct TaskRow: View {
         try? modelContext.save()
         newSubtaskTitle = ""
     }
+    
+    private var calendarSyncAlertIsPresented: Binding<Bool> {
+        Binding(
+            get: { calendarSyncErrorMessage != nil },
+            set: { isPresented in
+                if !isPresented {
+                    calendarSyncErrorMessage = nil
+                }
+            }
+        )
+    }
+    
+    private var calendarDurationBinding: Binding<Int> {
+        Binding(
+            get: { max(task.calendarDurationMinutes, 15) },
+            set: { newValue in
+                task.calendarDurationMinutes = max(newValue, 15)
+                task.updatedAt = .now
+                try? modelContext.save()
+            }
+        )
+    }
+    
+    private var calendarTimeControls: some View {
+        let calendar = Calendar.current
+        let startAt = task.calendarStartAt ?? task.suggestedCalendarStartAt
+        let hour = calendar.component(.hour, from: startAt)
+        let minute = calendar.component(.minute, from: startAt)
+        let is12Hour = hour % 12 == 0 ? 12 : hour % 12
+        
+        return HStack(spacing: 0) {
+            Menu {
+                ForEach(1...12, id: \.self) { h in
+                    Button("\(h)") {
+                        let newHour = hour >= 12 ? (h % 12) + 12 : h % 12
+                        updateCalendarStart(hour: newHour, minute: minute)
+                    }
+                }
+            } label: {
+                Text("\(is12Hour)")
+                    .font(.subheadline.weight(.medium).monospacedDigit())
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            
+            Text(":")
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.secondary)
+            
+            Menu {
+                ForEach(Array(stride(from: 0, through: 55, by: 5)), id: \.self) { m in
+                    Button(String(format: "%02d", m)) {
+                        updateCalendarStart(hour: hour, minute: m)
+                    }
+                }
+            } label: {
+                Text(String(format: "%02d", minute))
+                    .font(.subheadline.weight(.medium).monospacedDigit())
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            
+            Menu {
+                Button("AM") {
+                    if hour >= 12 {
+                        updateCalendarStart(hour: hour - 12, minute: minute)
+                    }
+                }
+                Button("PM") {
+                    if hour < 12 {
+                        updateCalendarStart(hour: hour + 12, minute: minute)
+                    }
+                }
+            } label: {
+                Text(hour < 12 ? "AM" : "PM")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.blue)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 4)
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 2)
+        .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+    
+    private func syncCalendarPanelState() {
+        showCalendarTime = task.calendarStartAt != nil || task.hasCalendarEvent
+        task.calendarDurationMinutes = max(task.calendarDurationMinutes, 15)
+    }
+    
+    private func toggleCalendarTime() {
+        let calendar = Calendar.current
+        showCalendarTime.toggle()
+        
+        if showCalendarTime {
+            let baseDate = task.whenDate ?? calendar.startOfDay(for: .now)
+            let existingStart = task.calendarStartAt ?? task.suggestedCalendarStartAt
+            let time = calendar.dateComponents([.hour, .minute], from: existingStart)
+            var day = calendar.dateComponents([.year, .month, .day], from: baseDate)
+            day.hour = time.hour
+            day.minute = time.minute
+            task.calendarStartAt = calendar.date(from: day) ?? existingStart
+            if task.whenDate == nil {
+                task.whenDate = calendar.startOfDay(for: baseDate)
+            }
+            task.calendarDurationMinutes = max(task.calendarDurationMinutes, 15)
+        } else {
+            task.calendarStartAt = nil
+        }
+        
+        task.updatedAt = .now
+        try? modelContext.save()
+    }
+    
+    private func updateCalendarStart(hour: Int, minute: Int) {
+        let calendar = Calendar.current
+        let baseDate = task.whenDate ?? task.calendarStartAt ?? .now
+        let day = calendar.startOfDay(for: baseDate)
+        task.calendarStartAt = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: day)
+        if task.whenDate == nil {
+            task.whenDate = day
+        }
+        task.updatedAt = .now
+        try? modelContext.save()
+    }
+    
+    private func scheduleOnCalendar() {
+        Task {
+            do {
+                try await eventKitSync.upsertCalendarEvent(for: task)
+                try? modelContext.save()
+            } catch {
+                calendarSyncErrorMessage = error.localizedDescription
+            }
+        }
+    }
+    
+    private func removeFromCalendar() {
+        Task {
+            do {
+                try await eventKitSync.removeCalendarEvent(for: task)
+                try? modelContext.save()
+            } catch {
+                calendarSyncErrorMessage = error.localizedDescription
+            }
+        }
+    }
 }
-
-// MARK: - Tag Panel

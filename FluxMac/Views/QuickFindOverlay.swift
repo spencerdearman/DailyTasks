@@ -8,11 +8,11 @@ struct QuickFindOverlay: View {
     let onSelectSidebar: (SidebarSelection) -> Void
     let onSelectTask: (TaskItem) -> Void
     let onDismiss: () -> Void
-
+    
     @State private var query = ""
     @FocusState private var isFocused: Bool
     @State private var selectedIndex = 0
-
+    
     private struct QuickFindItem: Identifiable {
         let id: String
         let icon: String
@@ -21,7 +21,7 @@ struct QuickFindOverlay: View {
         let subtitle: String?
         let action: () -> Void
     }
-
+    
     private var coreListItems: [QuickFindItem] {
         let lists: [(String, String, Color, SidebarSelection)] = [
             ("Inbox", "tray.fill", .primary, .inbox),
@@ -38,7 +38,7 @@ struct QuickFindOverlay: View {
             }
         }
     }
-
+    
     private var areaItems: [QuickFindItem] {
         let filtered = query.isEmpty ? areas : areas.filter { $0.title.localizedCaseInsensitiveContains(query) }
         return filtered.map { area in
@@ -47,7 +47,7 @@ struct QuickFindOverlay: View {
             }
         }
     }
-
+    
     private var projectItems: [QuickFindItem] {
         let filtered = query.isEmpty ? projects : projects.filter { $0.title.localizedCaseInsensitiveContains(query) }
         return filtered.map { project in
@@ -56,7 +56,7 @@ struct QuickFindOverlay: View {
             }
         }
     }
-
+    
     private var taskItems: [QuickFindItem] {
         guard !query.isEmpty else { return [] }
         let filtered = tasks.filter { !$0.isCompleted && $0.title.localizedCaseInsensitiveContains(query) }
@@ -66,18 +66,18 @@ struct QuickFindOverlay: View {
             }
         }
     }
-
+    
     private var allItems: [QuickFindItem] {
         coreListItems + areaItems + projectItems + taskItems
     }
-
+    
     var body: some View {
         ZStack {
             // Dimmed background
             Color.black.opacity(0.3)
                 .ignoresSafeArea()
                 .onTapGesture { onDismiss() }
-
+            
             VStack(spacing: 0) {
                 // Search field
                 HStack(spacing: 10) {
@@ -105,9 +105,9 @@ struct QuickFindOverlay: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 14)
-
+                
                 Divider()
-
+                
                 // Results
                 ScrollView {
                     VStack(alignment: .leading, spacing: 2) {
@@ -159,7 +159,7 @@ struct QuickFindOverlay: View {
             selectedIndex = 0
         }
     }
-
+    
     private func quickFindSection(_ title: String, items: [QuickFindItem]) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(title)
@@ -168,7 +168,7 @@ struct QuickFindOverlay: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
                 .padding(.bottom, 4)
-
+            
             ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                 let globalIndex = globalIndex(for: item)
                 Button {
@@ -193,8 +193,8 @@ struct QuickFindOverlay: View {
                     .padding(.vertical, 7)
                     .background(
                         globalIndex == selectedIndex
-                            ? Color.accentColor.opacity(0.12)
-                            : Color.clear,
+                        ? Color.accentColor.opacity(0.12)
+                        : Color.clear,
                         in: RoundedRectangle(cornerRadius: 8)
                     )
                     .contentShape(Rectangle())
@@ -203,7 +203,7 @@ struct QuickFindOverlay: View {
             }
         }
     }
-
+    
     private func globalIndex(for item: QuickFindItem) -> Int {
         allItems.firstIndex(where: { $0.id == item.id }) ?? -1
     }

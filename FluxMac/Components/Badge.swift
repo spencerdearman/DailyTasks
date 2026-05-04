@@ -4,7 +4,7 @@ import SwiftUI
 struct Badge: View {
     let text: String
     let tint: String
-
+    
     var body: some View {
         Text(text)
             .font(.caption.weight(.medium))

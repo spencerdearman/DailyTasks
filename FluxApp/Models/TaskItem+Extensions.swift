@@ -15,6 +15,29 @@ extension TaskItem {
         whenDate ?? deadline
     }
 
+    var hasCalendarEvent: Bool {
+        calendarEventID?.isEmpty == false
+    }
+
+    var suggestedCalendarStartAt: Date {
+        if let calendarStartAt {
+            return calendarStartAt
+        }
+
+        let calendar = Calendar.current
+        if let deadline {
+            return deadline
+        }
+
+        if let whenDate {
+            return calendar.date(bySettingHour: isEvening ? 18 : 9, minute: 0, second: 0, of: whenDate) ?? whenDate
+        }
+
+        let now = Date()
+        let nextHour = calendar.dateInterval(of: .hour, for: now)?.end ?? now.addingTimeInterval(3600)
+        return nextHour
+    }
+
     var tagList: [Tag] {
         tagAssignments?.compactMap(\.tag) ?? []
     }

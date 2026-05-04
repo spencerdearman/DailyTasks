@@ -7,12 +7,12 @@ final class Heading {
     var title: String = ""
     var notes: String = ""
     var sortOrder: Double = 0
-
+    
     var project: Project?
-
+    
     @Relationship(deleteRule: .nullify, inverse: \TaskItem.heading)
     var tasks: [TaskItem]?
-
+    
     init(
         id: UUID = UUID(),
         title: String,

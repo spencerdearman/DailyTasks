@@ -46,14 +46,14 @@ struct FluxMacApp: App {
                 .modelContainer(sharedModelContainer)
         }
         .defaultSize(width: 1320, height: 860)
-
+        
         Window("Quick Entry", id: "quick-entry") {
             QuickEntryView(defaultSelection: .inbox)
                 .environmentObject(calendarStore)
                 .modelContainer(sharedModelContainer)
         }
         .defaultSize(width: 560, height: 560)
-
+        
         WindowGroup("Project", for: UUID.self) { $projectID in
             ProjectWindowView(projectID: projectID)
                 .environmentObject(calendarStore)
@@ -69,14 +69,14 @@ struct FluxMacApp: App {
 private struct AppCommands: Commands {
     @Environment(\.openWindow) private var openWindow
     @FocusedValue(\.selectedProjectID) private var selectedProjectID
-
+    
     var body: some Commands {
         CommandGroup(after: .newItem) {
             Button("Quick Entry") {
                 openWindow(id: "quick-entry")
             }
             .keyboardShortcut(" ", modifiers: [.command, .option])
-
+            
             Button("Open Project in New Window") {
                 guard let selectedProjectID else { return }
                 openWindow(value: selectedProjectID)

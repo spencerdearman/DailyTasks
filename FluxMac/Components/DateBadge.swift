@@ -4,7 +4,7 @@ import SwiftUI
 struct DateBadge: View {
     let date: Date
     let isDeadline: Bool
-
+    
     var body: some View {
         Text(date.formatted(.dateTime.month(.abbreviated).day()))
             .font(.caption.weight(.medium))
@@ -14,5 +14,3 @@ struct DateBadge: View {
             .background(Color.black.opacity(isDeadline ? 0.10 : 0.06), in: Capsule())
     }
 }
-
-// MARK: - Event Strip

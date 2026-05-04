@@ -8,9 +8,9 @@ struct TaskSection: View {
     @Binding var expandedTaskID: UUID?
     @Binding var completingTaskIDs: Set<UUID>
     let onToggle: (TaskItem) -> Void
-
+    
     private enum MoveDirection { case up, down }
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -21,7 +21,7 @@ struct TaskSection: View {
                 Text("\(tasks.count)")
                     .foregroundStyle(.secondary)
             }
-
+            
             VStack(spacing: 0) {
                 ForEach(Array(tasks.enumerated()), id: \.element.id) { index, task in
                     VStack(spacing: 0) {
@@ -75,7 +75,7 @@ struct TaskSection: View {
                                 Label("Delete", systemImage: "trash")
                             }
                         }
-
+                        
                         if task.id != tasks.last?.id {
                             Divider()
                                 .padding(.leading, 46)
@@ -87,16 +87,16 @@ struct TaskSection: View {
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
         }
     }
-
+    
     private func moveTask(at index: Int, direction: MoveDirection) {
         let targetIndex = direction == .up ? index - 1 : index + 1
         guard targetIndex >= 0 && targetIndex < tasks.count else { return }
-
+        
         // Ensure unique sort orders
         for (i, t) in tasks.enumerated() {
             t.sortOrder = Double(i)
         }
-
+        
         let a = tasks[index]
         let b = tasks[targetIndex]
         let temp = a.sortOrder

@@ -7,9 +7,9 @@ final class ChecklistItem {
     var title: String = ""
     var isCompleted: Bool = false
     var sortOrder: Double = 0
-
+    
     var task: TaskItem?
-
+    
     init(
         id: UUID = UUID(),
         title: String,

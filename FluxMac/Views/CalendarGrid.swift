@@ -5,25 +5,25 @@ struct CalendarGrid: View {
     let selectedDate: Date?
     var accentColor: Color = .blue
     let onSelect: (Date) -> Void
-
+    
     @State private var displayedMonth: Date = Date()
-
+    
     private let calendar = Calendar.current
     private let dayOfWeekSymbols = Calendar.current.shortWeekdaySymbols
-
+    
     private var monthTitle: String {
         displayedMonth.formatted(.dateTime.month(.wide).year())
     }
-
+    
     private var daysInGrid: [Date?] {
         var comps = calendar.dateComponents([.year, .month], from: displayedMonth)
         comps.day = 1
         guard let firstOfMonth = calendar.date(from: comps),
               let range = calendar.range(of: .day, in: .month, for: firstOfMonth) else { return [] }
-
+        
         let weekdayOfFirst = calendar.component(.weekday, from: firstOfMonth)
         let leadingBlanks = (weekdayOfFirst - calendar.firstWeekday + 7) % 7
-
+        
         var days: [Date?] = Array(repeating: nil, count: leadingBlanks)
         for dayOffset in 0..<range.count {
             if let date = calendar.date(byAdding: .day, value: dayOffset, to: firstOfMonth) {
@@ -32,25 +32,25 @@ struct CalendarGrid: View {
         }
         return days
     }
-
+    
     private func isSelected(_ date: Date) -> Bool {
         guard let sel = selectedDate else { return false }
         return calendar.isDate(date, inSameDayAs: sel)
     }
-
+    
     private func isToday(_ date: Date) -> Bool {
         calendar.isDateInToday(date)
     }
-
+    
     var body: some View {
         VStack(spacing: 10) {
             // Month header with navigation
             HStack {
                 Text(monthTitle)
                     .font(.subheadline.weight(.semibold))
-
+                
                 Spacer()
-
+                
                 HStack(spacing: 16) {
                     Button {
                         shiftMonth(-1)
@@ -60,7 +60,7 @@ struct CalendarGrid: View {
                             .foregroundStyle(accentColor)
                     }
                     .buttonStyle(.plain)
-
+                    
                     Button {
                         shiftMonth(1)
                     } label: {
@@ -71,7 +71,7 @@ struct CalendarGrid: View {
                     .buttonStyle(.plain)
                 }
             }
-
+            
             // Weekday headers
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: 7), spacing: 0) {
                 ForEach(dayOfWeekSymbols, id: \.self) { symbol in
@@ -81,7 +81,7 @@ struct CalendarGrid: View {
                         .frame(height: 20)
                 }
             }
-
+            
             // Day grid
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: 7), spacing: 4) {
                 ForEach(Array(daysInGrid.enumerated()), id: \.offset) { _, date in
@@ -110,13 +110,10 @@ struct CalendarGrid: View {
             }
         }
     }
-
+    
     private func shiftMonth(_ delta: Int) {
         if let newMonth = calendar.date(byAdding: .month, value: delta, to: displayedMonth) {
             displayedMonth = newMonth
         }
     }
 }
-
-
-// MARK: - Badges

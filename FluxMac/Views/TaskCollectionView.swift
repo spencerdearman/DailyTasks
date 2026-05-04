@@ -9,16 +9,16 @@ struct TaskCollectionView: View {
     @Binding var expandedTaskID: UUID?
     @Binding var completingTaskIDs: Set<UUID>
     let onToggle: (TaskItem) -> Void
-
+    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 HeaderCard(title: title)
-
+                
                 if !events.isEmpty {
                     EventStrip(events: events)
                 }
-
+                
                 if tasks.isEmpty && eveningTasks.isEmpty {
                     EmptyState(title: title)
                 } else {
@@ -44,5 +44,3 @@ struct TaskCollectionView: View {
         }
     }
 }
-
-// MARK: - Area Detail View

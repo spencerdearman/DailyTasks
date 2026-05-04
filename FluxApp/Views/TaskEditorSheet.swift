@@ -8,8 +8,13 @@ struct TaskEditorSheet: View {
     @Query(sort: \Area.sortOrder) private var areas: [Area]
     @Query(sort: \Project.sortOrder) private var projects: [Project]
 
+    private let eventKitSync = EventKitSyncService()
+
     @Bindable var task: TaskItem
     @State private var showDeleteConfirm = false
+    @State private var calendarSyncMessage: String?
+    @State private var calendarSyncError = false
+    @State private var isSyncingCalendarEvent = false
 
     var body: some View {
         NavigationStack {
@@ -165,6 +170,78 @@ struct TaskEditorSheet: View {
                     }
                     .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Calendar")
+                            .font(.headline)
+
+                        Text("Flux stays primary. Only tasks you explicitly schedule become real calendar events.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+
+                        VStack(alignment: .leading, spacing: 0) {
+                            HStack {
+                                Label("Start", systemImage: "calendar.badge.clock")
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                                DatePicker("", selection: calendarStartBinding, displayedComponents: [.date, .hourAndMinute])
+                                    .labelsHidden()
+                                    .fixedSize()
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+
+                            Divider().padding(.leading, 52)
+
+                            Stepper(value: $task.calendarDurationMinutes, in: 15...480, step: 15) {
+                                HStack {
+                                    Label("Duration", systemImage: "timer")
+                                        .foregroundStyle(.primary)
+                                    Spacer()
+                                    Text("\(task.calendarDurationMinutes) min")
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                        }
+                        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                        VStack(spacing: 10) {
+                            Button {
+                                scheduleOnCalendar()
+                            } label: {
+                                HStack {
+                                    Spacer()
+                                    Label(task.hasCalendarEvent ? "Update Calendar Event" : "Schedule on Calendar", systemImage: "calendar.badge.plus")
+                                        .font(.body.weight(.medium))
+                                    Spacer()
+                                }
+                                .padding(.vertical, 12)
+                                .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                .foregroundStyle(.white)
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(isSyncingCalendarEvent || task.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                            if task.hasCalendarEvent {
+                                Button(role: .destructive) {
+                                    removeFromCalendar()
+                                } label: {
+                                    HStack {
+                                        Spacer()
+                                        Label("Remove from Calendar", systemImage: "calendar.badge.minus")
+                                            .font(.body.weight(.medium))
+                                        Spacer()
+                                    }
+                                    .padding(.vertical, 12)
+                                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(isSyncingCalendarEvent)
+                            }
+                        }
+                    }
+
                     // Delete
                     Button(role: .destructive) {
                         showDeleteConfirm = true
@@ -201,6 +278,14 @@ struct TaskEditorSheet: View {
                     try? modelContext.save()
                     dismiss()
                 }
+            }
+            .alert(calendarSyncError ? "Calendar Sync Failed" : "Calendar Updated", isPresented: alertIsPresented) {
+                Button("OK", role: .cancel) {
+                    calendarSyncMessage = nil
+                    calendarSyncError = false
+                }
+            } message: {
+                Text(calendarSyncMessage ?? "")
             }
         }
     }
@@ -262,5 +347,65 @@ struct TaskEditorSheet: View {
                 task.updatedAt = .now
             }
         )
+    }
+
+    private var calendarStartBinding: Binding<Date> {
+        Binding(
+            get: { task.calendarStartAt ?? task.suggestedCalendarStartAt },
+            set: {
+                task.calendarStartAt = $0
+                task.updatedAt = .now
+            }
+        )
+    }
+
+    private var alertIsPresented: Binding<Bool> {
+        Binding(
+            get: { calendarSyncMessage != nil },
+            set: { presented in
+                if !presented {
+                    calendarSyncMessage = nil
+                    calendarSyncError = false
+                }
+            }
+        )
+    }
+
+    private func scheduleOnCalendar() {
+        isSyncingCalendarEvent = true
+
+        Task {
+            do {
+                task.title = task.title.trimmingCharacters(in: .whitespacesAndNewlines)
+                task.notes = task.notes.trimmingCharacters(in: .whitespacesAndNewlines)
+                try await eventKitSync.upsertCalendarEvent(for: task)
+                try? modelContext.save()
+                calendarSyncError = false
+                calendarSyncMessage = task.hasCalendarEvent
+                    ? "The calendar event is linked and will stay explicit unless you update it again here."
+                    : "The task was scheduled on your calendar."
+            } catch {
+                calendarSyncError = true
+                calendarSyncMessage = error.localizedDescription
+            }
+            isSyncingCalendarEvent = false
+        }
+    }
+
+    private func removeFromCalendar() {
+        isSyncingCalendarEvent = true
+
+        Task {
+            do {
+                try await eventKitSync.removeCalendarEvent(for: task)
+                try? modelContext.save()
+                calendarSyncError = false
+                calendarSyncMessage = "The linked calendar event was removed."
+            } catch {
+                calendarSyncError = true
+                calendarSyncMessage = error.localizedDescription
+            }
+            isSyncingCalendarEvent = false
+        }
     }
 }

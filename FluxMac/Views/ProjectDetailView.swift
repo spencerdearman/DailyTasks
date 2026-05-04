@@ -3,13 +3,13 @@ import SwiftUI
 
 struct ProjectDetailView: View {
     @Environment(\.modelContext) private var modelContext
-
+    
     let project: Project
     @Binding var expandedTaskID: UUID?
     @Binding var completingTaskIDs: Set<UUID>
     @State private var newHeadingTitle = ""
     @State private var showAddHeading = false
-
+    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -18,7 +18,7 @@ struct ProjectDetailView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(24)
                     .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
-
+                
                 // Simple notes editor
                 TextField("Notes…", text: Binding(
                     get: { project.notes },
@@ -34,7 +34,7 @@ struct ProjectDetailView: View {
                 .padding(16)
                 .frame(minHeight: 56, alignment: .topLeading)
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-
+                
                 ForEach(project.sortedHeadings) { heading in
                     let headingTasks = project.sortedTasks.filter { $0.heading?.id == heading.id }
                     VStack(alignment: .leading, spacing: 8) {
@@ -59,7 +59,7 @@ struct ProjectDetailView: View {
                                 try? modelContext.save()
                             }
                         }
-
+                        
                         InlineTaskAdder(
                             project: project,
                             area: project.area,
@@ -67,7 +67,7 @@ struct ProjectDetailView: View {
                         )
                     }
                 }
-
+                
                 let ungroupedTasks = project.sortedTasks.filter { $0.heading == nil }
                 VStack(alignment: .leading, spacing: 8) {
                     if !ungroupedTasks.isEmpty {
@@ -81,14 +81,14 @@ struct ProjectDetailView: View {
                             try? modelContext.save()
                         }
                     }
-
+                    
                     InlineTaskAdder(
                         project: project,
                         area: project.area,
                         heading: nil
                     )
                 }
-
+                
                 // Add heading
                 if showAddHeading {
                     HStack(spacing: 10) {
@@ -96,11 +96,11 @@ struct ProjectDetailView: View {
                             .textFieldStyle(.plain)
                             .font(.title3.weight(.semibold))
                             .onSubmit { addHeading() }
-
+                        
                         Button("Add") { addHeading() }
                             .buttonStyle(.bordered)
                             .disabled(newHeadingTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
+                        
                         Button { showAddHeading = false; newHeadingTitle = "" } label: {
                             Image(systemName: "xmark.circle.fill")
                                 .foregroundStyle(.tertiary)
@@ -127,7 +127,7 @@ struct ProjectDetailView: View {
         }
         .background(Color.clear)
     }
-
+    
     private func addHeading() {
         let title = newHeadingTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty else { return }
@@ -142,5 +142,3 @@ struct ProjectDetailView: View {
         showAddHeading = false
     }
 }
-
-// MARK: - Inline Task Adder

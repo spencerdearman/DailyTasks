@@ -11,13 +11,13 @@ import SwiftUI
 struct QuickEntryView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
-
+    
     @Query(sort: \Area.sortOrder) private var areas: [Area]
     @Query(sort: \Project.sortOrder) private var projects: [Project]
     @Query(sort: \Tag.title) private var allTags: [Tag]
-
+    
     let defaultSelection: SidebarSelection?
-
+    
     @State private var title = ""
     @State private var notes = ""
     @State private var selectedAreaID: UUID?
@@ -26,11 +26,11 @@ struct QuickEntryView: View {
     @State private var deadline: Date?
     @State private var isEvening = false
     @State private var selectedTags: [Tag] = []
-
+    
     @State private var showCalendarPopover = false
     @State private var showTagsPopover = false
     @State private var showDeadlinePopover = false
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Title
@@ -40,7 +40,7 @@ struct QuickEntryView: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 20)
                 .padding(.bottom, 12)
-
+            
             // Notes
             TextField("Notes", text: $notes, axis: .vertical)
                 .font(.body)
@@ -49,11 +49,11 @@ struct QuickEntryView: View {
                 .lineLimit(3...6)
                 .padding(.horizontal, 20)
                 .frame(minHeight: 60)
-
+            
             Divider()
                 .padding(.horizontal, 20)
                 .padding(.vertical, 8)
-
+            
             // Area, Project, and date/deadline badges — inline row
             FlowLayout(spacing: 8) {
                 Menu {
@@ -84,7 +84,7 @@ struct QuickEntryView: View {
                 }
                 .menuStyle(.borderlessButton)
                 .fixedSize()
-
+                
                 Menu {
                     Button {
                         selectedProjectID = nil
@@ -113,7 +113,7 @@ struct QuickEntryView: View {
                 }
                 .menuStyle(.borderlessButton)
                 .fixedSize()
-
+                
                 // Inline date badges
                 if isEvening {
                     HStack(spacing: 4) {
@@ -138,7 +138,7 @@ struct QuickEntryView: View {
                     .padding(.vertical, 6)
                     .background(Color.primary.opacity(0.05), in: Capsule())
                 }
-
+                
                 if let dl = deadline {
                     HStack(spacing: 4) {
                         Image(systemName: "flag.fill").font(.system(size: 11)).foregroundStyle(.orange)
@@ -157,7 +157,7 @@ struct QuickEntryView: View {
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 8)
-
+            
             // Selected tags
             if !selectedTags.isEmpty {
                 HStack(spacing: 6) {
@@ -183,9 +183,9 @@ struct QuickEntryView: View {
                 .padding(.horizontal, 20)
                 .padding(.bottom, 8)
             }
-
+            
             Spacer(minLength: 0)
-
+            
             // Bottom bar: popover action buttons + save
             HStack(spacing: 0) {
                 // Action buttons with popovers
@@ -206,7 +206,7 @@ struct QuickEntryView: View {
                             .frame(width: 300)
                             .padding(4)
                     }
-
+                    
                     // Tags popover
                     Button {
                         showTagsPopover.toggle()
@@ -223,7 +223,7 @@ struct QuickEntryView: View {
                             .frame(width: 220)
                             .padding(4)
                     }
-
+                    
                     // Deadline popover
                     Button {
                         showDeadlinePopover.toggle()
@@ -241,9 +241,9 @@ struct QuickEntryView: View {
                             .padding(4)
                     }
                 }
-
+                
                 Spacer()
-
+                
                 HStack(spacing: 12) {
                     Button {
                         dismiss()
@@ -256,7 +256,7 @@ struct QuickEntryView: View {
                     }
                     .buttonStyle(.plain)
                     .keyboardShortcut(.cancelAction)
-
+                    
                     Button {
                         saveTask()
                     } label: {
@@ -278,24 +278,24 @@ struct QuickEntryView: View {
         .background(.ultraThinMaterial)
         .onAppear(perform: configureDefaults)
     }
-
+    
     // MARK: - Calendar Panel (popover content)
-
+    
     private var calendarPanel: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 let isToday = whenDate != nil && Calendar.current.isDateInToday(whenDate!) && !isEvening
-
+                
                 quickPickButton(icon: "star.fill", iconColor: .yellow, label: "Today", isSelected: isToday) {
                     whenDate = Calendar.current.startOfDay(for: .now)
                     isEvening = false
                 }
-
+                
                 quickPickButton(icon: "moon.fill", iconColor: .indigo, label: "Evening", isSelected: isEvening) {
                     whenDate = Calendar.current.startOfDay(for: .now)
                     isEvening = true
                 }
-
+                
                 if whenDate != nil || isEvening {
                     quickPickButton(icon: "xmark", iconColor: .secondary, label: "Clear", isSelected: false) {
                         whenDate = nil
@@ -303,7 +303,7 @@ struct QuickEntryView: View {
                     }
                 }
             }
-
+            
             CalendarGrid(
                 selectedDate: whenDate,
                 onSelect: { date in
@@ -316,17 +316,17 @@ struct QuickEntryView: View {
         .padding(16)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
-
+    
     // MARK: - Tags Panel (popover content)
-
+    
     private var tagsPanel: some View {
         QuickEntryTagPanel(allTags: allTags, selectedTags: $selectedTags, modelContext: modelContext)
             .padding(12)
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
-
+    
     // MARK: - Deadline Panel (popover content)
-
+    
     private var deadlinePanel: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
@@ -335,9 +335,9 @@ struct QuickEntryView: View {
                     .foregroundStyle(.orange)
                 Text("Deadline")
                     .font(.subheadline.weight(.medium))
-
+                
                 Spacer()
-
+                
                 if deadline != nil {
                     Button {
                         deadline = nil
@@ -353,7 +353,7 @@ struct QuickEntryView: View {
                     .buttonStyle(.plain)
                 }
             }
-
+            
             CalendarGrid(
                 selectedDate: deadline,
                 accentColor: .orange,
@@ -366,7 +366,7 @@ struct QuickEntryView: View {
         .padding(16)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
-
+    
     private func quickPickButton(icon: String, iconColor: Color, label: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 4) {
@@ -383,14 +383,14 @@ struct QuickEntryView: View {
         }
         .buttonStyle(.plain)
     }
-
+    
     private var filteredProjects: [Project] {
         if let selectedAreaID {
             return projects.filter { $0.area?.id == selectedAreaID }
         }
         return projects
     }
-
+    
     private func configureDefaults() {
         guard let defaultSelection else { return }
         switch defaultSelection {
@@ -403,15 +403,15 @@ struct QuickEntryView: View {
         default: break
         }
     }
-
+    
     private func saveTask() {
         let normalizedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
-
+        
         let selectedArea = areas.first(where: { $0.id == selectedAreaID })
         let selectedProject = projects.first(where: { $0.id == selectedProjectID })
         let routing = SemanticRouter.analyze(title: normalizedTitle, notes: normalizedNotes, areas: areas)
-
+        
         let resolvedArea = selectedArea ?? selectedProject?.area ?? routing.matchedArea
         let resolvedWhen = whenDate ?? routing.suggestedWhen
         let task = TaskItem(
@@ -438,9 +438,9 @@ private struct QuickEntryTagPanel: View {
     let allTags: [Tag]
     @Binding var selectedTags: [Tag]
     let modelContext: ModelContext
-
+    
     @State private var searchText = ""
-
+    
     private var filteredTags: [Tag] {
         let unassigned = allTags.filter { tag in
             !selectedTags.contains(where: { $0.id == tag.id })
@@ -448,7 +448,7 @@ private struct QuickEntryTagPanel: View {
         if searchText.isEmpty { return unassigned }
         return unassigned.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
     }
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
@@ -462,7 +462,7 @@ private struct QuickEntryTagPanel: View {
             }
             .padding(8)
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-
+            
             if !filteredTags.isEmpty {
                 VStack(alignment: .leading, spacing: 2) {
                     ForEach(filteredTags.prefix(6)) { tag in
@@ -488,7 +488,7 @@ private struct QuickEntryTagPanel: View {
             }
         }
     }
-
+    
     private func createTag() {
         let name = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return }

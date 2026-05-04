@@ -4,33 +4,33 @@ import SwiftUI
 struct NewAreaSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
-
+    
     @Query(sort: \Area.sortOrder) private var areas: [Area]
-
+    
     @State private var title = ""
     @State private var notes = ""
     @State private var symbolName = "square.grid.2x2"
     @State private var tintHex = "#5B83B7"
-
+    
     private let symbolOptions = [
         "square.grid.2x2", "briefcase.fill", "heart.fill",
         "house.fill", "graduationcap.fill", "figure.run",
         "dollarsign.circle.fill", "paintbrush.fill"
     ]
     private let tintOptions = ["#5B83B7", "#62666D", "#6D7563", "#8A7D6A", "#7A7068", "#2E6BC6"]
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             Text("New Area")
                 .font(.title2.weight(.semibold))
-
+            
             TextField("Area name", text: $title)
                 .textFieldStyle(.roundedBorder)
                 .font(.title3)
-
+            
             TextField("Description (optional)", text: $notes)
                 .textFieldStyle(.roundedBorder)
-
+            
             HStack(spacing: 8) {
                 Text("Icon")
                     .font(.subheadline.weight(.medium))
@@ -41,14 +41,14 @@ struct NewAreaSheet: View {
                         .frame(width: 32, height: 32)
                         .background(
                             symbolName == symbol
-                                ? Color(hex: tintHex).opacity(0.12)
-                                : Color.clear,
+                            ? Color(hex: tintHex).opacity(0.12)
+                            : Color.clear,
                             in: RoundedRectangle(cornerRadius: 8)
                         )
                         .onTapGesture { symbolName = symbol }
                 }
             }
-
+            
             HStack(spacing: 8) {
                 Text("Color")
                     .font(.subheadline.weight(.medium))
@@ -64,12 +64,12 @@ struct NewAreaSheet: View {
                         .onTapGesture { tintHex = hex }
                 }
             }
-
+            
             HStack {
                 Spacer()
                 Button("Cancel") { dismiss() }
                     .keyboardShortcut(.cancelAction)
-
+                
                 Button("Create") {
                     createArea()
                 }
@@ -81,7 +81,7 @@ struct NewAreaSheet: View {
         .frame(width: 440)
         .background(.ultraThinMaterial)
     }
-
+    
     private func createArea() {
         let area = Area(
             title: title.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -95,5 +95,3 @@ struct NewAreaSheet: View {
         dismiss()
     }
 }
-
-// MARK: - Settings Sheet

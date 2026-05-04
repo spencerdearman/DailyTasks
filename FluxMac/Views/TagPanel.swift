@@ -5,9 +5,9 @@ struct TagPanel: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Tag.title) private var allTags: [Tag]
     let task: TaskItem
-
+    
     @State private var searchText = ""
-
+    
     private var filteredTags: [Tag] {
         let unassigned = allTags.filter { tag in
             !task.tagList.contains(where: { $0.id == tag.id })
@@ -15,7 +15,7 @@ struct TagPanel: View {
         if searchText.isEmpty { return unassigned }
         return unassigned.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
     }
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
@@ -31,7 +31,7 @@ struct TagPanel: View {
             }
             .padding(8)
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-
+            
             if !filteredTags.isEmpty {
                 VStack(alignment: .leading, spacing: 2) {
                     ForEach(filteredTags.prefix(6)) { tag in
@@ -62,7 +62,7 @@ struct TagPanel: View {
             }
         }
     }
-
+    
     private func createTag() {
         let name = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return }
@@ -75,5 +75,3 @@ struct TagPanel: View {
         searchText = ""
     }
 }
-
-// MARK: - Checklist Row

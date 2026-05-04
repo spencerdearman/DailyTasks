@@ -513,7 +513,9 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Flux can read your calendar for Today and Upcoming, and it can schedule tasks only when you explicitly choose to put them on your calendar.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Flux displays your calendar events alongside your tasks in Today and Upcoming.";
+				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "Flux can import reminders into your inbox so you can organize them with projects and areas.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSRemindersUsageDescription = "Flux can import reminders into your inbox so you can organize them with projects and areas.";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -550,7 +552,9 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Flux can read your calendar for Today and Upcoming, and it can schedule tasks only when you explicitly choose to put them on your calendar.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Flux displays your calendar events alongside your tasks in Today and Upcoming.";
+				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "Flux can import reminders into your inbox so you can organize them with projects and areas.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSRemindersUsageDescription = "Flux can import reminders into your inbox so you can organize them with projects and areas.";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -584,6 +588,10 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = FluxApp/Info.plist;
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Flux can read your calendar for Today and Upcoming, and it can schedule tasks only when you explicitly choose to put them on your calendar.";
+				INFOPLIST_KEY_NSCalendarsUsageDescription = "Flux displays your calendar events alongside your tasks in Today and Upcoming.";
+				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "Flux can import reminders into your inbox so you can organize them with projects and areas.";
+				INFOPLIST_KEY_NSRemindersUsageDescription = "Flux can import reminders into your inbox so you can organize them with projects and areas.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -624,6 +632,10 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = FluxApp/Info.plist;
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Flux can read your calendar for Today and Upcoming, and it can schedule tasks only when you explicitly choose to put them on your calendar.";
+				INFOPLIST_KEY_NSCalendarsUsageDescription = "Flux displays your calendar events alongside your tasks in Today and Upcoming.";
+				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "Flux can import reminders into your inbox so you can organize them with projects and areas.";
+				INFOPLIST_KEY_NSRemindersUsageDescription = "Flux can import reminders into your inbox so you can organize them with projects and areas.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

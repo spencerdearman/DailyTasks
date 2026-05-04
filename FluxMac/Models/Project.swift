@@ -9,15 +9,15 @@ final class Project {
     var goalSummary: String = ""
     var tintHex: String = "#2E6BC6"
     var sortOrder: Double = 0
-
+    
     var area: Area?
-
+    
     @Relationship(deleteRule: .cascade, inverse: \Heading.project)
     var headings: [Heading]?
-
+    
     @Relationship(deleteRule: .nullify, inverse: \TaskItem.project)
     var tasks: [TaskItem]?
-
+    
     init(
         id: UUID = UUID(),
         title: String,

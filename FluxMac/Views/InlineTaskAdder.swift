@@ -6,17 +6,17 @@ struct InlineTaskAdder: View {
     let project: Project
     let area: Area?
     let heading: Heading?
-
+    
     @State private var title = ""
     @State private var isActive = false
-
+    
     var body: some View {
         if isActive {
             HStack(spacing: 10) {
                 Image(systemName: "circle")
                     .font(.subheadline)
                     .foregroundStyle(.tertiary)
-
+                
                 TextField("New task…", text: $title)
                     .textFieldStyle(.plain)
                     .font(.subheadline)
@@ -44,11 +44,11 @@ struct InlineTaskAdder: View {
             .padding(.leading, 18)
         }
     }
-
+    
     private func addTask() {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-
+        
         let task = TaskItem(
             title: trimmed,
             isInInbox: false,
@@ -62,5 +62,3 @@ struct InlineTaskAdder: View {
         title = ""
     }
 }
-
-// MARK: - Header Card

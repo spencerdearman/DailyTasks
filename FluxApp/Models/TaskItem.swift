@@ -14,6 +14,10 @@ final class TaskItem {
     var statusRaw: String = TaskStatus.active.rawValue
     var isInInbox: Bool = true
     var isEvening: Bool = false
+    var calendarEventID: String?
+    var calendarStartAt: Date?
+    var calendarDurationMinutes: Int = 60
+    var reminderItemID: String?
     var sortOrder: Double = 0
     var recurrenceRule: String?
 
@@ -39,6 +43,10 @@ final class TaskItem {
         status: TaskStatus = .active,
         isInInbox: Bool = true,
         isEvening: Bool = false,
+        calendarEventID: String? = nil,
+        calendarStartAt: Date? = nil,
+        calendarDurationMinutes: Int = 60,
+        reminderItemID: String? = nil,
         sortOrder: Double = 0,
         recurrenceRule: String? = nil,
         area: Area? = nil,
@@ -56,6 +64,10 @@ final class TaskItem {
         self.statusRaw = status.rawValue
         self.isInInbox = isInInbox
         self.isEvening = isEvening
+        self.calendarEventID = calendarEventID
+        self.calendarStartAt = calendarStartAt
+        self.calendarDurationMinutes = calendarDurationMinutes
+        self.reminderItemID = reminderItemID
         self.sortOrder = sortOrder
         self.recurrenceRule = recurrenceRule
         self.area = area

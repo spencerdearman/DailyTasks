@@ -10,5 +10,3 @@ extension FocusedValues {
         set { self[SelectedProjectIDKey.self] = newValue }
     }
 }
-
-// MARK: - Flow Layout (for tag chips)

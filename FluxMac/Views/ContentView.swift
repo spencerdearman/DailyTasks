@@ -16,11 +16,11 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openWindow) private var openWindow
     @EnvironmentObject private var calendarStore: CalendarStore
-
+    
     @Query(sort: \Area.sortOrder) private var areas: [Area]
     @Query(sort: \Project.sortOrder) private var projects: [Project]
     @Query(sort: \TaskItem.createdAt, order: .reverse) private var tasks: [TaskItem]
-
+    
     @State private var selection: SidebarSelection? = .inbox
     @State private var showQuickEntrySheet = false
     @State private var showNewProjectSheet = false
@@ -29,7 +29,7 @@ struct ContentView: View {
     @State private var expandedTaskID: UUID?
     @State private var completingTaskIDs: Set<UUID> = []
     @State private var showQuickFind = false
-
+    
     var body: some View {
         NavigationSplitView {
             sidebar
@@ -116,9 +116,9 @@ struct ContentView: View {
                 .hidden()
         }
     }
-
+    
     // MARK: - Sidebar
-
+    
     private var sidebar: some View {
         List(selection: $selection) {
             // Quick Find button
@@ -144,7 +144,7 @@ struct ContentView: View {
             .buttonStyle(.plain)
             .listRowInsets(EdgeInsets(top: 4, leading: 10, bottom: 4, trailing: 10))
             .listRowSeparator(.hidden)
-
+            
             Section("Core") {
                 navLink("Inbox", systemImage: "tray.fill", selection: .inbox, count: inboxTasks.count)
                 navLink("Today", systemImage: "sun.max.fill", selection: .today, count: todayTasks.count)
@@ -153,7 +153,7 @@ struct ContentView: View {
                 navLink("Later", systemImage: "moon.zzz.fill", selection: .someday, count: somedayTasks.count)
                 navLink("Done", systemImage: "checkmark.circle.fill", selection: .logbook, count: logbookTasks.count)
             }
-
+            
             Section("Areas") {
                 ForEach(filteredAreas) { area in
                     // Area row — tapping navigates to area detail
@@ -170,7 +170,7 @@ struct ContentView: View {
                     .dropDestination(for: String.self) { items, _ in
                         _ = reassign(tasks: items, to: area)
                     }
-
+                    
                     // Projects under the area (indented)
                     ForEach(filteredProjects(in: area)) { project in
                         NavigationLink(value: SidebarSelection.project(project.id)) {
@@ -201,9 +201,9 @@ struct ContentView: View {
                     } label: {
                         Label("New Project", systemImage: "list.bullet")
                     }
-
+                    
                     Divider()
-
+                    
                     Button {
                         showNewAreaSheet = true
                     } label: {
@@ -220,13 +220,13 @@ struct ContentView: View {
                 .menuStyle(.borderlessButton)
                 .menuIndicator(.hidden)
                 .fixedSize()
-
+                
                 Spacer()
-
+                
                 Button {
                     showSettingsSheet = true
                 } label: {
-                    Image(systemName: "gearshape")
+                    Image(systemName: "gear")
                         .font(.body.weight(.medium))
                 }
                 .buttonStyle(.plain)
@@ -237,9 +237,9 @@ struct ContentView: View {
             .padding(10)
         }
     }
-
+    
     // MARK: - Detail
-
+    
     private var detailContainer: some View {
         detailContent
             .safeAreaInset(edge: .bottom) {
@@ -263,7 +263,7 @@ struct ContentView: View {
                 .padding(.bottom, 12)
             }
     }
-
+    
     private func detailFooterTab(systemImage: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 2) {
@@ -278,98 +278,98 @@ struct ContentView: View {
         }
         .buttonStyle(.plain)
     }
-
+    
     @ViewBuilder
     private var detailContent: some View {
         switch selection ?? .inbox {
-            case .inbox:
-                TaskCollectionView(
-                    title: "Inbox",
-                    tasks: inboxTasks,
-                    events: [],
+        case .inbox:
+            TaskCollectionView(
+                title: "Inbox",
+                tasks: inboxTasks,
+                events: [],
+                expandedTaskID: $expandedTaskID,
+                completingTaskIDs: $completingTaskIDs,
+                onToggle: toggleTask
+            )
+        case .today:
+            TaskCollectionView(
+                title: "Today",
+                tasks: todayTasks,
+                eveningTasks: eveningTasks,
+                events: calendarStore.todayEvents,
+                expandedTaskID: $expandedTaskID,
+                completingTaskIDs: $completingTaskIDs,
+                onToggle: toggleTask
+            )
+        case .upcoming:
+            TaskCollectionView(
+                title: "Upcoming",
+                tasks: upcomingTasks,
+                events: calendarStore.upcomingEvents,
+                expandedTaskID: $expandedTaskID,
+                completingTaskIDs: $completingTaskIDs,
+                onToggle: toggleTask
+            )
+        case .anytime:
+            TaskCollectionView(
+                title: "Open",
+                tasks: anytimeTasks,
+                events: [],
+                expandedTaskID: $expandedTaskID,
+                completingTaskIDs: $completingTaskIDs,
+                onToggle: toggleTask
+            )
+        case .someday:
+            TaskCollectionView(
+                title: "Later",
+                tasks: somedayTasks,
+                events: [],
+                expandedTaskID: $expandedTaskID,
+                completingTaskIDs: $completingTaskIDs,
+                onToggle: toggleTask
+            )
+        case .logbook:
+            TaskCollectionView(
+                title: "Done",
+                tasks: logbookTasks,
+                events: [],
+                expandedTaskID: $expandedTaskID,
+                completingTaskIDs: $completingTaskIDs,
+                onToggle: toggleTask
+            )
+        case .area(let id):
+            if let area = areas.first(where: { $0.id == id }) {
+                AreaDetailView(
+                    area: area,
+                    tasks: tasksForArea(area),
                     expandedTaskID: $expandedTaskID,
                     completingTaskIDs: $completingTaskIDs,
-                    onToggle: toggleTask
+                    selection: $selection
                 )
-            case .today:
-                TaskCollectionView(
-                    title: "Today",
-                    tasks: todayTasks,
-                    eveningTasks: eveningTasks,
-                    events: calendarStore.todayEvents,
-                    expandedTaskID: $expandedTaskID,
-                    completingTaskIDs: $completingTaskIDs,
-                    onToggle: toggleTask
-                )
-            case .upcoming:
-                TaskCollectionView(
-                    title: "Upcoming",
-                    tasks: upcomingTasks,
-                    events: calendarStore.upcomingEvents,
-                    expandedTaskID: $expandedTaskID,
-                    completingTaskIDs: $completingTaskIDs,
-                    onToggle: toggleTask
-                )
-            case .anytime:
-                TaskCollectionView(
-                    title: "Open",
-                    tasks: anytimeTasks,
-                    events: [],
-                    expandedTaskID: $expandedTaskID,
-                    completingTaskIDs: $completingTaskIDs,
-                    onToggle: toggleTask
-                )
-            case .someday:
-                TaskCollectionView(
-                    title: "Later",
-                    tasks: somedayTasks,
-                    events: [],
-                    expandedTaskID: $expandedTaskID,
-                    completingTaskIDs: $completingTaskIDs,
-                    onToggle: toggleTask
-                )
-            case .logbook:
-                TaskCollectionView(
-                    title: "Done",
-                    tasks: logbookTasks,
-                    events: [],
-                    expandedTaskID: $expandedTaskID,
-                    completingTaskIDs: $completingTaskIDs,
-                    onToggle: toggleTask
-                )
-            case .area(let id):
-                if let area = areas.first(where: { $0.id == id }) {
-                    AreaDetailView(
-                        area: area,
-                        tasks: tasksForArea(area),
-                        expandedTaskID: $expandedTaskID,
-                        completingTaskIDs: $completingTaskIDs,
-                        selection: $selection
-                    )
-                } else {
-                    ContentUnavailableView("Area unavailable", systemImage: "rectangle.stack.badge.minus")
-                }
-            case .project(let id):
-                if let project = projects.first(where: { $0.id == id }) {
-                    ProjectDetailView(
-                        project: project,
-                        expandedTaskID: $expandedTaskID,
-                        completingTaskIDs: $completingTaskIDs
-                    )
-                } else {
-                    ContentUnavailableView("Project unavailable", systemImage: "square.stack.3d.up.slash")
-                }
+            } else {
+                ContentUnavailableView("Area unavailable", systemImage: "rectangle.stack.badge.minus")
             }
+        case .project(let id):
+            if let project = projects.first(where: { $0.id == id }) {
+                ProjectDetailView(
+                    project: project,
+                    expandedTaskID: $expandedTaskID,
+                    completingTaskIDs: $completingTaskIDs
+                )
+            } else {
+                ContentUnavailableView("Project unavailable", systemImage: "square.stack.3d.up.slash")
+            }
+        }
     }
-
+    
     // MARK: - Data
-
+    
     private var filteredAreas: [Area] { areas }
-
+    
     private func filteredProjects(in area: Area) -> [Project] {
         projects.filter { $0.area?.id == area.id }
     }
-
+    
     private var inboxTasks: [TaskItem] { activeTasks.filter(\.isInInbox) }
     private var todayTasks: [TaskItem] {
         let start = Calendar.current.startOfDay(for: .now)
@@ -399,19 +399,19 @@ struct ContentView: View {
         tasks.filter(\.isCompleted).sorted { ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast) }
     }
     private var activeTasks: [TaskItem] { tasks.filter { $0.status == .active } }
-
+    
     private var selectedProjectID: UUID? {
         if case .project(let id) = selection { return id }
         return nil
     }
-
+    
     private func tasksForArea(_ area: Area) -> [TaskItem] {
         tasks.filter { $0.area?.id == area.id || $0.project?.area?.id == area.id }
             .sorted { ($0.effectiveDate ?? .distantFuture) < ($1.effectiveDate ?? .distantFuture) }
     }
-
+    
     // MARK: - Actions
-
+    
     private func toggleTask(_ task: TaskItem) {
         if completingTaskIDs.contains(task.id) {
             // User tapped again while completing — undo
@@ -420,7 +420,7 @@ struct ContentView: View {
             }
             return
         }
-
+        
         if task.isCompleted {
             // Reopen immediately
             task.reopen()
@@ -430,7 +430,7 @@ struct ContentView: View {
             withAnimation(.easeInOut(duration: 0.25)) {
                 completingTaskIDs.insert(task.id)
             }
-
+            
             // After a few seconds, actually mark complete and remove from list
             let taskID = task.id
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
@@ -444,7 +444,7 @@ struct ContentView: View {
             }
         }
     }
-
+    
     private func reassign(tasks ids: [String], to area: Area) -> Bool {
         let matchedTasks = tasks.filter { ids.contains($0.id.uuidString) }
         for task in matchedTasks {
@@ -457,7 +457,7 @@ struct ContentView: View {
         try? modelContext.save()
         return !matchedTasks.isEmpty
     }
-
+    
     private func reassign(tasks ids: [String], to project: Project, in area: Area) -> Bool {
         let matchedTasks = tasks.filter { ids.contains($0.id.uuidString) }
         for task in matchedTasks {
@@ -470,9 +470,9 @@ struct ContentView: View {
         try? modelContext.save()
         return !matchedTasks.isEmpty
     }
-
+    
     // MARK: - Helpers
-
+    
     private func navLink(_ title: String, systemImage: String, selection: SidebarSelection, count: Int) -> some View {
         NavigationLink(value: selection) {
             HStack {
@@ -483,7 +483,5 @@ struct ContentView: View {
             }
         }
     }
-
+    
 }
-
-// MARK: - Task Collection View

@@ -3,7 +3,7 @@ import SwiftUI
 
 struct HeaderCard: View {
     let title: String
-
+    
     var body: some View {
         Text(title)
             .font(.system(size: 34, weight: .bold))
@@ -12,5 +12,3 @@ struct HeaderCard: View {
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 30, style: .continuous))
     }
 }
-
-// MARK: - Project Card

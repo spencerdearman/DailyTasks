@@ -10,11 +10,11 @@ import SwiftUI
 
 struct ProjectWindowView: View {
     let projectID: UUID?
-
+    
     @Query(sort: \Project.sortOrder) private var projects: [Project]
     @State private var expandedTaskID: UUID?
     @State private var completingTaskIDs: Set<UUID> = []
-
+    
     var body: some View {
         Group {
             if let project = projects.first(where: { $0.id == projectID }) {

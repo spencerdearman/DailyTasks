@@ -19,7 +19,7 @@ struct TaskMeta: View {
             if let deadline = task.deadline {
                 HStack(spacing: 4) {
                     Image(systemName: "flag.fill")
-                        .font(.system(size: 9))
+                    .font(.system(size: 9))
                     Text(deadlineLabel(deadline))
                 }
                 .font(.caption.weight(.medium))
@@ -27,6 +27,19 @@ struct TaskMeta: View {
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
                 .background(Color.orange.opacity(0.12), in: Capsule())
+            }
+
+            if task.hasCalendarEvent {
+                HStack(spacing: 4) {
+                    Image(systemName: "calendar.badge.clock")
+                        .font(.system(size: 9))
+                    Text(task.suggestedCalendarStartAt.formatted(.dateTime.month(.abbreviated).day().hour(.defaultDigits(amPM: .abbreviated)).minute()))
+                }
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.blue)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.blue.opacity(0.12), in: Capsule())
             }
 
             ForEach(task.tagList.prefix(3)) { tag in

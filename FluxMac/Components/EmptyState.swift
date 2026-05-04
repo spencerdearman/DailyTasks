@@ -3,7 +3,7 @@ import SwiftUI
 
 struct EmptyState: View {
     let title: String
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Nothing in \(title.lowercased()) right now.")
@@ -16,5 +16,3 @@ struct EmptyState: View {
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
     }
 }
-
-// MARK: - New Project Sheet

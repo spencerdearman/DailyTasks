@@ -5,12 +5,12 @@ struct SettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("fluxShowCompletedTasks") private var showCompleted = false
     @AppStorage("fluxDefaultView") private var defaultView = "inbox"
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
             Text("Settings")
                 .font(.system(size: 24, weight: .bold))
-
+            
             VStack(spacing: 0) {
                 HStack {
                     Text("Show completed tasks")
@@ -22,10 +22,10 @@ struct SettingsSheet: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
-
+                
                 Divider()
                     .padding(.leading, 16)
-
+                
                 HStack {
                     Text("Default view")
                         .font(.body)
@@ -43,9 +43,9 @@ struct SettingsSheet: View {
                 .padding(.vertical, 12)
             }
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-
+            
             Spacer()
-
+            
             HStack {
                 Spacer()
                 Button {
@@ -65,5 +65,3 @@ struct SettingsSheet: View {
         .frame(width: 400, height: 280)
     }
 }
-
-// MARK: - Supporting Types

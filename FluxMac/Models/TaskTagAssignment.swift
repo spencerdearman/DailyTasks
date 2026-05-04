@@ -6,7 +6,7 @@ final class TaskTagAssignment {
     var id: UUID = UUID()
     var task: TaskItem?
     var tag: Tag?
-
+    
     init(
         id: UUID = UUID(),
         task: TaskItem? = nil,

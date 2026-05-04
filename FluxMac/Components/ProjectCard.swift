@@ -3,7 +3,7 @@ import SwiftUI
 
 struct ProjectCard: View {
     let project: Project
-
+    
     var body: some View {
         HStack(spacing: 14) {
             VStack(alignment: .leading, spacing: 4) {
@@ -20,5 +20,3 @@ struct ProjectCard: View {
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
 }
-
-// MARK: - Task Section
