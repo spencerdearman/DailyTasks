@@ -3,12 +3,15 @@ import SwiftUI
 
 struct AreaDetailView: View {
     @Environment(\.modelContext) private var modelContext
-    
+
     let area: Area
     let tasks: [TaskItem]
     @Binding var expandedTaskID: UUID?
     @Binding var completingTaskIDs: Set<UUID>
     @Binding var selection: SidebarSelection?
+    @State private var showRenameAlert = false
+    @State private var renameText = ""
+    @State private var showDeleteConfirm = false
     
     private var looseTasks: [TaskItem] {
         tasks.filter { $0.project == nil && !$0.isCompleted }
@@ -108,6 +111,51 @@ struct AreaDetailView: View {
                 }
             }
             .padding(28)
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .primaryAction) {
+                Menu {
+                    Button {
+                        renameText = area.title
+                        showRenameAlert = true
+                    } label: {
+                        Label("Rename Area", systemImage: "pencil")
+                    }
+
+                    Divider()
+
+                    Button(role: .destructive) {
+                        showDeleteConfirm = true
+                    } label: {
+                        Label("Delete Area", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .alert("Rename Area", isPresented: $showRenameAlert) {
+            TextField("Area name", text: $renameText)
+            Button("Cancel", role: .cancel) {}
+            Button("Rename") {
+                let newTitle = renameText.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !newTitle.isEmpty {
+                    area.title = newTitle
+                    try? modelContext.save()
+                }
+            }
+        }
+        .alert("Delete Area?", isPresented: $showDeleteConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                selection = .inbox
+                modelContext.delete(area)
+                try? modelContext.save()
+            }
+        } message: {
+            Text("This will delete the area and unassign all its tasks and projects. This cannot be undone.")
         }
     }
 }

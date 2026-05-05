@@ -20,13 +20,17 @@ extension TaskItem {
     }
     
     var suggestedCalendarStartAt: Date {
+        let calendar = Calendar.current
         if let calendarStartAt {
             return calendarStartAt
         }
         
-        let calendar = Calendar.current
         if let deadline {
-            return deadline
+            let components = calendar.dateComponents([.hour, .minute], from: deadline)
+            if components.hour != 0 || components.minute != 0 {
+                return deadline
+            }
+            return calendar.date(bySettingHour: isEvening ? 18 : 9, minute: 0, second: 0, of: deadline) ?? deadline
         }
         
         if let whenDate {
@@ -36,6 +40,18 @@ extension TaskItem {
         let now = Date()
         let nextHour = calendar.dateInterval(of: .hour, for: now)?.end ?? now.addingTimeInterval(3600)
         return nextHour
+    }
+    
+    var hasExplicitDeadlineTime: Bool {
+        guard let deadline else { return false }
+        let components = Calendar.current.dateComponents([.hour, .minute], from: deadline)
+        return components.hour != 0 || components.minute != 0
+    }
+    
+    var hasExplicitCalendarStartTime: Bool {
+        guard let calendarStartAt else { return false }
+        let components = Calendar.current.dateComponents([.hour, .minute], from: calendarStartAt)
+        return components.hour != 0 || components.minute != 0
     }
     
     var tagList: [Tag] {

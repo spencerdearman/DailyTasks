@@ -111,42 +111,51 @@ struct TaskEditorSheet: View {
                     }
                     .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-                    // Schedule section
+                    // Quick picks (Today / Evening / Later / Clear)
                     VStack(alignment: .leading, spacing: 0) {
-                        // When
-                        HStack {
-                            Label("When", systemImage: "calendar")
-                                .foregroundStyle(.primary)
-                            Spacer()
-                            if task.whenDate != nil {
-                                Button {
+                        HStack(spacing: 12) {
+                            scheduleQuickButton(icon: "star.fill", iconColor: .yellow, label: "Today",
+                                isSelected: task.whenDate != nil && Calendar.current.isDateInToday(task.whenDate!) && !task.isEvening) {
+                                task.whenDate = Calendar.current.startOfDay(for: .now)
+                                task.isEvening = false
+                                task.status = .active
+                                task.updatedAt = .now
+                            }
+
+                            scheduleQuickButton(icon: "moon.fill", iconColor: .indigo, label: "Evening",
+                                isSelected: task.isEvening) {
+                                task.whenDate = Calendar.current.startOfDay(for: .now)
+                                task.isEvening = true
+                                task.status = .active
+                                task.updatedAt = .now
+                            }
+
+                            scheduleQuickButton(icon: "clock", iconColor: .teal, label: "Later",
+                                isSelected: {
+                                    guard let w = task.whenDate else { return false }
+                                    return !Calendar.current.isDateInToday(w) && !task.isEvening
+                                }()) {
+                                task.whenDate = Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: .now))
+                                task.isEvening = false
+                                task.status = .active
+                                task.updatedAt = .now
+                            }
+
+                            if task.whenDate != nil || task.isEvening {
+                                scheduleQuickButton(icon: "xmark", iconColor: .secondary, label: "Clear", isSelected: false) {
                                     task.whenDate = nil
                                     task.isEvening = false
                                     task.updatedAt = .now
-                                } label: {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .foregroundStyle(.tertiary)
                                 }
                             }
-                            DatePicker("", selection: whenBinding, displayedComponents: .date)
-                                .labelsHidden()
-                                .fixedSize()
                         }
                         .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
+                        .padding(.vertical, 12)
+                    }
+                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-                        Divider().padding(.leading, 52)
-
-                        // This Evening
-                        Toggle(isOn: $task.isEvening) {
-                            Label("This Evening", systemImage: "moon.fill")
-                                .foregroundStyle(.primary)
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-
-                        Divider().padding(.leading, 52)
-
+                    // Deadline + Calendar event scheduling
+                    VStack(alignment: .leading, spacing: 0) {
                         // Deadline
                         HStack {
                             Label("Deadline", systemImage: "flag.fill")
@@ -167,78 +176,71 @@ struct TaskEditorSheet: View {
                         }
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
+
+                        Divider().padding(.leading, 52)
+
+                        // Calendar event start
+                        HStack {
+                            Label("Start", systemImage: "calendar.badge.clock")
+                                .foregroundStyle(.primary)
+                            Spacer()
+                            DatePicker("", selection: calendarStartBinding, displayedComponents: [.date, .hourAndMinute])
+                                .labelsHidden()
+                                .fixedSize()
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+
+                        Divider().padding(.leading, 52)
+
+                        // Duration
+                        Stepper(value: $task.calendarDurationMinutes, in: 15...480, step: 15) {
+                            HStack {
+                                Label("Duration", systemImage: "timer")
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                                Text("\(task.calendarDurationMinutes) min")
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
                     }
                     .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Calendar")
-                            .font(.headline)
-
-                        Text("Flux stays primary. Only tasks you explicitly schedule become real calendar events.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-
-                        VStack(alignment: .leading, spacing: 0) {
+                    // Calendar sync buttons
+                    VStack(spacing: 10) {
+                        Button {
+                            scheduleOnCalendar()
+                        } label: {
                             HStack {
-                                Label("Start", systemImage: "calendar.badge.clock")
-                                    .foregroundStyle(.primary)
                                 Spacer()
-                                DatePicker("", selection: calendarStartBinding, displayedComponents: [.date, .hourAndMinute])
-                                    .labelsHidden()
-                                    .fixedSize()
+                                Label(task.hasCalendarEvent ? "Update Calendar Event" : "Schedule on Calendar", systemImage: "calendar.badge.plus")
+                                    .font(.body.weight(.medium))
+                                Spacer()
                             }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 10)
-
-                            Divider().padding(.leading, 52)
-
-                            Stepper(value: $task.calendarDurationMinutes, in: 15...480, step: 15) {
-                                HStack {
-                                    Label("Duration", systemImage: "timer")
-                                        .foregroundStyle(.primary)
-                                    Spacer()
-                                    Text("\(task.calendarDurationMinutes) min")
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 10)
+                            .padding(.vertical, 12)
+                            .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .foregroundStyle(.white)
                         }
-                        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .buttonStyle(.plain)
+                        .disabled(isSyncingCalendarEvent || task.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
-                        VStack(spacing: 10) {
-                            Button {
-                                scheduleOnCalendar()
+                        if task.hasCalendarEvent {
+                            Button(role: .destructive) {
+                                removeFromCalendar()
                             } label: {
                                 HStack {
                                     Spacer()
-                                    Label(task.hasCalendarEvent ? "Update Calendar Event" : "Schedule on Calendar", systemImage: "calendar.badge.plus")
+                                    Label("Remove from Calendar", systemImage: "calendar.badge.minus")
                                         .font(.body.weight(.medium))
                                     Spacer()
                                 }
                                 .padding(.vertical, 12)
-                                .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                                .foregroundStyle(.white)
+                                .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                             }
                             .buttonStyle(.plain)
-                            .disabled(isSyncingCalendarEvent || task.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
-                            if task.hasCalendarEvent {
-                                Button(role: .destructive) {
-                                    removeFromCalendar()
-                                } label: {
-                                    HStack {
-                                        Spacer()
-                                        Label("Remove from Calendar", systemImage: "calendar.badge.minus")
-                                            .font(.body.weight(.medium))
-                                        Spacer()
-                                    }
-                                    .padding(.vertical, 12)
-                                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                                }
-                                .buttonStyle(.plain)
-                                .disabled(isSyncingCalendarEvent)
-                            }
+                            .disabled(isSyncingCalendarEvent)
                         }
                     }
 

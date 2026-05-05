@@ -3,13 +3,17 @@ import SwiftUI
 
 struct ProjectDetailView: View {
     @Environment(\.modelContext) private var modelContext
-    
+    @Environment(\.openWindow) private var openWindow
+
     let project: Project
     @Binding var expandedTaskID: UUID?
     @Binding var completingTaskIDs: Set<UUID>
     @State private var newHeadingTitle = ""
     @State private var showAddHeading = false
-    
+    @State private var showRenameAlert = false
+    @State private var renameText = ""
+    @State private var showDeleteConfirm = false
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -126,6 +130,58 @@ struct ProjectDetailView: View {
             .padding(28)
         }
         .background(Color.clear)
+        .toolbar {
+            ToolbarItemGroup(placement: .primaryAction) {
+                Menu {
+                    Button {
+                        openWindow(value: project.id)
+                    } label: {
+                        Label("Open in Separate Window", systemImage: "macwindow.badge.plus")
+                    }
+
+                    Divider()
+
+                    Button {
+                        renameText = project.title
+                        showRenameAlert = true
+                    } label: {
+                        Label("Rename Project", systemImage: "pencil")
+                    }
+
+                    Divider()
+
+                    Button(role: .destructive) {
+                        showDeleteConfirm = true
+                    } label: {
+                        Label("Delete Project", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .alert("Rename Project", isPresented: $showRenameAlert) {
+            TextField("Project name", text: $renameText)
+            Button("Cancel", role: .cancel) {}
+            Button("Rename") {
+                let newTitle = renameText.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !newTitle.isEmpty {
+                    project.title = newTitle
+                    try? modelContext.save()
+                }
+            }
+        }
+        .alert("Delete Project?", isPresented: $showDeleteConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                modelContext.delete(project)
+                try? modelContext.save()
+            }
+        } message: {
+            Text("This will delete the project and unassign all its tasks. This cannot be undone.")
+        }
     }
     
     private func addHeading() {

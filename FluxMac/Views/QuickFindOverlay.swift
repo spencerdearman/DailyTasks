@@ -74,7 +74,7 @@ struct QuickFindOverlay: View {
     var body: some View {
         ZStack {
             // Dimmed background
-            Color.black.opacity(0.3)
+            Color.black.opacity(0.12)
                 .ignoresSafeArea()
                 .onTapGesture { onDismiss() }
             
@@ -174,7 +174,7 @@ struct QuickFindOverlay: View {
                 Button {
                     item.action()
                 } label: {
-                    HStack(spacing: 10) {
+                    HStack(alignment: .center, spacing: 10) {
                         Image(systemName: item.icon)
                             .font(.system(size: 14))
                             .foregroundStyle(item.iconColor)
@@ -186,6 +186,7 @@ struct QuickFindOverlay: View {
                             Text(subtitle)
                                 .font(.caption)
                                 .foregroundStyle(.tertiary)
+                                .frame(alignment: .center)
                         }
                         Spacer()
                     }

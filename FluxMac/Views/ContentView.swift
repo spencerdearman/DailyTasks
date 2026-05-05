@@ -50,23 +50,7 @@ struct ContentView: View {
             SettingsSheet()
         }
         .tint(.primary)
-        .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
-                if case .project(let id) = selection {
-                    Button {
-                        openWindow(value: id)
-                    } label: {
-                        Image(systemName: "macwindow.badge.plus")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(.secondary)
-                            .frame(width: 28, height: 28)
-                            .background(Color.primary.opacity(0.06), in: Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Open in Window")
-                }
-            }
-        }
+        .toolbar {}
         .background(
             LinearGradient(
                 colors: [Color.white, Color(white: 0.96)],
@@ -127,19 +111,19 @@ struct ContentView: View {
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "magnifyingglass")
-                        .font(.system(size: 12))
+                        .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(.secondary)
                     Text("Quick Find")
-                        .font(.subheadline)
+                        .font(.subheadline.weight(.medium))
                         .foregroundStyle(.secondary)
                     Spacer()
                     Text("⌘F")
                         .font(.caption)
                         .foregroundStyle(.quaternary)
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 7)
-                .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .glassEffect(.regular, in: .rect(cornerRadius: 16))
             }
             .buttonStyle(.plain)
             .listRowInsets(EdgeInsets(top: 4, leading: 10, bottom: 4, trailing: 10))
@@ -170,7 +154,7 @@ struct ContentView: View {
                     .dropDestination(for: String.self) { items, _ in
                         _ = reassign(tasks: items, to: area)
                     }
-                    
+
                     // Projects under the area (indented)
                     ForEach(filteredProjects(in: area)) { project in
                         NavigationLink(value: SidebarSelection.project(project.id)) {
@@ -186,6 +170,23 @@ struct ContentView: View {
                         .padding(.leading, 20)
                         .dropDestination(for: String.self) { items, _ in
                             _ = reassign(tasks: items, to: project, in: area)
+                        }
+                    }
+                }
+            }
+
+            if !unassignedProjects.isEmpty {
+                Section("Projects") {
+                    ForEach(unassignedProjects) { project in
+                        NavigationLink(value: SidebarSelection.project(project.id)) {
+                            HStack(spacing: 10) {
+                                Image(systemName: "paperplane")
+                                Text(project.title)
+                                    .lineLimit(1)
+                                Spacer()
+                                Text("\(project.activeTaskCount)")
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
                 }
@@ -250,16 +251,12 @@ struct ContentView: View {
                     detailFooterTab(systemImage: "calendar", label: "Today") {
                         selection = .today
                     }
-                    detailFooterTab(systemImage: "arrow.down.circle", label: "Import") {
-                        calendarStore.importReminders(into: modelContext, areas: areas)
-                    }
                 }
                 .padding(.top, 10)
                 .padding(.bottom, 8)
                 .padding(.horizontal, 20)
-                .frame(maxWidth: 260)
-                .background(.ultraThinMaterial, in: Capsule())
-                .shadow(color: .black.opacity(0.08), radius: 10, y: 3)
+                .frame(maxWidth: 200)
+                .glassEffect(.regular, in: .capsule)
                 .padding(.bottom, 12)
             }
     }
@@ -365,7 +362,11 @@ struct ContentView: View {
     // MARK: - Data
     
     private var filteredAreas: [Area] { areas }
-    
+
+    private var unassignedProjects: [Project] {
+        projects.filter { $0.area == nil }
+    }
+
     private func filteredProjects(in area: Area) -> [Project] {
         projects.filter { $0.area?.id == area.id }
     }
