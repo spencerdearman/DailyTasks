@@ -11,6 +11,6 @@ struct DateBadge: View {
             .foregroundStyle(isDeadline ? .primary : .secondary)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(Color.black.opacity(isDeadline ? 0.10 : 0.06), in: Capsule())
+            .background(Color.primary.opacity(isDeadline ? 0.10 : 0.06), in: Capsule())
     }
 }

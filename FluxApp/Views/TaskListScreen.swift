@@ -28,6 +28,7 @@ struct TaskListScreen: View {
             }
             .padding(20)
         }
+        .pullToQuickFind()
         .background(AppBackground())
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

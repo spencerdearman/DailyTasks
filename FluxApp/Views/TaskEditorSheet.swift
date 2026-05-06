@@ -394,6 +394,26 @@ struct TaskEditorSheet: View {
         }
     }
 
+    private func scheduleQuickButton(icon: String, iconColor: Color, label: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(isSelected ? .white : iconColor)
+                Text(label)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(isSelected ? .white : .secondary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(
+                isSelected ? AnyShapeStyle(iconColor) : AnyShapeStyle(Color.clear),
+                in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
     private func removeFromCalendar() {
         isSyncingCalendarEvent = true
 

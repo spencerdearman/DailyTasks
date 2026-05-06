@@ -8,11 +8,11 @@ struct QuickFindOverlay: View {
     let onSelectSidebar: (SidebarSelection) -> Void
     let onSelectTask: (TaskItem) -> Void
     let onDismiss: () -> Void
-    
+
     @State private var query = ""
     @FocusState private var isFocused: Bool
     @State private var selectedIndex = 0
-    
+
     private struct QuickFindItem: Identifiable {
         let id: String
         let icon: String
@@ -21,7 +21,7 @@ struct QuickFindOverlay: View {
         let subtitle: String?
         let action: () -> Void
     }
-    
+
     private var coreListItems: [QuickFindItem] {
         let lists: [(String, String, Color, SidebarSelection)] = [
             ("Inbox", "tray.fill", .primary, .inbox),
@@ -38,7 +38,7 @@ struct QuickFindOverlay: View {
             }
         }
     }
-    
+
     private var areaItems: [QuickFindItem] {
         let filtered = query.isEmpty ? areas : areas.filter { $0.title.localizedCaseInsensitiveContains(query) }
         return filtered.map { area in
@@ -47,7 +47,7 @@ struct QuickFindOverlay: View {
             }
         }
     }
-    
+
     private var projectItems: [QuickFindItem] {
         let filtered = query.isEmpty ? projects : projects.filter { $0.title.localizedCaseInsensitiveContains(query) }
         return filtered.map { project in
@@ -56,7 +56,7 @@ struct QuickFindOverlay: View {
             }
         }
     }
-    
+
     private var taskItems: [QuickFindItem] {
         guard !query.isEmpty else { return [] }
         let filtered = tasks.filter { !$0.isCompleted && $0.title.localizedCaseInsensitiveContains(query) }
@@ -66,27 +66,26 @@ struct QuickFindOverlay: View {
             }
         }
     }
-    
+
     private var allItems: [QuickFindItem] {
         coreListItems + areaItems + projectItems + taskItems
     }
-    
+
     var body: some View {
         ZStack {
-            // Dimmed background
-            Color.black.opacity(0.12)
+            Color.black.opacity(0.18)
                 .ignoresSafeArea()
                 .onTapGesture { onDismiss() }
-            
+
             VStack(spacing: 0) {
-                // Search field
+                // Spotlight-style search bar
                 HStack(spacing: 10) {
                     Image(systemName: "magnifyingglass")
-                        .font(.system(size: 16, weight: .medium))
+                        .font(.system(size: 18, weight: .medium))
                         .foregroundStyle(.secondary)
                     TextField("Quick Find", text: $query)
                         .textFieldStyle(.plain)
-                        .font(.system(size: 18))
+                        .font(.system(size: 20, weight: .light))
                         .focused($isFocused)
                         .onSubmit {
                             if let item = allItems[safe: selectedIndex] {
@@ -98,46 +97,50 @@ struct QuickFindOverlay: View {
                             query = ""
                         } label: {
                             Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 16))
                                 .foregroundStyle(.tertiary)
                         }
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 18)
                 .padding(.vertical, 14)
-                
-                Divider()
-                
-                // Results
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 2) {
-                        if !coreListItems.isEmpty {
-                            quickFindSection("Lists", items: coreListItems)
+
+                if !allItems.isEmpty || !query.isEmpty {
+                    Divider()
+                        .padding(.horizontal, 12)
+
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 0) {
+                            if !coreListItems.isEmpty {
+                                quickFindSection("Lists", items: coreListItems)
+                            }
+                            if !areaItems.isEmpty {
+                                quickFindSection("Areas", items: areaItems)
+                            }
+                            if !projectItems.isEmpty {
+                                quickFindSection("Projects", items: projectItems)
+                            }
+                            if !taskItems.isEmpty {
+                                quickFindSection("Tasks", items: taskItems)
+                            }
+                            if allItems.isEmpty && !query.isEmpty {
+                                Text("No results")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(20)
+                            }
                         }
-                        if !areaItems.isEmpty {
-                            quickFindSection("Areas", items: areaItems)
-                        }
-                        if !projectItems.isEmpty {
-                            quickFindSection("Projects", items: projectItems)
-                        }
-                        if !taskItems.isEmpty {
-                            quickFindSection("Tasks", items: taskItems)
-                        }
-                        if allItems.isEmpty {
-                            Text("No results")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .padding(16)
-                        }
+                        .padding(.vertical, 6)
                     }
-                    .padding(.vertical, 6)
+                    .frame(maxHeight: 340)
                 }
-                .frame(maxHeight: 340)
             }
-            .frame(width: 420)
-            .background(.ultraThickMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-            .shadow(color: .black.opacity(0.2), radius: 30, y: 10)
-            .padding(.bottom, 100)
+            .frame(width: 540)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .shadow(color: .black.opacity(0.25), radius: 40, y: 12)
+            .padding(.bottom, 120)
         }
         .onAppear {
             isFocused = true
@@ -159,16 +162,17 @@ struct QuickFindOverlay: View {
             selectedIndex = 0
         }
     }
-    
+
     private func quickFindSection(_ title: String, items: [QuickFindItem]) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(title)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
+                .textCase(.uppercase)
+                .padding(.horizontal, 20)
+                .padding(.top, 10)
                 .padding(.bottom, 4)
-            
+
             ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                 let globalIndex = globalIndex(for: item)
                 Button {
@@ -178,7 +182,7 @@ struct QuickFindOverlay: View {
                         Image(systemName: item.icon)
                             .font(.system(size: 14))
                             .foregroundStyle(item.iconColor)
-                            .frame(width: 22, height: 22)
+                            .frame(width: 24, height: 24)
                         Text(item.title)
                             .font(.body)
                             .foregroundStyle(.primary)
@@ -186,11 +190,10 @@ struct QuickFindOverlay: View {
                             Text(subtitle)
                                 .font(.caption)
                                 .foregroundStyle(.tertiary)
-                                .frame(alignment: .center)
                         }
                         Spacer()
                     }
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, 16)
                     .padding(.vertical, 7)
                     .background(
                         globalIndex == selectedIndex
@@ -201,10 +204,11 @@ struct QuickFindOverlay: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .padding(.horizontal, 4)
             }
         }
     }
-    
+
     private func globalIndex(for item: QuickFindItem) -> Int {
         allItems.firstIndex(where: { $0.id == item.id }) ?? -1
     }

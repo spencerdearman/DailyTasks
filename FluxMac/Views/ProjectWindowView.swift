@@ -24,13 +24,9 @@ struct ProjectWindowView: View {
                     completingTaskIDs: $completingTaskIDs
                 )
                 .padding(24)
-                .background(
-                    LinearGradient(
-                        colors: [Color.white.opacity(0.92), Color.white.opacity(0.74)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .background {
+                    AppBackground()
+                }
             } else {
                 ContentUnavailableView("Project unavailable", systemImage: "square.stack.3d.up.slash")
             }

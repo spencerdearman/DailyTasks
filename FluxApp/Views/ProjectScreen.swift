@@ -50,6 +50,7 @@ struct ProjectScreen: View {
             }
             .padding(20)
         }
+        .pullToQuickFind()
         .background(AppBackground())
         .navigationTitle(project.title)
         .navigationBarTitleDisplayMode(.inline)

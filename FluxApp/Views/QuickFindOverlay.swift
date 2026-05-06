@@ -47,26 +47,26 @@ struct QuickFindOverlay: View {
 
     var body: some View {
         ZStack {
-            // Dimmed background
             Color.black.opacity(0.3)
                 .ignoresSafeArea()
                 .onTapGesture { onDismiss() }
 
             VStack(spacing: 0) {
-                // Search field
+                // Search bar
                 HStack(spacing: 10) {
                     Image(systemName: "magnifyingglass")
-                        .font(.system(size: 16, weight: .medium))
+                        .font(.system(size: 17, weight: .medium))
                         .foregroundStyle(.secondary)
                     TextField("Quick Find", text: $query)
                         .textFieldStyle(.plain)
-                        .font(.system(size: 17))
+                        .font(.system(size: 18, weight: .light))
                         .focused($isFocused)
                     if !query.isEmpty {
                         Button {
                             query = ""
                         } label: {
                             Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 16))
                                 .foregroundStyle(.tertiary)
                         }
                         .buttonStyle(.plain)
@@ -74,11 +74,9 @@ struct QuickFindOverlay: View {
                     Button {
                         onDismiss()
                     } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 14, weight: .semibold))
+                        Text("Cancel")
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
-                            .frame(width: 28, height: 28)
-                            .background(Color.primary.opacity(0.06), in: Circle())
                     }
                     .buttonStyle(.plain)
                 }
@@ -86,10 +84,10 @@ struct QuickFindOverlay: View {
                 .padding(.vertical, 14)
 
                 Divider()
+                    .padding(.horizontal, 12)
 
-                // Results
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 0) {
                         if !coreListResults.isEmpty {
                             quickFindSection("Lists", items: coreListResults.map { item in
                                 (id: "list-\(item.0)", icon: item.1, color: item.2, title: item.0, subtitle: nil as String?, action: { onSelectSidebar(item.3) })
@@ -115,16 +113,16 @@ struct QuickFindOverlay: View {
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                                 .frame(maxWidth: .infinity)
-                                .padding(16)
+                                .padding(20)
                         }
                     }
                     .padding(.vertical, 6)
                 }
                 .frame(maxHeight: 400)
             }
-            .background(.ultraThickMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .shadow(color: .black.opacity(0.2), radius: 30, y: 10)
-            .padding(.horizontal, 20)
+            .padding(.horizontal, 16)
             .padding(.top, 60)
             .frame(maxHeight: .infinity, alignment: .top)
         }
@@ -138,8 +136,9 @@ struct QuickFindOverlay: View {
             Text(title)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
+                .textCase(.uppercase)
+                .padding(.horizontal, 20)
+                .padding(.top, 10)
                 .padding(.bottom, 4)
 
             ForEach(items, id: \.id) { item in
@@ -150,7 +149,7 @@ struct QuickFindOverlay: View {
                         Image(systemName: item.icon)
                             .font(.system(size: 14))
                             .foregroundStyle(item.color)
-                            .frame(width: 22, height: 22)
+                            .frame(width: 24, height: 24)
                         Text(item.title)
                             .font(.body)
                             .foregroundStyle(.primary)
@@ -161,7 +160,7 @@ struct QuickFindOverlay: View {
                         }
                         Spacer()
                     }
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, 16)
                     .padding(.vertical, 8)
                     .contentShape(Rectangle())
                 }

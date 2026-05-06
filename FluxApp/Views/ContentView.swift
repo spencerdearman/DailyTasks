@@ -1,9 +1,6 @@
 import SwiftData
 import SwiftUI
 
-import SwiftData
-import SwiftUI
-
 struct ContentView: View {
     @Query(sort: \Area.sortOrder) private var areas: [Area]
     @Query(sort: \Project.sortOrder) private var projects: [Project]
@@ -17,7 +14,6 @@ struct ContentView: View {
     var body: some View {
         NavigationStack(path: $quickFindPath) {
             List {
-                // Quick Find search button
                 Button {
                     showQuickFind = true
                 } label: {
@@ -99,6 +95,7 @@ struct ContentView: View {
             }
         }
         .tint(.primary)
+        .environment(\.showQuickFind, $showQuickFind)
         .overlay {
             if showQuickFind {
                 QuickFindOverlay(
@@ -211,5 +208,69 @@ struct ContentView: View {
     private func tasksForArea(_ area: Area) -> [TaskItem] {
         tasks.filter { $0.area?.id == area.id || $0.project?.area?.id == area.id }
             .sorted { ($0.effectiveDate ?? .distantFuture) < ($1.effectiveDate ?? .distantFuture) }
+    }
+}
+
+// MARK: - Environment key for Quick Find
+
+private struct ShowQuickFindKey: EnvironmentKey {
+    static let defaultValue: Binding<Bool> = .constant(false)
+}
+
+extension EnvironmentValues {
+    var showQuickFind: Binding<Bool> {
+        get { self[ShowQuickFindKey.self] }
+        set { self[ShowQuickFindKey.self] = newValue }
+    }
+}
+
+// MARK: - Pull-down Quick Find modifier
+
+struct PullToQuickFind: ViewModifier {
+    @Environment(\.showQuickFind) private var showQuickFind
+    @State private var pullOffset: CGFloat = 0
+    private let threshold: CGFloat = 80
+
+    func body(content: Content) -> some View {
+        GeometryReader { outer in
+            content
+                .overlay(alignment: .top) {
+                    // Pull indicator
+                    if pullOffset > 10 {
+                        VStack(spacing: 6) {
+                            Image(systemName: "magnifyingglass")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundStyle(.secondary)
+                                .scaleEffect(min(pullOffset / threshold, 1.0))
+                            if pullOffset > threshold * 0.6 {
+                                Text("Quick Find")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .transition(.opacity)
+                            }
+                        }
+                        .frame(height: 50)
+                        .offset(y: min(pullOffset * 0.4, 40) - 50)
+                        .opacity(min(pullOffset / 40, 1.0))
+                        .animation(.easeOut(duration: 0.15), value: pullOffset)
+                    }
+                }
+                .onScrollGeometryChange(for: CGFloat.self) { geo in
+                    geo.contentOffset.y + geo.contentInsets.top
+                } action: { _, newValue in
+                    pullOffset = max(0, -newValue)
+                }
+                .onChange(of: pullOffset) { oldValue, newValue in
+                    if oldValue >= threshold && newValue < threshold && oldValue > newValue {
+                        showQuickFind.wrappedValue = true
+                    }
+                }
+        }
+    }
+}
+
+extension View {
+    func pullToQuickFind() -> some View {
+        modifier(PullToQuickFind())
     }
 }

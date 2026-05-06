@@ -51,13 +51,9 @@ struct ContentView: View {
         }
         .tint(.primary)
         .toolbar {}
-        .background(
-            LinearGradient(
-                colors: [Color.white, Color(white: 0.96)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
+        .background {
+            AppBackground()
+        }
         .onAppear {
             calendarStore.refresh()
         }
