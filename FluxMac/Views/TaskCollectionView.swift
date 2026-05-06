@@ -13,7 +13,9 @@ struct TaskCollectionView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
-                HeaderCard(title: title)
+                Text(title)
+                    .font(.system(size: 34, weight: .bold))
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 
                 if !events.isEmpty {
                     EventStrip(events: events)

@@ -8,6 +8,8 @@ struct ContentView: View {
 
     @State private var quickEntrySelection: SidebarSelection?
     @State private var showingQuickEntry = false
+    @State private var showingNewProject = false
+    @State private var showingNewArea = false
     @State private var showQuickFind = false
     @State private var quickFindPath: [SidebarSelection] = []
 
@@ -78,9 +80,23 @@ struct ContentView: View {
             .background(AppBackground())
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        quickEntrySelection = .inbox
-                        showingQuickEntry = true
+                    Menu {
+                        Button {
+                            quickEntrySelection = .inbox
+                            showingQuickEntry = true
+                        } label: {
+                            Label("New Task", systemImage: "checkmark.circle")
+                        }
+                        Button {
+                            showingNewProject = true
+                        } label: {
+                            Label("New Project", systemImage: "paperplane")
+                        }
+                        Button {
+                            showingNewArea = true
+                        } label: {
+                            Label("New Area", systemImage: "square.grid.2x2")
+                        }
                     } label: {
                         Image(systemName: "plus")
                             .font(.system(size: 15, weight: .semibold))
@@ -89,6 +105,12 @@ struct ContentView: View {
             }
             .sheet(isPresented: $showingQuickEntry) {
                 QuickEntrySheet(defaultSelection: quickEntrySelection)
+            }
+            .sheet(isPresented: $showingNewProject) {
+                NewProjectSheet()
+            }
+            .sheet(isPresented: $showingNewArea) {
+                NewAreaSheet()
             }
             .navigationDestination(for: SidebarSelection.self) { selection in
                 destination(for: selection)
@@ -229,29 +251,30 @@ extension EnvironmentValues {
 struct PullToQuickFind: ViewModifier {
     @Environment(\.showQuickFind) private var showQuickFind
     @State private var pullOffset: CGFloat = 0
-    private let threshold: CGFloat = 80
+    @State private var hasTriggeredHaptic = false
+    private let threshold: CGFloat = 140
 
     func body(content: Content) -> some View {
         GeometryReader { outer in
             content
                 .overlay(alignment: .top) {
-                    // Pull indicator
-                    if pullOffset > 10 {
+                    if pullOffset > 20 {
                         VStack(spacing: 6) {
                             Image(systemName: "magnifyingglass")
-                                .font(.system(size: 16, weight: .medium))
+                                .font(.system(size: 18, weight: .medium))
                                 .foregroundStyle(.secondary)
                                 .scaleEffect(min(pullOffset / threshold, 1.0))
-                            if pullOffset > threshold * 0.6 {
-                                Text("Quick Find")
-                                    .font(.caption)
+                                .rotationEffect(.degrees(pullOffset >= threshold ? 0 : -90 * (1 - pullOffset / threshold)))
+                            if pullOffset > threshold * 0.5 {
+                                Text(pullOffset >= threshold ? "Release to search" : "Pull to search")
+                                    .font(.caption.weight(.medium))
                                     .foregroundStyle(.secondary)
                                     .transition(.opacity)
                             }
                         }
                         .frame(height: 50)
-                        .offset(y: min(pullOffset * 0.4, 40) - 50)
-                        .opacity(min(pullOffset / 40, 1.0))
+                        .offset(y: min(pullOffset * 0.35, 50) - 50)
+                        .opacity(min(pullOffset / 50, 1.0))
                         .animation(.easeOut(duration: 0.15), value: pullOffset)
                     }
                 }
@@ -261,7 +284,20 @@ struct PullToQuickFind: ViewModifier {
                     pullOffset = max(0, -newValue)
                 }
                 .onChange(of: pullOffset) { oldValue, newValue in
+                    // First haptic when crossing threshold going down
+                    if newValue >= threshold && !hasTriggeredHaptic {
+                        hasTriggeredHaptic = true
+                        let impact = UIImpactFeedbackGenerator(style: .medium)
+                        impact.impactOccurred()
+                    }
+                    // Reset haptic flag when pulling back up
+                    if newValue < threshold * 0.8 {
+                        hasTriggeredHaptic = false
+                    }
+                    // Trigger Quick Find when user releases past threshold
                     if oldValue >= threshold && newValue < threshold && oldValue > newValue {
+                        let impact = UIImpactFeedbackGenerator(style: .heavy)
+                        impact.impactOccurred()
                         showQuickFind.wrappedValue = true
                     }
                 }

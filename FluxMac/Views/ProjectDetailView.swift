@@ -18,10 +18,8 @@ struct ProjectDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 Text(project.title)
-                    .font(.system(size: 32, weight: .bold))
+                    .font(.system(size: 34, weight: .bold))
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(24)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
                 
                 // Simple notes editor
                 TextField("Notes…", text: Binding(
@@ -59,11 +57,10 @@ struct ProjectDetailView: View {
                                 expandedTaskID: $expandedTaskID,
                                 completingTaskIDs: $completingTaskIDs
                             ) { task in
-                                if task.isCompleted { task.reopen() } else { task.markComplete() }
-                                try? modelContext.save()
+                                toggleTask(task)
                             }
                         }
-                        
+
                         InlineTaskAdder(
                             project: project,
                             area: project.area,
@@ -71,7 +68,7 @@ struct ProjectDetailView: View {
                         )
                     }
                 }
-                
+
                 let ungroupedTasks = project.sortedTasks.filter { $0.heading == nil }
                 VStack(alignment: .leading, spacing: 8) {
                     if !ungroupedTasks.isEmpty {
@@ -81,8 +78,7 @@ struct ProjectDetailView: View {
                             expandedTaskID: $expandedTaskID,
                             completingTaskIDs: $completingTaskIDs
                         ) { task in
-                            if task.isCompleted { task.reopen() } else { task.markComplete() }
-                            try? modelContext.save()
+                            toggleTask(task)
                         }
                     }
                     
@@ -132,31 +128,27 @@ struct ProjectDetailView: View {
         .background(Color.clear)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
-                Menu {
-                    Button {
-                        openWindow(value: project.id)
-                    } label: {
-                        Label("Open in Separate Window", systemImage: "macwindow.badge.plus")
-                    }
-
-                    Divider()
-
-                    Button {
-                        renameText = project.title
-                        showRenameAlert = true
-                    } label: {
-                        Label("Rename Project", systemImage: "pencil")
-                    }
-
-                    Divider()
-
-                    Button(role: .destructive) {
-                        showDeleteConfirm = true
-                    } label: {
-                        Label("Delete Project", systemImage: "trash")
-                    }
+                Button {
+                    openWindow(value: project.id)
                 } label: {
-                    Image(systemName: "ellipsis.circle")
+                    Image(systemName: "macwindow.badge.plus")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+
+                Button {
+                    renameText = project.title
+                    showRenameAlert = true
+                } label: {
+                    Image(systemName: "pencil")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+
+                Button(role: .destructive) {
+                    showDeleteConfirm = true
+                } label: {
+                    Image(systemName: "trash")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(.secondary)
                 }
@@ -196,5 +188,33 @@ struct ProjectDetailView: View {
         try? modelContext.save()
         newHeadingTitle = ""
         showAddHeading = false
+    }
+
+    private func toggleTask(_ task: TaskItem) {
+        if completingTaskIDs.contains(task.id) {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                _ = completingTaskIDs.remove(task.id)
+            }
+            return
+        }
+
+        if task.isCompleted {
+            task.reopen()
+            try? modelContext.save()
+        } else {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                completingTaskIDs.insert(task.id)
+            }
+
+            let taskID = task.id
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                guard completingTaskIDs.contains(taskID) else { return }
+                withAnimation(.easeOut(duration: 0.3)) {
+                    _ = completingTaskIDs.remove(taskID)
+                    task.markComplete()
+                    try? modelContext.save()
+                }
+            }
+        }
     }
 }

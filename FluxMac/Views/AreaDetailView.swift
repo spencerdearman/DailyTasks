@@ -24,8 +24,10 @@ struct AreaDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
-                HeaderCard(title: area.title)
-                
+                Text(area.title)
+                    .font(.system(size: 34, weight: .bold))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
                 // Loose tasks (not assigned to any project)
                 if !looseTasks.isEmpty {
                     TaskSection(
@@ -34,8 +36,7 @@ struct AreaDetailView: View {
                         expandedTaskID: $expandedTaskID,
                         completingTaskIDs: $completingTaskIDs
                     ) { task in
-                        if task.isCompleted { task.reopen() } else { task.markComplete() }
-                        try? modelContext.save()
+                        toggleTask(task)
                     }
                 }
                 
@@ -104,8 +105,7 @@ struct AreaDetailView: View {
                             expandedTaskID: $expandedTaskID,
                             completingTaskIDs: $completingTaskIDs
                         ) { task in
-                            if task.isCompleted { task.reopen() } else { task.markComplete() }
-                            try? modelContext.save()
+                            toggleTask(task)
                         }
                     }
                 }
@@ -114,23 +114,19 @@ struct AreaDetailView: View {
         }
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
-                Menu {
-                    Button {
-                        renameText = area.title
-                        showRenameAlert = true
-                    } label: {
-                        Label("Rename Area", systemImage: "pencil")
-                    }
-
-                    Divider()
-
-                    Button(role: .destructive) {
-                        showDeleteConfirm = true
-                    } label: {
-                        Label("Delete Area", systemImage: "trash")
-                    }
+                Button {
+                    renameText = area.title
+                    showRenameAlert = true
                 } label: {
-                    Image(systemName: "ellipsis.circle")
+                    Image(systemName: "pencil")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+
+                Button(role: .destructive) {
+                    showDeleteConfirm = true
+                } label: {
+                    Image(systemName: "trash")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(.secondary)
                 }
@@ -156,6 +152,34 @@ struct AreaDetailView: View {
             }
         } message: {
             Text("This will delete the area and unassign all its tasks and projects. This cannot be undone.")
+        }
+    }
+
+    private func toggleTask(_ task: TaskItem) {
+        if completingTaskIDs.contains(task.id) {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                _ = completingTaskIDs.remove(task.id)
+            }
+            return
+        }
+
+        if task.isCompleted {
+            task.reopen()
+            try? modelContext.save()
+        } else {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                completingTaskIDs.insert(task.id)
+            }
+
+            let taskID = task.id
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                guard completingTaskIDs.contains(taskID) else { return }
+                withAnimation(.easeOut(duration: 0.3)) {
+                    _ = completingTaskIDs.remove(taskID)
+                    task.markComplete()
+                    try? modelContext.save()
+                }
+            }
         }
     }
 }

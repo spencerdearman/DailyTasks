@@ -149,12 +149,12 @@ struct TaskEditorSheet: View {
                                 }
                             }
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
                     }
                     .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-                    // Deadline + Calendar event scheduling
+                    // Deadline + Calendar
                     VStack(alignment: .leading, spacing: 0) {
                         // Deadline
                         HStack {
@@ -179,20 +179,6 @@ struct TaskEditorSheet: View {
 
                         Divider().padding(.leading, 52)
 
-                        // Calendar event start
-                        HStack {
-                            Label("Start", systemImage: "calendar.badge.clock")
-                                .foregroundStyle(.primary)
-                            Spacer()
-                            DatePicker("", selection: calendarStartBinding, displayedComponents: [.date, .hourAndMinute])
-                                .labelsHidden()
-                                .fixedSize()
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-
-                        Divider().padding(.leading, 52)
-
                         // Duration
                         Stepper(value: $task.calendarDurationMinutes, in: 15...480, step: 15) {
                             HStack {
@@ -205,44 +191,42 @@ struct TaskEditorSheet: View {
                         }
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
-                    }
-                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-                    // Calendar sync buttons
-                    VStack(spacing: 10) {
-                        Button {
-                            scheduleOnCalendar()
-                        } label: {
-                            HStack {
-                                Spacer()
-                                Label(task.hasCalendarEvent ? "Update Calendar Event" : "Schedule on Calendar", systemImage: "calendar.badge.plus")
-                                    .font(.body.weight(.medium))
-                                Spacer()
-                            }
-                            .padding(.vertical, 12)
-                            .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                            .foregroundStyle(.white)
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(isSyncingCalendarEvent || task.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        Divider().padding(.leading, 52)
 
-                        if task.hasCalendarEvent {
-                            Button(role: .destructive) {
-                                removeFromCalendar()
+                        // Calendar action row
+                        HStack {
+                            Button {
+                                scheduleOnCalendar()
                             } label: {
-                                HStack {
-                                    Spacer()
-                                    Label("Remove from Calendar", systemImage: "calendar.badge.minus")
-                                        .font(.body.weight(.medium))
-                                    Spacer()
-                                }
-                                .padding(.vertical, 12)
-                                .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                Label(
+                                    task.hasCalendarEvent ? "Update Calendar" : "Add to Calendar",
+                                    systemImage: task.hasCalendarEvent ? "calendar.badge.checkmark" : "calendar.badge.plus"
+                                )
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(task.hasCalendarEvent ? .green : .blue)
                             }
                             .buttonStyle(.plain)
-                            .disabled(isSyncingCalendarEvent)
+                            .disabled(isSyncingCalendarEvent || task.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                            Spacer()
+
+                            if task.hasCalendarEvent {
+                                Button(role: .destructive) {
+                                    removeFromCalendar()
+                                } label: {
+                                    Text("Remove")
+                                        .font(.subheadline.weight(.medium))
+                                        .foregroundStyle(.red)
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(isSyncingCalendarEvent)
+                            }
                         }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
                     }
+                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
                     // Delete
                     Button(role: .destructive) {
@@ -351,16 +335,6 @@ struct TaskEditorSheet: View {
         )
     }
 
-    private var calendarStartBinding: Binding<Date> {
-        Binding(
-            get: { task.calendarStartAt ?? task.suggestedCalendarStartAt },
-            set: {
-                task.calendarStartAt = $0
-                task.updatedAt = .now
-            }
-        )
-    }
-
     private var alertIsPresented: Binding<Bool> {
         Binding(
             get: { calendarSyncMessage != nil },
@@ -375,6 +349,14 @@ struct TaskEditorSheet: View {
 
     private func scheduleOnCalendar() {
         isSyncingCalendarEvent = true
+
+        // Use deadline as calendar start time
+        if let deadline = task.deadline {
+            task.calendarStartAt = deadline
+            task.whenDate = Calendar.current.startOfDay(for: deadline)
+        }
+        task.calendarDurationMinutes = max(task.calendarDurationMinutes, 15)
+        task.updatedAt = .now
 
         Task {
             do {
@@ -405,7 +387,7 @@ struct TaskEditorSheet: View {
                     .foregroundStyle(isSelected ? .white : .secondary)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 10)
+            .padding(.vertical, 6)
             .background(
                 isSelected ? AnyShapeStyle(iconColor) : AnyShapeStyle(Color.clear),
                 in: RoundedRectangle(cornerRadius: 10, style: .continuous)

@@ -18,7 +18,6 @@ struct TaskRow: View {
     @State private var newSubtaskTitle = ""
     @State private var notesExpanded = false
     @State private var showDeadlineTime = false
-    @State private var showCalendarDetails = false
     @State private var calendarSyncErrorMessage: String?
     
     @Query(sort: \Area.sortOrder) private var allAreas: [Area]
@@ -35,7 +34,7 @@ struct TaskRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Main row: checkbox + title
-            HStack(alignment: hasCompactMeta && !isExpanded ? .top : .center, spacing: 14) {
+            HStack(alignment: .center, spacing: 14) {
                 Button(action: onToggle) {
                     Image(systemName: isDone ? "checkmark.circle.fill" : "circle")
                         .font(.title3)
@@ -61,9 +60,10 @@ struct TaskRow: View {
                 .onTapGesture(perform: onTap)
             }
             .padding(.horizontal, 18)
-            .padding(.vertical, 14)
+            .padding(.top, 14)
+            .padding(.bottom, isExpanded ? 4 : 14)
             .opacity(isCompleting ? 0.5 : 1.0)
-            
+
             // Expanded
             if isExpanded {
                 expandedContent
@@ -216,10 +216,9 @@ struct TaskRow: View {
                     }
                 }
                 .padding(.horizontal, 56)
-                .padding(.top, 2)
-                .padding(.bottom, 10)
+                .padding(.vertical, 8)
             }
-            
+
             // Notes
             VStack(alignment: .leading, spacing: 2) {
                 TextField("Notes", text: Binding(
@@ -547,134 +546,114 @@ struct TaskRow: View {
                     }
                 )
 
-                HStack(spacing: 8) {
-                    Button {
-                        showDeadlineTime.toggle()
+                // Deadline controls: time toggle + clear — all in one row
+                if task.deadline != nil {
+                    HStack(spacing: 6) {
                         if showDeadlineTime {
-                            let cal = Calendar.current
-                            if task.deadline == nil {
-                                task.deadline = cal.date(bySettingHour: 9, minute: 0, second: 0, of: .now)
-                            } else {
+                            deadlineTimeControls(deadline: task.deadline!)
+                        } else {
+                            Button {
+                                showDeadlineTime = true
+                                let cal = Calendar.current
                                 let hour = cal.component(.hour, from: task.deadline!)
                                 if hour == 0 {
                                     task.deadline = cal.date(bySettingHour: 9, minute: 0, second: 0, of: task.deadline!)
                                 }
+                                task.updatedAt = .now
+                                try? modelContext.save()
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "clock")
+                                        .font(.system(size: 11))
+                                    Text("Add time")
+                                        .font(.caption.weight(.medium))
+                                }
+                                .foregroundStyle(.secondary)
                             }
-                            task.updatedAt = .now
-                            try? modelContext.save()
-                        } else if let deadline = task.deadline {
-                            let cal = Calendar.current
-                            task.deadline = cal.startOfDay(for: deadline)
-                            task.updatedAt = .now
-                            try? modelContext.save()
+                            .buttonStyle(.plain)
                         }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "clock")
-                                .font(.system(size: 11))
-                            Text(showDeadlineTime ? "Remove time" : "Add time")
-                                .font(.caption.weight(.medium))
-                        }
-                        .foregroundStyle(showDeadlineTime ? .blue : .secondary)
-                    }
-                    .buttonStyle(.plain)
 
-                    if showDeadlineTime, let deadline = task.deadline {
                         Spacer()
-                        deadlineTimeControls(deadline: deadline)
-                    }
-                }
 
-                if task.deadline != nil {
-                    Button {
-                        task.deadline = nil
-                        showDeadlineTime = false
-                        task.updatedAt = .now
-                        try? modelContext.save()
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 9, weight: .bold))
-                            Text("Clear deadline")
-                                .font(.caption.weight(.medium))
+                        if showDeadlineTime {
+                            Button {
+                                showDeadlineTime = false
+                                let cal = Calendar.current
+                                task.deadline = cal.startOfDay(for: task.deadline!)
+                                task.updatedAt = .now
+                                try? modelContext.save()
+                            } label: {
+                                Text("Remove time")
+                                    .font(.caption.weight(.medium))
+                                    .foregroundStyle(.blue)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .foregroundStyle(.secondary)
+
+                        Button {
+                            task.deadline = nil
+                            showDeadlineTime = false
+                            task.updatedAt = .now
+                            try? modelContext.save()
+                        } label: {
+                            HStack(spacing: 3) {
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 8, weight: .bold))
+                                Text("Clear")
+                                    .font(.caption.weight(.medium))
+                            }
+                            .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
 
                 Divider()
                     .padding(.top, 2)
 
-                DisclosureGroup(isExpanded: $showCalendarDetails) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "clock")
-                                .font(.system(size: 11))
-                                .foregroundStyle(.secondary)
-                            Text(calendarTimingDescription)
-                                .font(.caption.weight(.medium))
-                                .foregroundStyle(.secondary)
+                // Calendar section — always visible
+                calendarDurationRow
+
+                HStack(spacing: 8) {
+                    Button {
+                        scheduleOnCalendar()
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: task.hasCalendarEvent ? "checkmark.circle.fill" : "calendar.badge.plus")
+                                .font(.system(size: 11, weight: .medium))
+                            Text(task.hasCalendarEvent ? "Added" : "Add to Calendar")
+                                .font(.caption.weight(.semibold))
                         }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(task.hasCalendarEvent ? Color.green : Color.accentColor, in: Capsule())
+                    }
+                    .buttonStyle(.plain)
 
-                        calendarDurationRow
+                    if task.hasCalendarEvent || task.hasExplicitDeadlineTime {
+                        Text(calendarSummaryText)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
 
-                        Button {
-                            scheduleOnCalendar()
+                    Spacer()
+
+                    if task.hasCalendarEvent {
+                        Button(role: .destructive) {
+                            removeFromCalendar()
                         } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: task.hasCalendarEvent ? "checkmark.circle.fill" : "calendar.badge.plus")
-                                    .font(.system(size: 13, weight: .semibold))
-                                Text(task.hasCalendarEvent ? "Added to Calendar" : "Schedule on Calendar")
-                                    .font(.body.weight(.semibold))
-                                Spacer()
-                            }
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 12)
-                            .frame(maxWidth: .infinity)
-                            .background(task.hasCalendarEvent ? Color.green : Color.accentColor, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            Text("Remove")
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(.red)
                         }
                         .buttonStyle(.plain)
-
-                        if task.hasCalendarEvent {
-                            Button(role: .destructive) {
-                                removeFromCalendar()
-                            } label: {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "calendar.badge.minus")
-                                        .font(.system(size: 12, weight: .medium))
-                                    Text("Remove from Calendar")
-                                        .font(.caption.weight(.medium))
-                                    Spacer()
-                                }
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.top, 8)
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: task.hasCalendarEvent ? "calendar.badge.clock" : "calendar.badge.plus")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(.blue)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(task.hasCalendarEvent ? "Calendar event" : "Add to calendar")
-                                .font(.subheadline.weight(.medium))
-                                .foregroundStyle(.primary)
-                            if task.hasCalendarEvent || task.hasExplicitDeadlineTime {
-                                Text(calendarSummaryText)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        Spacer()
                     }
                 }
-                .tint(.primary)
             }
         }
-        .frame(width: 304, height: 420, alignment: .top)
+        .frame(width: 304, alignment: .top)
         .padding(14)
         .onAppear {
             syncCalendarPanelState()
@@ -684,7 +663,6 @@ struct TaskRow: View {
                 let minute = cal.component(.minute, from: deadline)
                 showDeadlineTime = hour != 0 || minute != 0
             }
-            showCalendarDetails = task.hasCalendarEvent
         }
     }
 
@@ -1004,13 +982,6 @@ struct TaskRow: View {
         return task.calendarStartAt ?? task.suggestedCalendarStartAt
     }
 
-    private var calendarTimingDescription: String {
-        if task.hasExplicitDeadlineTime, let deadline = task.deadline {
-            return "Uses deadline time: \(deadline.formatted(.dateTime.hour(.defaultDigits(amPM: .abbreviated)).minute()))"
-        }
-        return "No deadline time set. Calendar will use \(calendarSchedulingStartAt.formatted(.dateTime.hour(.defaultDigits(amPM: .abbreviated)).minute()))."
-    }
-
     private var calendarSummaryText: String {
         let startAt = calendarSchedulingStartAt
         return "\(startAt.formatted(.dateTime.month(.abbreviated).day().hour(.defaultDigits(amPM: .abbreviated)).minute())) · \(calendarDurationBinding.wrappedValue) min"
@@ -1024,9 +995,6 @@ struct TaskRow: View {
         Task {
             do {
                 ensureCalendarStartAtForScheduling()
-                await MainActor.run {
-                    showCalendarDetails = true
-                }
                 try await eventKitSync.upsertCalendarEvent(for: task)
                 try? modelContext.save()
             } catch {
