@@ -49,13 +49,6 @@ struct GeminiActionResponse: Codable, Sendable {
     }
 }
 
-// MARK: - Gemini Result (includes thinking)
-
-struct GeminiResult {
-    let response: GeminiActionResponse
-    let thinking: String?
-}
-
 // MARK: - Conversation Message
 
 struct GeminiMessage {
@@ -134,7 +127,7 @@ actor GeminiService {
         "required": ["action", "message"],
     ]
 
-    func send(_ input: String, apiKey: String, systemPrompt: String) async throws -> GeminiResult {
+    func send(_ input: String, apiKey: String, systemPrompt: String) async throws -> GeminiActionResponse {
         conversationHistory.append(GeminiMessage(role: "user", text: input))
 
         let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent?key=\(apiKey)")!
@@ -183,28 +176,10 @@ actor GeminiService {
         guard let candidates = geminiResponse?["candidates"] as? [[String: Any]],
               let firstCandidate = candidates.first,
               let content = firstCandidate["content"] as? [String: Any],
-              let parts = content["parts"] as? [[String: Any]] else {
+              let parts = content["parts"] as? [[String: Any]],
+              let text = parts.first(where: { $0["thought"] as? Bool != true })?["text"] as? String else {
             throw GeminiError.noContent
         }
-
-        // Extract thinking and response text from parts
-        var thinkingParts: [String] = []
-        var responsePart: String?
-
-        for part in parts {
-            guard let text = part["text"] as? String else { continue }
-            if part["thought"] as? Bool == true {
-                thinkingParts.append(text)
-            } else {
-                responsePart = text
-            }
-        }
-
-        guard let text = responsePart else {
-            throw GeminiError.noContent
-        }
-
-        let thinkingText = thinkingParts.isEmpty ? nil : thinkingParts.joined(separator: "\n")
 
         guard let textData = text.data(using: .utf8) else {
             throw GeminiError.noContent
@@ -218,7 +193,7 @@ actor GeminiService {
             conversationHistory = Array(conversationHistory.suffix(10))
         }
 
-        return GeminiResult(response: actionResponse, thinking: thinkingText)
+        return actionResponse
     }
 
     func clearHistory() {

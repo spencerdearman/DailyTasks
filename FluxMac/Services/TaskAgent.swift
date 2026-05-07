@@ -18,9 +18,8 @@ struct AgentResponse {
     let eventCards: [EventCard]?
     let isPlanDay: Bool
     let proposal: ScheduleProposal?
-    let thinking: String?
 
-    init(message: String, affectedTaskIDs: [UUID] = [], subtasks: [String]? = nil, taskCards: [TaskCard]? = nil, eventCards: [EventCard]? = nil, isPlanDay: Bool = false, proposal: ScheduleProposal? = nil, thinking: String? = nil) {
+    init(message: String, affectedTaskIDs: [UUID] = [], subtasks: [String]? = nil, taskCards: [TaskCard]? = nil, eventCards: [EventCard]? = nil, isPlanDay: Bool = false, proposal: ScheduleProposal? = nil) {
         self.message = message
         self.affectedTaskIDs = affectedTaskIDs
         self.subtasks = subtasks
@@ -28,7 +27,6 @@ struct AgentResponse {
         self.eventCards = eventCards
         self.isPlanDay = isPlanDay
         self.proposal = proposal
-        self.thinking = thinking
     }
 }
 
@@ -90,7 +88,6 @@ struct AgentContext {
 final class TaskAgent {
     var isProcessing = false
     var lastResponse: AgentResponse?
-    var liveThinking: String = ""
 
     private let gemini = GeminiService()
     private let categorizer = CategorizationService()
@@ -133,10 +130,8 @@ final class TaskAgent {
     func process(_ input: String, apiKey: String, context: AgentContext) async -> AgentResponse {
         print("[TaskAgent] process called with input: \"\(input)\", apiKey empty: \(apiKey.isEmpty)")
         isProcessing = true
-        liveThinking = ""
         defer {
             isProcessing = false
-            liveThinking = ""
             print("[TaskAgent] isProcessing set to false")
         }
 
@@ -151,26 +146,9 @@ final class TaskAgent {
         print("[TaskAgent] System prompt built (\(systemPrompt.count) chars), calling Gemini...")
 
         do {
-            let geminiResult = try await gemini.send(input, apiKey: apiKey, systemPrompt: systemPrompt) { [weak self] thinking in
-                Task { @MainActor in
-                    self?.liveThinking = thinking
-                }
-            }
-            let geminiResponse = geminiResult.response
-            let thinkingText = geminiResult.thinking
+            let geminiResponse = try await gemini.send(input, apiKey: apiKey, systemPrompt: systemPrompt)
             print("[TaskAgent] Gemini returned action: \(geminiResponse.action), message: \(geminiResponse.message ?? "nil")")
             var response = await execute(geminiResponse, ctx: context)
-            // Attach thinking text
-            response = AgentResponse(
-                message: response.message,
-                affectedTaskIDs: response.affectedTaskIDs,
-                subtasks: response.subtasks,
-                taskCards: response.taskCards,
-                eventCards: response.eventCards,
-                isPlanDay: response.isPlanDay,
-                proposal: response.proposal,
-                thinking: thinkingText
-            )
             print("[TaskAgent] Executed action, final message: \(response.message.prefix(100))")
 
             // Follow-up loop: if the input looks like multiple commands and Gemini
@@ -186,12 +164,11 @@ final class TaskAgent {
 
                 // Up to 4 follow-ups to handle remaining commands
                 for i in 1...4 {
-                    let followUpResult = try await gemini.send(
+                    let followUp = try await gemini.send(
                         "Continue with the next action from my original request that hasn't been done yet. If everything is complete, use action 'chat'.",
                         apiKey: apiKey,
                         systemPrompt: systemPrompt
                     )
-                    let followUp = followUpResult.response
                     print("[TaskAgent] Follow-up \(i): action=\(followUp.action)")
 
                     guard Self.mutatingActions.contains(followUp.action) else {

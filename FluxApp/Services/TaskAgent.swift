@@ -17,7 +17,6 @@ struct AgentResponse {
     let taskCards: [AgentTaskCard]?
     let eventCards: [AgentEventCard]?
     let isPlanDay: Bool
-    let thinking: String?
 
     init(
         message: String,
@@ -25,8 +24,7 @@ struct AgentResponse {
         subtasks: [String]? = nil,
         taskCards: [AgentTaskCard]? = nil,
         eventCards: [AgentEventCard]? = nil,
-        isPlanDay: Bool = false,
-        thinking: String? = nil
+        isPlanDay: Bool = false
     ) {
         self.message = message
         self.affectedTaskIDs = affectedTaskIDs
@@ -34,7 +32,6 @@ struct AgentResponse {
         self.taskCards = taskCards
         self.eventCards = eventCards
         self.isPlanDay = isPlanDay
-        self.thinking = thinking
     }
 }
 
@@ -103,21 +100,9 @@ final class TaskAgent {
         let systemPrompt = buildSystemPrompt(ctx: context)
 
         do {
-            let geminiResult = try await gemini.send(input, apiKey: apiKey, systemPrompt: systemPrompt)
-            let geminiResponse = geminiResult.response
-            let thinkingText = geminiResult.thinking
+            let geminiResponse = try await gemini.send(input, apiKey: apiKey, systemPrompt: systemPrompt)
             print("[TaskAgent] Gemini action: \(geminiResponse.action), filter: \(geminiResponse.filter ?? "nil"), message: \(geminiResponse.message ?? "nil")")
             var response = await execute(geminiResponse, ctx: context)
-            // Attach thinking text
-            response = AgentResponse(
-                message: response.message,
-                affectedTaskIDs: response.affectedTaskIDs,
-                subtasks: response.subtasks,
-                taskCards: response.taskCards,
-                eventCards: response.eventCards,
-                isPlanDay: response.isPlanDay,
-                thinking: thinkingText
-            )
             print("[TaskAgent] Response taskCards: \(response.taskCards?.count ?? 0), eventCards: \(response.eventCards?.count ?? 0), isPlanDay: \(response.isPlanDay)")
 
             // Follow-up loop: if the input looks like multiple commands and Gemini
@@ -132,12 +117,11 @@ final class TaskAgent {
                 let combinedMessage = response.message
 
                 for i in 1...4 {
-                    let followUpResult = try await gemini.send(
+                    let followUp = try await gemini.send(
                         "Continue with the next action from my original request that hasn't been done yet. If everything is complete, use action 'chat'.",
                         apiKey: apiKey,
                         systemPrompt: systemPrompt
                     )
-                    let followUp = followUpResult.response
                     print("[TaskAgent] Follow-up \(i): action=\(followUp.action)")
 
                     guard Self.mutatingActions.contains(followUp.action) else {

@@ -59,13 +59,6 @@ struct TimeSuggestion: Codable, Sendable, Identifiable {
     let reason: String
 }
 
-// MARK: - Gemini Result (includes thinking)
-
-struct GeminiResult {
-    let response: GeminiActionResponse
-    let thinking: String?
-}
-
 // MARK: - Conversation Message
 
 struct GeminiMessage {
@@ -161,12 +154,11 @@ actor GeminiService {
         "required": ["action", "message"]
     ]
 
-    func send(_ input: String, apiKey: String, systemPrompt: String, onThinking: (@Sendable (String) -> Void)? = nil) async throws -> GeminiResult {
+    func send(_ input: String, apiKey: String, systemPrompt: String) async throws -> GeminiActionResponse {
         print("[GeminiService] send() called with input: \"\(input)\"")
         conversationHistory.append(GeminiMessage(role: "user", text: input))
 
-        // Use streaming endpoint to get live thinking updates
-        let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/\(model):streamGenerateContent?alt=sse&key=\(apiKey)")!
+        let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent?key=\(apiKey)")!
 
         // Build contents array from conversation history
         var contents: [[String: Any]] = []
@@ -190,7 +182,7 @@ actor GeminiService {
         ]
 
         let jsonData = try JSONSerialization.data(withJSONObject: requestBody)
-        print("[GeminiService] Request body size: \(jsonData.count) bytes, sending streaming POST...")
+        print("[GeminiService] Request body size: \(jsonData.count) bytes, sending POST...")
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -198,7 +190,8 @@ actor GeminiService {
         request.httpBody = jsonData
         request.timeoutInterval = 120
 
-        let (bytes, response) = try await URLSession.shared.bytes(for: request)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        print("[GeminiService] Response received, data size: \(data.count) bytes")
 
         guard let httpResponse = response as? HTTPURLResponse else {
             print("[GeminiService] ERROR: Not an HTTP response")
@@ -208,69 +201,42 @@ actor GeminiService {
         print("[GeminiService] HTTP status: \(httpResponse.statusCode)")
 
         guard httpResponse.statusCode == 200 else {
-            // Read the full error body
-            var errorData = Data()
-            for try await byte in bytes { errorData.append(byte) }
-            let body = String(data: errorData, encoding: .utf8) ?? "unknown"
+            let body = String(data: data, encoding: .utf8) ?? "unknown"
             print("[GeminiService] ERROR response body: \(body.prefix(500))")
             throw GeminiError.apiError(statusCode: httpResponse.statusCode, message: body)
         }
 
-        // Parse SSE stream
-        var thinkingParts: [String] = []
-        var responseParts: [String] = []
-        var lineCount = 0
+        // Parse Gemini response structure
+        let geminiResponse = try JSONSerialization.jsonObject(with: data) as? [String: Any]
 
-        for try await line in bytes.lines {
-            lineCount += 1
-            // SSE lines start with "data: "
-            guard line.hasPrefix("data: ") else { continue }
-            let jsonString = String(line.dropFirst(6))
-            guard let chunkData = jsonString.data(using: .utf8),
-                  let chunk = try? JSONSerialization.jsonObject(with: chunkData) as? [String: Any],
-                  let candidates = chunk["candidates"] as? [[String: Any]],
-                  let firstCandidate = candidates.first,
-                  let content = firstCandidate["content"] as? [String: Any],
-                  let parts = content["parts"] as? [[String: Any]] else {
-                // Log unparseable chunks to debug
-                if jsonString.count > 5 {
-                    print("[GeminiService] SSE chunk could not be parsed: \(jsonString.prefix(200))")
-                }
-                continue
-            }
-
-            for part in parts {
-                guard let text = part["text"] as? String else { continue }
-                let isThought = part["thought"] as? Bool == true
-                print("[GeminiService] SSE part — thought: \(isThought), text: \(text.prefix(80))...")
-                if isThought {
-                    thinkingParts.append(text)
-                    // Send live thinking update
-                    let accumulated = thinkingParts.joined()
-                    onThinking?(accumulated)
-                } else {
-                    responseParts.append(text)
-                }
-            }
-        }
-
-        print("[GeminiService] Stream complete — \(lineCount) lines, \(thinkingParts.count) thinking parts, \(responseParts.count) response parts")
-
-        let fullResponse = responseParts.joined()
-        let thinkingText = thinkingParts.isEmpty ? nil : thinkingParts.joined()
-
-        guard !fullResponse.isEmpty else {
-            print("[GeminiService] ERROR: No response text found in stream")
+        guard let candidates = geminiResponse?["candidates"] as? [[String: Any]],
+              let firstCandidate = candidates.first,
+              let content = firstCandidate["content"] as? [String: Any],
+              let parts = content["parts"] as? [[String: Any]] else {
+            print("[GeminiService] ERROR: Could not parse candidates/content/parts")
+            let rawBody = String(data: data, encoding: .utf8) ?? "unparseable"
+            print("[GeminiService] Raw response: \(rawBody.prefix(1000))")
             throw GeminiError.noContent
         }
 
-        if let thinking = thinkingText {
-            print("[GeminiService] Thinking: \(thinking.prefix(200))...")
+        // Find the response text (skip any thought parts)
+        var responseText: String?
+        for part in parts {
+            guard let text = part["text"] as? String else { continue }
+            if part["thought"] as? Bool != true {
+                responseText = text
+            }
         }
-        print("[GeminiService] Parsed text from Gemini: \(fullResponse.prefix(300))")
+
+        guard let text = responseText else {
+            print("[GeminiService] ERROR: No response text found in parts")
+            throw GeminiError.noContent
+        }
+
+        print("[GeminiService] Parsed text from Gemini: \(text.prefix(300))")
 
         // Parse the structured JSON from the text
-        guard let textData = fullResponse.data(using: .utf8) else {
+        guard let textData = text.data(using: .utf8) else {
             throw GeminiError.noContent
         }
 
@@ -278,14 +244,14 @@ actor GeminiService {
         print("[GeminiService] Decoded action: \(actionResponse.action), message: \(actionResponse.message ?? "nil")")
 
         // Add model response to history
-        conversationHistory.append(GeminiMessage(role: "model", text: fullResponse))
+        conversationHistory.append(GeminiMessage(role: "model", text: text))
 
         // Keep history manageable (last 10 messages to avoid timeout)
         if conversationHistory.count > 10 {
             conversationHistory = Array(conversationHistory.suffix(10))
         }
 
-        return GeminiResult(response: actionResponse, thinking: thinkingText)
+        return actionResponse
     }
 
     func clearHistory() {

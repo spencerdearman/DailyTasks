@@ -25,7 +25,6 @@ struct AgentOverlay: View {
     @State private var input = ""
     @State private var responses: [AgentResult] = []
     @State private var showPanel = false
-    @State private var expandedThinking: Set<UUID> = []
     @FocusState private var isFocused: Bool
 
     // MARK: - Result Model
@@ -39,7 +38,6 @@ struct AgentOverlay: View {
         let subtasks: [String]?
         let isPlanDay: Bool
         let proposal: ScheduleProposal?
-        let thinking: String?
     }
 
     var body: some View {
@@ -193,13 +191,6 @@ struct AgentOverlay: View {
             .padding(.horizontal, 18)
             .padding(.top, 10)
             .padding(.bottom, 6)
-
-            // Thinking disclosure
-            if let thinking = result.thinking, !thinking.isEmpty {
-                thinkingDisclosure(thinking, resultID: result.id)
-                    .padding(.horizontal, 14)
-                    .padding(.bottom, 4)
-            }
 
             if result.isPlanDay {
                 DailyPlanCard(
@@ -400,60 +391,10 @@ struct AgentOverlay: View {
     // MARK: - Thinking
 
     private var thinkingView: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            ThinkingShimmer()
-
-            if !agent.liveThinking.isEmpty {
-                Text(agent.liveThinking)
-                    .font(.system(size: 11))
-                    .foregroundStyle(.tertiary)
-                    .lineSpacing(2)
-                    .lineLimit(6)
-                    .transition(.opacity)
-                    .animation(.easeOut(duration: 0.15), value: agent.liveThinking)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 18)
-        .padding(.vertical, 12)
-    }
-
-    private func thinkingDisclosure(_ thinking: String, resultID: UUID) -> some View {
-        let isExpanded = expandedThinking.contains(resultID)
-        return VStack(alignment: .leading, spacing: 0) {
-            Button {
-                withAnimation(.easeOut(duration: 0.2)) {
-                    if isExpanded {
-                        expandedThinking.remove(resultID)
-                    } else {
-                        expandedThinking.insert(resultID)
-                    }
-                }
-            } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 7, weight: .bold))
-                        .foregroundStyle(.quaternary)
-                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
-
-                    Text("Thought for a moment")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.quaternary)
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            if isExpanded {
-                Text(thinking)
-                    .font(.system(size: 11))
-                    .foregroundStyle(.tertiary)
-                    .lineSpacing(2)
-                    .padding(.top, 6)
-                    .padding(.leading, 12)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        }
+        ThinkingShimmer()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 12)
     }
 
     // MARK: - Helpers
@@ -558,8 +499,7 @@ struct AgentOverlay: View {
                     eventCards: response.eventCards,
                     subtasks: response.subtasks,
                     isPlanDay: response.isPlanDay,
-                    proposal: response.proposal,
-                    thinking: response.thinking
+                    proposal: response.proposal
                 ))
             }
         }
@@ -590,8 +530,7 @@ struct AgentOverlay: View {
                         eventCards: [card],
                         subtasks: nil,
                         isPlanDay: false,
-                        proposal: nil,
-                        thinking: nil
+                        proposal: nil
                     ))
                 }
             } catch {
@@ -600,8 +539,7 @@ struct AgentOverlay: View {
                         query: "Schedule: \(proposal.eventTitle)",
                         text: "Failed to create event: \(error.localizedDescription)",
                         taskCards: nil, eventCards: nil, subtasks: nil,
-                        isPlanDay: false, proposal: nil,
-                        thinking: nil
+                        isPlanDay: false, proposal: nil
                     ))
                 }
             }
