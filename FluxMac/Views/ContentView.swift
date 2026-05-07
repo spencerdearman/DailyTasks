@@ -93,9 +93,27 @@ struct ContentView: View {
         }
         .overlay {
             if showAgent {
-                AgentOverlay {
-                    showAgent = false
-                }
+                AgentOverlay(
+                    onDismiss: { showAgent = false },
+                    onSelectTask: { taskID in
+                        // Find the task and navigate to its context
+                        if let task = tasks.first(where: { $0.id == taskID }) {
+                            if let project = task.project {
+                                selection = .project(project.id)
+                            } else if let area = task.area {
+                                selection = .area(area.id)
+                            } else if task.isInInbox {
+                                selection = .inbox
+                            } else if task.status == .someday {
+                                selection = .someday
+                            } else {
+                                selection = .anytime
+                            }
+                            expandedTaskID = task.id
+                        }
+                        showAgent = false
+                    }
+                )
                 .transition(.opacity)
             }
         }

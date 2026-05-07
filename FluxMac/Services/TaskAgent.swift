@@ -191,7 +191,8 @@ final class TaskAgent {
         context.insert(task)
         try? context.save()
 
-        return AgentResponse(message: geminiMessage, affectedTaskIDs: [task.id])
+        let card = TaskCard(id: task.id, title: task.title, project: project?.title, area: area?.title, whenDate: whenDate, deadline: nil, isCompleted: false)
+        return AgentResponse(message: geminiMessage, affectedTaskIDs: [task.id], taskCards: [card])
     }
 
     private func doCompleteTask(searchText: String, tasks: [TaskItem], context: ModelContext, geminiMessage: String) -> AgentResponse {
@@ -201,7 +202,8 @@ final class TaskAgent {
         }
         match.markComplete()
         try? context.save()
-        return AgentResponse(message: geminiMessage, affectedTaskIDs: [match.id])
+        let card = TaskCard(id: match.id, title: match.title, project: match.project?.title, area: match.area?.title, whenDate: match.whenDate, deadline: match.deadline, isCompleted: true)
+        return AgentResponse(message: geminiMessage, affectedTaskIDs: [match.id], taskCards: [card])
     }
 
     private func doMoveTask(searchText: String, targetProject: String?, targetArea: String?, tasks: [TaskItem], areas: [Area], projects: [Project], context: ModelContext, geminiMessage: String) -> AgentResponse {

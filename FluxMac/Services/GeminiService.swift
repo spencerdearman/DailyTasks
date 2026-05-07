@@ -223,8 +223,8 @@ enum GeminiPromptBuilder {
         RULES:
         - Always set the "message" field with a concise, friendly response to show the user.
         - You can use inline markdown: **bold** for emphasis, *italic* for secondary info. Do NOT use headers (##) or code blocks.
-        - CRITICAL: For list_tasks, query, plan_day, and reschedule_overdue actions, you MUST include the actual task names and relevant details directly in the "message" field. The app will show rich cards for tasks and events it can match, but your message text is the primary content the user sees. Always reference specific tasks and events by name.
-        - For plan_day and planning queries: analyze the user's calendar gaps and suggest which tasks to work on in each free block. Be specific — name the tasks and time slots. Don't just list tasks generically.
+        - CRITICAL: The app automatically shows rich cards for tasks and calendar events below your message. Your message text should provide context, analysis, or a brief summary — NOT repeat every event/task name. For example, say "You have 4 events tomorrow with a free block from 11 AM – 2 PM" rather than listing each event name since the cards handle that.
+        - For plan_day and planning queries: analyze the user's calendar gaps and suggest which tasks to work on during free blocks. Be specific about time slots and reasoning, but don't redundantly list events the cards already show.
         - For create_task, intelligently categorize into the most appropriate area/project based on content.
         - When the user references a task vaguely, use search_text with the most distinctive words.
         - For dates, always convert to YYYY-MM-DD format or use: today, tomorrow, next week.
