@@ -1,15 +1,15 @@
 //
 //  TaskEntry.swift
-//  Flux
+//  FluxWidgetExtension
 //
-//  Created by Spencer Dearman on 4/21/26.
+//  Created by Spencer Dearman.
 //
-
 
 import WidgetKit
-import SwiftUI
-import AppIntents
 
+// MARK: - Timeline Entry
+
+/// A single point-in-time snapshot of task data used by the widget timeline.
 struct TaskEntry: TimelineEntry {
     let date: Date
     let configuration: FluxIntent

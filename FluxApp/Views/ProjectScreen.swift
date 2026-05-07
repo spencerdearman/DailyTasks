@@ -1,17 +1,35 @@
-import SwiftData
+//
+//  ProjectScreen.swift
+//  FluxApp
+//
+//  Created by Spencer Dearman.
+//
+
 import SwiftUI
 
+// MARK: - ProjectScreen
+
+/// Displays a project's tasks grouped by heading, with a notes section at the top.
 struct ProjectScreen: View {
+
+    // MARK: - Properties
+
     let project: Project
+
+    // MARK: - State
 
     @State private var showingQuickEntry = false
     @State private var showingNewProject = false
     @State private var showingNewArea = false
     @State private var editingTask: TaskItem?
 
+    // MARK: - Computed Properties
+
     private var ungroupedTasks: [TaskItem] {
         project.sortedTasks.filter { $0.heading == nil && !$0.isCompleted }
     }
+
+    // MARK: - Body
 
     var body: some View {
         ScrollView {

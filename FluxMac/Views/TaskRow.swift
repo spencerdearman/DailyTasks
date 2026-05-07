@@ -1,6 +1,16 @@
+//
+//  TaskRow.swift
+//  FluxMac
+//
+//  Created by Spencer Dearman.
+//
+
 import SwiftData
 import SwiftUI
 
+// MARK: - TaskRow
+
+/// An individual task row supporting expansion, completion animation, and inline editing.
 struct TaskRow: View {
     @Environment(\.modelContext) private var modelContext
     private let eventKitSync = EventKitSyncService()

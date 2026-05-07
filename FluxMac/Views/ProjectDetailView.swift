@@ -1,6 +1,16 @@
+//
+//  ProjectDetailView.swift
+//  FluxMac
+//
+//  Created by Spencer Dearman.
+//
+
 import SwiftData
 import SwiftUI
 
+// MARK: - ProjectDetailView
+
+/// The full detail view for a project, showing headings, tasks, and inline editing.
 struct ProjectDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openWindow) private var openWindow
@@ -202,7 +212,7 @@ struct ProjectDetailView: View {
             task.reopen()
             try? modelContext.save()
         } else {
-            withAnimation(.easeInOut(duration: 0.25)) {
+            _ = withAnimation(.easeInOut(duration: 0.25)) {
                 completingTaskIDs.insert(task.id)
             }
 

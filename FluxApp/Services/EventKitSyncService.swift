@@ -1,6 +1,16 @@
+//
+//  EventKitSyncService.swift
+//  FluxApp
+//
+//  Created by Spencer Dearman.
+//
+
 import EventKit
 import Foundation
 
+// MARK: - EventKitSyncError
+
+/// Errors that can occur when syncing tasks with EventKit calendars and reminders.
 enum EventKitSyncError: LocalizedError {
     case accessDenied
     case missingDefaultCalendar
@@ -18,10 +28,16 @@ enum EventKitSyncError: LocalizedError {
     }
 }
 
+// MARK: - EventKitSyncService
+
+/// Manages bidirectional sync between Flux tasks and the system calendar and reminders.
 @MainActor
 final class EventKitSyncService {
     private let eventStore = EKEventStore()
 
+    // MARK: Authorization
+
+    /// Requests full read/write access to calendar events.
     func requestCalendarAccess() async throws -> Bool {
         if #available(macOS 14.0, iOS 17.0, *) {
             switch EKEventStore.authorizationStatus(for: .event) {
@@ -58,6 +74,7 @@ final class EventKitSyncService {
         }
     }
 
+    /// Requests full read/write access to reminders.
     func requestRemindersAccess() async throws -> Bool {
         if #available(macOS 14.0, iOS 17.0, *) {
             switch EKEventStore.authorizationStatus(for: .reminder) {
@@ -94,6 +111,9 @@ final class EventKitSyncService {
         }
     }
 
+    // MARK: Fetching
+
+    /// Returns calendar events within the given date range, sorted by start date.
     func events(from startDate: Date, to endDate: Date) -> [CalendarEvent] {
         let predicate = eventStore.predicateForEvents(withStart: startDate, end: endDate, calendars: nil)
         return eventStore.events(matching: predicate)
@@ -110,6 +130,7 @@ final class EventKitSyncService {
             }
     }
 
+    /// Fetches all incomplete reminders across all reminder lists.
     func incompleteReminders() async throws -> [EKReminder] {
         try await withCheckedThrowingContinuation { continuation in
             let predicate = eventStore.predicateForIncompleteReminders(withDueDateStarting: nil, ending: nil, calendars: nil)
@@ -119,6 +140,9 @@ final class EventKitSyncService {
         }
     }
 
+    // MARK: Calendar Events
+
+    /// Creates or updates a calendar event for the given task.
     func upsertCalendarEvent(for task: TaskItem) async throws {
         guard try await requestCalendarAccess() else {
             throw EventKitSyncError.accessDenied
@@ -154,6 +178,7 @@ final class EventKitSyncService {
         task.updatedAt = Date()
     }
 
+    /// Removes the calendar event associated with the given task.
     func removeCalendarEvent(for task: TaskItem) async throws {
         guard try await requestCalendarAccess() else {
             throw EventKitSyncError.accessDenied
@@ -168,6 +193,9 @@ final class EventKitSyncService {
         task.updatedAt = Date()
     }
 
+    // MARK: Reminders
+
+    /// Creates a reminder for the given task in the default reminders list.
     func upsertReminder(for task: TaskItem) async throws {
         guard try await requestRemindersAccess() else {
             throw EventKitSyncError.accessDenied

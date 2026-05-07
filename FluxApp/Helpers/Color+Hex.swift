@@ -1,6 +1,17 @@
+//
+//  Color+Hex.swift
+//  FluxApp
+//
+//  Created by Spencer Dearman.
+//
+
 import SwiftUI
 
+// MARK: - Color + Hex Initializer
+
 extension Color {
+
+    /// Creates a color from a hex string (supports 3, 6, and 8 character formats).
     init(hex: String) {
         let cleaned = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
         var int: UInt64 = 0

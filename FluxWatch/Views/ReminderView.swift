@@ -1,6 +1,6 @@
 //
 //  ReminderView.swift
-//  Flux Watch App
+//  FluxWatch
 //
 //  Created by Spencer Dearman.
 //
@@ -8,18 +8,26 @@
 import SwiftUI
 import UserNotifications
 
+// MARK: - ReminderView
+
+/// Allows the user to configure smart and daily reminder notifications.
 struct ReminderView: View {
+
+    // MARK: - Properties
+
     @AppStorage("smartRemindersEnabled") var smartRemindersEnabled: Bool = false
     @AppStorage("dailyRemindersEnabled") var dailyRemindersEnabled: Bool = false
     @AppStorage("selectedTimeInterval") private var selectedTimeInterval: TimeInterval = Date.now.timeIntervalSince1970
-    
+
     private var selectedTime: Binding<Date> {
         Binding(
             get: { Date(timeIntervalSince1970: selectedTimeInterval) },
             set: { selectedTimeInterval = $0.timeIntervalSince1970 }
         )
     }
-    
+
+    // MARK: - Body
+
     var body: some View {
         NavigationStack {
             Form {
@@ -31,7 +39,7 @@ struct ReminderView: View {
                 } footer: {
                     Text("Get nudged when you still have tasks left after checking one off.")
                 }
-                
+
                 Section {
                     Toggle(isOn: $dailyRemindersEnabled) {
                         Text("Daily Reminders")
@@ -44,7 +52,7 @@ struct ReminderView: View {
                             cancelDailyReminder()
                         }
                     }
-                    
+
                     if dailyRemindersEnabled {
                         NavigationLink {
                             DatePicker(
@@ -73,29 +81,33 @@ struct ReminderView: View {
             .navigationTitle("Reminders")
         }
     }
-    
+
+    // MARK: - Private Methods
+
+    /// Schedules a repeating daily notification at the given time.
     private func scheduleDailyReminder(for date: Date) {
         let center = UNUserNotificationCenter.current()
         center.removeAllPendingNotificationRequests()
-        
+
         let content = UNMutableNotificationContent()
         content.title = "Flux"
         content.body = "You have tasks waiting to be completed."
         content.categoryIdentifier = "dailyReminderCategory"
         content.sound = .default
-        
+
         let components = Calendar.current.dateComponents([.hour, .minute], from: date)
         let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
-        
+
         let request = UNNotificationRequest(identifier: "dailyReminder", content: content, trigger: trigger)
-        
+
         center.add(request) { error in
             if let error = error {
                 print("Error scheduling notification: \(error)")
             }
         }
     }
-    
+
+    /// Cancels all pending daily reminder notifications.
     private func cancelDailyReminder() {
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
     }

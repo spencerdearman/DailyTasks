@@ -1,6 +1,16 @@
+//
+//  NewProjectSheet.swift
+//  FluxMac
+//
+//  Created by Spencer Dearman.
+//
+
 import SwiftData
 import SwiftUI
 
+// MARK: - NewProjectSheet
+
+/// A modal form for creating a new project with area assignment and color selection.
 struct NewProjectSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext

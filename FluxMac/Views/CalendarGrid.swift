@@ -1,6 +1,15 @@
-import SwiftData
+//
+//  CalendarGrid.swift
+//  FluxMac
+//
+//  Created by Spencer Dearman.
+//
+
 import SwiftUI
 
+// MARK: - CalendarGrid
+
+/// A compact month-view calendar grid for date selection.
 struct CalendarGrid: View {
     let selectedDate: Date?
     var accentColor: Color = .blue

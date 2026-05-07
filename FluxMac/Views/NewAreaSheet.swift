@@ -1,6 +1,16 @@
+//
+//  NewAreaSheet.swift
+//  FluxMac
+//
+//  Created by Spencer Dearman.
+//
+
 import SwiftData
 import SwiftUI
 
+// MARK: - NewAreaSheet
+
+/// A modal form for creating a new area with icon and color selection.
 struct NewAreaSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext

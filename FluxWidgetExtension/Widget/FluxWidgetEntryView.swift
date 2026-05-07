@@ -1,24 +1,27 @@
 //
 //  FluxWidgetEntryView.swift
-//  Flux
+//  FluxWidgetExtension
 //
-//  Created by Spencer Dearman on 4/21/26.
+//  Created by Spencer Dearman.
 //
 
-
-import WidgetKit
 import SwiftUI
-import AppIntents
+import WidgetKit
 
+// MARK: - Entry View
+
+/// Renders the widget content for each supported watch complication family.
 struct FluxWidgetEntryView: View {
     var entry: TimelineProvider.Entry
     @Environment(\.widgetFamily) private var family
-    
+
+    // MARK: - Body
+
     var body: some View {
         let completed = Double(entry.taskData.completedCount)
         let total = Double(max(entry.taskData.totalCount, 1))
         let left = max(0, entry.taskData.totalCount - entry.taskData.completedCount)
-        
+
         switch family {
         case .accessoryCircular:
             Gauge(value: completed, in: 0...total) {
@@ -28,7 +31,7 @@ struct FluxWidgetEntryView: View {
             }
             .gaugeStyle(.accessoryCircular)
             .tint(.accentColor)
-            
+
         case .accessoryRectangular:
             HStack {
                 VStack(alignment: .leading) {
@@ -43,10 +46,10 @@ struct FluxWidgetEntryView: View {
                 .gaugeStyle(.accessoryCircularCapacity)
                 .tint(.accentColor)
             }
-            
+
         case .accessoryInline:
             Text("\(Image(systemName: "checkmark.circle")) \(entry.taskData.completedCount)/\(entry.taskData.totalCount) TASKS • \(left) LEFT")
-            
+
         case .accessoryCorner:
             Text("\(left) LEFT")
                 .widgetCurvesContent()
@@ -54,7 +57,7 @@ struct FluxWidgetEntryView: View {
                     ProgressView(value: completed, total: total)
                         .tint(.accentColor)
                 }
-            
+
         default:
             Text("Unsupported")
         }

@@ -1,8 +1,19 @@
-import SwiftData
+//
+//  FlowLayout.swift
+//  FluxApp
+//
+//  Created by Spencer Dearman.
+//
+
 import SwiftUI
 
+// MARK: - FlowLayout
+
+/// A custom layout that arranges subviews in a horizontal flow, wrapping to the next line when needed.
 struct FlowLayout: Layout {
     var spacing: CGFloat = 8
+
+    // MARK: Layout
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let maxWidth = proposal.width ?? .infinity

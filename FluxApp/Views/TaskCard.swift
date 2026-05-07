@@ -1,14 +1,36 @@
+//
+//  TaskCard.swift
+//  FluxApp
+//
+//  Created by Spencer Dearman.
+//
+
 import SwiftData
 import SwiftUI
 
+// MARK: - TaskCard
+
+/// A card displaying a single task with a completion toggle, metadata badges, and notes preview.
 struct TaskCard: View {
+
+    // MARK: - Environment
+
     @Environment(\.modelContext) private var modelContext
+
+    // MARK: - Properties
+
     @Bindable var task: TaskItem
     let onOpen: () -> Void
 
+    // MARK: - State
+
     @State private var isCompleting = false
 
+    // MARK: - Computed Properties
+
     private var isDone: Bool { isCompleting || task.isCompleted }
+
+    // MARK: - Body
 
     var body: some View {
         HStack(alignment: .top, spacing: 14) {
@@ -56,9 +78,12 @@ struct TaskCard: View {
         }
     }
 
+    // MARK: - Actions
+
+    /// Toggles the task between complete and incomplete with a delayed commit.
     private func toggleTask() {
         if isCompleting {
-            // User tapped again while completing — undo
+            // User tapped again while completing -- undo
             withAnimation(.easeInOut(duration: 0.25)) {
                 isCompleting = false
             }

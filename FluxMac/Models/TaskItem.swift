@@ -1,8 +1,21 @@
+//
+//  TaskItem.swift
+//  FluxMac
+//
+//  Created by Spencer Dearman.
+//
+
 import Foundation
 import SwiftData
 
+// MARK: - TaskItem
+
+/// The core data model representing a single actionable task.
 @Model
 final class TaskItem {
+
+    // MARK: Properties
+
     var id: UUID = UUID()
     var title: String = ""
     var notes: String = ""
@@ -20,17 +33,24 @@ final class TaskItem {
     var reminderItemID: String?
     var sortOrder: Double = 0
     var recurrenceRule: String?
-    
+    var locationName: String?
+    var locationLatitude: Double?
+    var locationLongitude: Double?
+
+    // MARK: Relationships
+
     var area: Area?
     var project: Project?
     var heading: Heading?
-    
+
     @Relationship(deleteRule: .cascade, inverse: \TaskTagAssignment.task)
     var tagAssignments: [TaskTagAssignment]?
-    
+
     @Relationship(deleteRule: .cascade, inverse: \ChecklistItem.task)
     var checklist: [ChecklistItem]?
-    
+
+    // MARK: Initialization
+
     init(
         id: UUID = UUID(),
         title: String,
@@ -49,6 +69,9 @@ final class TaskItem {
         reminderItemID: String? = nil,
         sortOrder: Double = 0,
         recurrenceRule: String? = nil,
+        locationName: String? = nil,
+        locationLatitude: Double? = nil,
+        locationLongitude: Double? = nil,
         area: Area? = nil,
         project: Project? = nil,
         heading: Heading? = nil
@@ -70,6 +93,9 @@ final class TaskItem {
         self.reminderItemID = reminderItemID
         self.sortOrder = sortOrder
         self.recurrenceRule = recurrenceRule
+        self.locationName = locationName
+        self.locationLatitude = locationLatitude
+        self.locationLongitude = locationLongitude
         self.area = area
         self.project = project
         self.heading = heading

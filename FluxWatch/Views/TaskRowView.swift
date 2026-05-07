@@ -1,18 +1,25 @@
 //
 //  TaskRowView.swift
-//  Flux
+//  FluxWatch
 //
 //  Created by Spencer Dearman.
 //
 
-
-import SwiftUI
 import SwiftData
+import SwiftUI
 
+// MARK: - TaskRowView
+
+/// A single row representing a task in the task list, with toggle and streak badge.
 struct TaskRowView: View {
+
+    // MARK: - Properties
+
     @Bindable var task: DailyTask
     @Environment(\.modelContext) private var modelContext
-    
+
+    // MARK: - Body
+
     var body: some View {
         HStack {
             Button {
@@ -28,11 +35,11 @@ struct TaskRowView: View {
                 .font(.subheadline)
                 .strikethrough(task.isCompleted)
                 .foregroundStyle(task.isCompleted ? .secondary : .primary)
-            
+
             Spacer()
-            
+
             if task.streak > 0 {
-                HStack (spacing: 2) {
+                HStack(spacing: 2) {
                     Image(systemName: "flame.fill")
                         .font(.system(size: 10))
                         .foregroundColor(.accentColor)
@@ -48,10 +55,13 @@ struct TaskRowView: View {
             }
         }
     }
-    
+
+    // MARK: - Private Methods
+
+    /// Persists any pending model context changes.
     private func saveChanges() {
         guard modelContext.hasChanges else { return }
-        
+
         do {
             try modelContext.save()
         } catch {

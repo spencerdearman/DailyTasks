@@ -14,6 +14,7 @@ struct AgentOverlay: View {
     @Query(sort: \TaskItem.createdAt, order: .reverse) private var tasks: [TaskItem]
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var calendarStore: CalendarStore
+    @EnvironmentObject private var locationService: LocationService
     @AppStorage("geminiAPIKey") private var apiKey = ""
 
     let onDismiss: () -> Void
@@ -34,6 +35,7 @@ struct AgentOverlay: View {
         let taskCards: [TaskCard]?
         let eventCards: [EventCard]?
         let subtasks: [String]?
+        let isPlanDay: Bool
     }
 
     var body: some View {
@@ -167,10 +169,7 @@ struct AgentOverlay: View {
     // MARK: - Result View
 
     private func resultView(_ result: AgentResult) -> some View {
-        let hasCards = result.taskCards != nil || result.eventCards != nil
-        let displayText = cleanMessage(result.text, hasCards: hasCards)
-
-        return VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 0) {
             // Query — shown as a subtle chip
             HStack(spacing: 5) {
                 Image(systemName: "arrow.turn.down.right")
@@ -185,6 +184,27 @@ struct AgentOverlay: View {
             .padding(.top, 10)
             .padding(.bottom, 6)
 
+            if result.isPlanDay {
+                // Dedicated plan day card
+                DailyPlanCard(
+                    message: result.text,
+                    taskCards: result.taskCards,
+                    eventCards: result.eventCards
+                )
+                .padding(.horizontal, 12)
+                .padding(.bottom, 4)
+            } else {
+                // Standard response layout
+                standardResultContent(result)
+            }
+        }
+    }
+
+    private func standardResultContent(_ result: AgentResult) -> some View {
+        let hasCards = result.taskCards != nil || result.eventCards != nil
+        let displayText = cleanMessage(result.text, hasCards: hasCards)
+
+        return VStack(alignment: .leading, spacing: 0) {
             // Response text
             if !displayText.isEmpty {
                 Text(markdownString(displayText))
@@ -452,15 +472,19 @@ struct AgentOverlay: View {
         input = ""
 
         Task {
-            let response = await agent.process(
-                query,
-                apiKey: apiKey,
-                context: modelContext,
+            let ctx = AgentContext(
+                modelContext: modelContext,
+                calendarStore: calendarStore,
+                locationService: locationService,
                 areas: areas,
                 projects: projects,
                 tasks: tasks,
-                calendarEvents: calendarStore.allEvents,
-                calendarStore: calendarStore
+                calendarEvents: calendarStore.allEvents
+            )
+            let response = await agent.process(
+                query,
+                apiKey: apiKey,
+                context: ctx
             )
 
             withAnimation(.easeOut(duration: 0.25)) {
@@ -469,7 +493,8 @@ struct AgentOverlay: View {
                     text: response.message,
                     taskCards: response.taskCards,
                     eventCards: response.eventCards,
-                    subtasks: response.subtasks
+                    subtasks: response.subtasks,
+                    isPlanDay: response.isPlanDay
                 ))
             }
         }

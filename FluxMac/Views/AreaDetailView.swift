@@ -1,6 +1,16 @@
+//
+//  AreaDetailView.swift
+//  FluxMac
+//
+//  Created by Spencer Dearman.
+//
+
 import SwiftData
 import SwiftUI
 
+// MARK: - AreaDetailView
+
+/// Displays an area's loose tasks and project overview with navigation.
 struct AreaDetailView: View {
     @Environment(\.modelContext) private var modelContext
 
@@ -167,7 +177,7 @@ struct AreaDetailView: View {
             task.reopen()
             try? modelContext.save()
         } else {
-            withAnimation(.easeInOut(duration: 0.25)) {
+            _ = withAnimation(.easeInOut(duration: 0.25)) {
                 completingTaskIDs.insert(task.id)
             }
 

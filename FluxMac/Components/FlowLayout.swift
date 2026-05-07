@@ -1,15 +1,24 @@
-import SwiftData
+//
+//  FlowLayout.swift
+//  FluxMac
+//
+//  Created by Spencer Dearman.
+//
+
 import SwiftUI
 
+// MARK: - FlowLayout
+
+/// A custom layout that wraps subviews into rows, flowing to the next line when space runs out.
 struct FlowLayout: Layout {
     var spacing: CGFloat = 6
-    
+
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let maxWidth = proposal.width ?? .infinity
         var x: CGFloat = 0
         var y: CGFloat = 0
         var rowHeight: CGFloat = 0
-        
+
         for subview in subviews {
             let size = subview.sizeThatFits(.unspecified)
             if x + size.width > maxWidth && x > 0 {
@@ -22,12 +31,12 @@ struct FlowLayout: Layout {
         }
         return CGSize(width: maxWidth, height: y + rowHeight)
     }
-    
+
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         var x: CGFloat = bounds.minX
         var y: CGFloat = bounds.minY
         var rowHeight: CGFloat = 0
-        
+
         for subview in subviews {
             let size = subview.sizeThatFits(.unspecified)
             if x + size.width > bounds.maxX && x > bounds.minX {

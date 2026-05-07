@@ -1,14 +1,30 @@
-import SwiftData
+//
+//  AreaScreen.swift
+//  FluxApp
+//
+//  Created by Spencer Dearman.
+//
+
 import SwiftUI
 
+// MARK: - AreaScreen
+
+/// Displays an area's loose tasks and nested projects.
 struct AreaScreen: View {
+
+    // MARK: - Properties
+
     let area: Area
     let tasks: [TaskItem]
+
+    // MARK: - State
 
     @State private var showingQuickEntry = false
     @State private var showingNewProject = false
     @State private var showingNewArea = false
     @State private var editingTask: TaskItem?
+
+    // MARK: - Computed Properties
 
     private var looseTasks: [TaskItem] {
         tasks.filter { $0.project == nil && !$0.isCompleted }
@@ -17,6 +33,8 @@ struct AreaScreen: View {
     private var sortedProjects: [Project] {
         area.projectList.sorted(by: { $0.sortOrder < $1.sortOrder })
     }
+
+    // MARK: - Body
 
     var body: some View {
         ScrollView {

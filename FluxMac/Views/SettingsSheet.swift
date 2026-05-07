@@ -1,6 +1,15 @@
-import SwiftData
+//
+//  SettingsSheet.swift
+//  FluxMac
+//
+//  Created by Spencer Dearman.
+//
+
 import SwiftUI
 
+// MARK: - SettingsSheet
+
+/// The application settings panel with preferences and API key configuration.
 struct SettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("fluxShowCompletedTasks") private var showCompleted = false

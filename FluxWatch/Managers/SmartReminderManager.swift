@@ -1,6 +1,6 @@
 //
 //  SmartReminderManager.swift
-//  Flux Watch App
+//  FluxWatch
 //
 //  Created by Spencer Dearman.
 //
@@ -8,7 +8,14 @@
 import Foundation
 import UserNotifications
 
+// MARK: - SmartReminderManager
+
+/// Schedules context-aware reminder notifications based on remaining task counts.
 struct SmartReminderManager {
+
+    // MARK: - Methods
+
+    /// Schedules or cancels a smart reminder for 8 PM based on remaining tasks.
     static func scheduleSmartReminder(total: Int, remaining: Int) {
         let center = UNUserNotificationCenter.current()
         let identifier = "smart_reminder"
@@ -16,7 +23,7 @@ struct SmartReminderManager {
         if remaining <= 0 || total == 0 {
             return // No tasks remaining, no reminder needed.
         }
-        
+
         let content = UNMutableNotificationContent()
         content.title = "Flux"
         if remaining == 1 {
@@ -26,12 +33,12 @@ struct SmartReminderManager {
         }
         content.sound = .default
         content.categoryIdentifier = "TASK_REMINDER"
-        
+
         // Schedule for 8 PM natively
         var dateComponents = Calendar.current.dateComponents([.year, .month, .day], from: Date())
         dateComponents.hour = 20 // 8 PM
         dateComponents.minute = 0
-        
+
         // If it's already past 8 PM, schedule strictly for tomorrow 8 PM
         if let targetDate = Calendar.current.date(from: dateComponents), targetDate <= Date() {
             if let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date()) {
@@ -40,10 +47,10 @@ struct SmartReminderManager {
                 dateComponents.minute = 0
             }
         }
-        
+
         let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: false)
         let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
-        
+
         center.add(request) { error in
             if let error = error {
                 print("Error scheduling smart reminder: \(error.localizedDescription)")

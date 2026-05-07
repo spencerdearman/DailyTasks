@@ -1,7 +1,21 @@
+//
+//  SampleData.swift
+//  FluxApp
+//
+//  Created by Spencer Dearman.
+//
+
 import Foundation
 import SwiftData
 
+// MARK: - SampleDataSeeder
+
+/// Seeds the persistent store with starter content on first launch.
 enum SampleDataSeeder {
+
+    // MARK: Bootstrap
+
+    /// Inserts sample areas, projects, headings, tags, and tasks if the store is empty.
     @MainActor
     static func bootstrapIfNeeded(in context: ModelContext) {
         let descriptor = FetchDescriptor<Area>()
@@ -9,9 +23,13 @@ enum SampleDataSeeder {
             return
         }
 
+        // MARK: Areas
+
         let work = Area(title: "Work", notes: "Professional commitments and shipping work.", symbolName: "briefcase.fill", tintHex: "#62666D", sortOrder: 0)
         let health = Area(title: "Health", notes: "Body, energy, appointments, and routines.", symbolName: "heart.fill", tintHex: "#FF383C", sortOrder: 1)
         let personal = Area(title: "Personal", notes: "Life admin and personal projects.", symbolName: "house.fill", tintHex: "#8A7D6A", sortOrder: 2)
+
+        // MARK: Projects & Headings
 
         let keynote = Project(
             title: "Prepare Presentation",
@@ -28,9 +46,13 @@ enum SampleDataSeeder {
         let prep = Heading(title: "Preparation", sortOrder: 1, project: keynote)
         let facilities = Heading(title: "Facilities", sortOrder: 2, project: keynote)
 
+        // MARK: Tags
+
         let important = Tag(title: "Important", symbolName: "exclamationmark.circle", tintHex: "#7A7068")
         let john = Tag(title: "John", symbolName: "person.fill", tintHex: "#8A8E95")
         let errands = Tag(title: "Errand", symbolName: "car.fill", tintHex: "#72767D")
+
+        // MARK: Tasks
 
         let task1 = TaskItem(
             title: "Revise introduction",
@@ -92,9 +114,13 @@ enum SampleDataSeeder {
         task7.completedAt = Calendar.current.date(byAdding: .day, value: -1, to: .now)
         let task7John = TaskTagAssignment(task: task7, tag: john)
 
+        // MARK: Checklist Items
+
         let checklist1 = ChecklistItem(title: "Capture revised numbers", sortOrder: 0, task: task1)
         let checklist2 = ChecklistItem(title: "Shorten slide 2", isCompleted: true, sortOrder: 1, task: task1)
         task1.checklist = [checklist1, checklist2]
+
+        // MARK: Persist
 
         context.insert(work)
         context.insert(health)

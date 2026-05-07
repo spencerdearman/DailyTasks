@@ -1,15 +1,31 @@
-import SwiftData
+//
+//  TaskListScreen.swift
+//  FluxApp
+//
+//  Created by Spencer Dearman.
+//
+
 import SwiftUI
 
+// MARK: - TaskListScreen
+
+/// Displays a scrollable list of tasks for a given sidebar category (Inbox, Today, etc.).
 struct TaskListScreen: View {
+
+    // MARK: - Properties
+
     let title: String
     let tasks: [TaskItem]
     let defaultSelection: SidebarSelection?
+
+    // MARK: - State
 
     @State private var showingQuickEntry = false
     @State private var showingNewProject = false
     @State private var showingNewArea = false
     @State private var editingTask: TaskItem?
+
+    // MARK: - Body
 
     var body: some View {
         ScrollView {

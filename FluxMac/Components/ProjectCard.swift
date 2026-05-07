@@ -1,9 +1,18 @@
-import SwiftData
+//
+//  ProjectCard.swift
+//  FluxMac
+//
+//  Created by Spencer Dearman.
+//
+
 import SwiftUI
 
+// MARK: - ProjectCard
+
+/// A summary card showing a project's title, goal, and active task count.
 struct ProjectCard: View {
     let project: Project
-    
+
     var body: some View {
         HStack(spacing: 14) {
             VStack(alignment: .leading, spacing: 4) {

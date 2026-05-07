@@ -1,14 +1,29 @@
+//
+//  Project.swift
+//  FluxApp
+//
+//  Created by Spencer Dearman.
+//
+
 import Foundation
 import SwiftData
 
+// MARK: - Project
+
+/// A goal-oriented collection of tasks, optionally nested within an Area.
 @Model
 final class Project {
+
+    // MARK: Properties
+
     var id: UUID = UUID()
     var title: String = ""
     var notes: String = ""
     var goalSummary: String = ""
     var tintHex: String = "#2E6BC6"
     var sortOrder: Double = 0
+
+    // MARK: Relationships
 
     var area: Area?
 
@@ -17,6 +32,8 @@ final class Project {
 
     @Relationship(deleteRule: .nullify, inverse: \TaskItem.project)
     var tasks: [TaskItem]?
+
+    // MARK: Initialization
 
     init(
         id: UUID = UUID(),

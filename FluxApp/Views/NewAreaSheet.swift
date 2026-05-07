@@ -1,16 +1,35 @@
+//
+//  NewAreaSheet.swift
+//  FluxApp
+//
+//  Created by Spencer Dearman.
+//
+
 import SwiftData
 import SwiftUI
 
+// MARK: - NewAreaSheet
+
+/// A sheet for creating a new area with an icon, color, and optional description.
 struct NewAreaSheet: View {
+
+    // MARK: - Environment
+
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
 
+    // MARK: - Queries
+
     @Query(sort: \Area.sortOrder) private var areas: [Area]
+
+    // MARK: - State
 
     @State private var title = ""
     @State private var notes = ""
     @State private var symbolName = "square.grid.2x2"
     @State private var tintHex = "#5B83B7"
+
+    // MARK: - Constants
 
     private let symbolOptions = [
         "square.grid.2x2", "briefcase.fill", "heart.fill",
@@ -18,6 +37,8 @@ struct NewAreaSheet: View {
         "dollarsign.circle.fill", "paintbrush.fill"
     ]
     private let tintOptions = ["#5B83B7", "#62666D", "#6D7563", "#8A7D6A", "#7A7068", "#2E6BC6"]
+
+    // MARK: - Body
 
     var body: some View {
         NavigationStack {
@@ -80,6 +101,8 @@ struct NewAreaSheet: View {
             }
         }
     }
+
+    // MARK: - Actions
 
     private func createArea() {
         let area = Area(

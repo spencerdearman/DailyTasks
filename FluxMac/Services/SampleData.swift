@@ -1,25 +1,34 @@
 //
-//  FluxMacSampleData.swift
+//  SampleData.swift
 //  FluxMac
 //
-//  Created by OpenAI.
+//  Created by Spencer Dearman.
 //
 
 import Foundation
 import SwiftData
 
+// MARK: - SampleDataSeeder
+
+/// Seeds initial sample data into an empty database for first-launch experience.
 enum SampleDataSeeder {
+
+    /// Creates sample areas, projects, tags, and tasks if the database is empty.
     @MainActor
     static func bootstrapIfNeeded(in context: ModelContext) {
         let descriptor = FetchDescriptor<Area>()
         if let existing = try? context.fetch(descriptor), !existing.isEmpty {
             return
         }
-        
+
+        // MARK: Areas
+
         let work = Area(title: "Work", notes: "Professional commitments and shipping work.", symbolName: "briefcase.fill", tintHex: "#62666D", sortOrder: 0)
         let health = Area(title: "Health", notes: "Body, energy, appointments, and routines.", symbolName: "heart.fill", tintHex: "#FF383C", sortOrder: 1)
         let personal = Area(title: "Personal", notes: "Life admin and personal projects.", symbolName: "house.fill", tintHex: "#8A7D6A", sortOrder: 2)
-        
+
+        // MARK: Projects
+
         let keynote = Project(
             title: "Prepare Presentation",
             notes: """
@@ -34,11 +43,15 @@ enum SampleDataSeeder {
         let slides = Heading(title: "Slides and notes", sortOrder: 0, project: keynote)
         let prep = Heading(title: "Preparation", sortOrder: 1, project: keynote)
         let facilities = Heading(title: "Facilities", sortOrder: 2, project: keynote)
-        
+
+        // MARK: Tags
+
         let important = Tag(title: "Important", symbolName: "exclamationmark.circle", tintHex: "#7A7068")
         let john = Tag(title: "John", symbolName: "person.fill", tintHex: "#8A8E95")
         let errands = Tag(title: "Errand", symbolName: "car.fill", tintHex: "#72767D")
-        
+
+        // MARK: Tasks
+
         let task1 = TaskItem(
             title: "Revise introduction",
             notes: "Tighten the opening two slides and simplify the problem statement.",
@@ -98,11 +111,15 @@ enum SampleDataSeeder {
         )
         task7.completedAt = Calendar.current.date(byAdding: .day, value: -1, to: .now)
         let task7John = TaskTagAssignment(task: task7, tag: john)
-        
+
+        // MARK: Checklist
+
         let checklist1 = ChecklistItem(title: "Capture revised numbers", sortOrder: 0, task: task1)
         let checklist2 = ChecklistItem(title: "Shorten slide 2", isCompleted: true, sortOrder: 1, task: task1)
         task1.checklist = [checklist1, checklist2]
-        
+
+        // MARK: Insert
+
         context.insert(work)
         context.insert(health)
         context.insert(personal)
@@ -124,7 +141,7 @@ enum SampleDataSeeder {
         context.insert(task5)
         context.insert(task6)
         context.insert(task7)
-        
+
         try? context.save()
     }
 }

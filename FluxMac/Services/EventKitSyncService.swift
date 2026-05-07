@@ -1,12 +1,22 @@
+//
+//  EventKitSyncService.swift
+//  FluxMac
+//
+//  Created by Spencer Dearman.
+//
+
 import EventKit
 import Foundation
 
+// MARK: - EventKitSyncError
+
+/// Errors that can occur during EventKit synchronization.
 enum EventKitSyncError: LocalizedError {
     case accessDenied
     case missingDefaultCalendar
     case missingDefaultReminderList
     case systemPermissionBridgeUnavailable
-    
+
     var errorDescription: String? {
         switch self {
         case .accessDenied:
@@ -21,10 +31,16 @@ enum EventKitSyncError: LocalizedError {
     }
 }
 
+// MARK: - EventKitSyncService
+
+/// Handles all interactions with EventKit for calendar events and reminders.
 @MainActor
 final class EventKitSyncService {
     private let eventStore = EKEventStore()
-    
+
+    // MARK: Access Requests
+
+    /// Requests full access to the user's calendar events.
     func requestCalendarAccess() async throws -> Bool {
         do {
             if #available(macOS 14.0, iOS 17.0, *) {
@@ -64,7 +80,8 @@ final class EventKitSyncService {
             throw mappedPermissionError(error)
         }
     }
-    
+
+    /// Requests full access to the user's reminders.
     func requestRemindersAccess() async throws -> Bool {
         do {
             if #available(macOS 14.0, iOS 17.0, *) {
@@ -104,7 +121,10 @@ final class EventKitSyncService {
             throw mappedPermissionError(error)
         }
     }
-    
+
+    // MARK: Event Operations
+
+    /// Fetches calendar events in the given date range.
     func events(from startDate: Date, to endDate: Date) -> [CalendarEvent] {
         let predicate = eventStore.predicateForEvents(withStart: startDate, end: endDate, calendars: nil)
         return eventStore.events(matching: predicate)
@@ -120,16 +140,8 @@ final class EventKitSyncService {
                 )
             }
     }
-    
-    func incompleteReminders() async throws -> [EKReminder] {
-        try await withCheckedThrowingContinuation { continuation in
-            let predicate = eventStore.predicateForIncompleteReminders(withDueDateStarting: nil, ending: nil, calendars: nil)
-            eventStore.fetchReminders(matching: predicate) { reminders in
-                continuation.resume(returning: reminders ?? [])
-            }
-        }
-    }
-    
+
+    /// Creates a new calendar event and returns the resulting model.
     func createCalendarEvent(title: String, startDate: Date, endDate: Date, location: String?) async throws -> CalendarEvent {
         guard try await requestCalendarAccess() else {
             throw EventKitSyncError.accessDenied
@@ -150,11 +162,12 @@ final class EventKitSyncService {
         return CalendarEvent(id: event.eventIdentifier, title: event.title, startDate: event.startDate, endDate: event.endDate, location: event.location, isAllDay: false)
     }
 
+    /// Creates or updates a calendar event linked to the given task.
     func upsertCalendarEvent(for task: TaskItem) async throws {
         guard try await requestCalendarAccess() else {
             throw EventKitSyncError.accessDenied
         }
-        
+
         let event: EKEvent
         if let eventID = task.calendarEventID, let existingEvent = eventStore.event(withIdentifier: eventID) {
             event = existingEvent
@@ -165,18 +178,18 @@ final class EventKitSyncService {
             }
             event.calendar = defaultCalendar
         }
-        
+
         let startDate = task.suggestedCalendarStartAt
         let durationMinutes = max(task.calendarDurationMinutes, 15)
-        
+
         event.title = task.title
         event.notes = task.notes.isEmpty ? nil : task.notes
         event.startDate = startDate
         event.endDate = startDate.addingTimeInterval(TimeInterval(durationMinutes * 60))
         event.isAllDay = false
-        
+
         try eventStore.save(event, span: .thisEvent)
-        
+
         task.calendarEventID = event.eventIdentifier
         task.calendarStartAt = startDate
         task.calendarDurationMinutes = durationMinutes
@@ -184,31 +197,35 @@ final class EventKitSyncService {
         task.status = .active
         task.updatedAt = Date()
     }
-    
+
+    /// Removes the calendar event associated with a task.
     func removeCalendarEvent(for task: TaskItem) async throws {
         guard try await requestCalendarAccess() else {
             throw EventKitSyncError.accessDenied
         }
-        
+
         if let eventID = task.calendarEventID, let event = eventStore.event(withIdentifier: eventID) {
             try eventStore.remove(event, span: .thisEvent)
         }
-        
+
         task.calendarEventID = nil
         task.calendarStartAt = nil
         task.updatedAt = Date()
     }
-    
+
+    // MARK: Reminder Operations
+
+    /// Creates a reminder linked to the given task.
     func upsertReminder(for task: TaskItem) async throws {
         guard try await requestRemindersAccess() else {
             throw EventKitSyncError.accessDenied
         }
-        
+
         let reminder = EKReminder(eventStore: eventStore)
         guard let defaultCalendar = eventStore.defaultCalendarForNewReminders() else {
             throw EventKitSyncError.missingDefaultReminderList
         }
-        
+
         reminder.calendar = defaultCalendar
         reminder.title = task.title
         reminder.notes = task.notes.isEmpty ? nil : task.notes
@@ -218,12 +235,24 @@ final class EventKitSyncService {
                 from: deadline
             )
         }
-        
+
         try eventStore.save(reminder, commit: true)
         task.reminderItemID = reminder.calendarItemIdentifier
         task.updatedAt = Date()
     }
-    
+
+    /// Fetches all incomplete reminders from the user's reminder lists.
+    func incompleteReminders() async throws -> [EKReminder] {
+        try await withCheckedThrowingContinuation { continuation in
+            let predicate = eventStore.predicateForIncompleteReminders(withDueDateStarting: nil, ending: nil, calendars: nil)
+            eventStore.fetchReminders(matching: predicate) { reminders in
+                continuation.resume(returning: reminders ?? [])
+            }
+        }
+    }
+
+    // MARK: Private
+
     private func mappedPermissionError(_ error: Error) -> Error {
         let nsError = error as NSError
         if nsError.domain == NSCocoaErrorDomain, nsError.code == 4099 {

@@ -1,8 +1,21 @@
+//
+//  TaskItem.swift
+//  FluxApp
+//
+//  Created by Spencer Dearman.
+//
+
 import Foundation
 import SwiftData
 
+// MARK: - TaskItem
+
+/// The core data model representing a single actionable task.
 @Model
 final class TaskItem {
+
+    // MARK: Properties
+
     var id: UUID = UUID()
     var title: String = ""
     var notes: String = ""
@@ -21,6 +34,8 @@ final class TaskItem {
     var sortOrder: Double = 0
     var recurrenceRule: String?
 
+    // MARK: Relationships
+
     var area: Area?
     var project: Project?
     var heading: Heading?
@@ -30,6 +45,8 @@ final class TaskItem {
 
     @Relationship(deleteRule: .cascade, inverse: \ChecklistItem.task)
     var checklist: [ChecklistItem]?
+
+    // MARK: Initialization
 
     init(
         id: UUID = UUID(),

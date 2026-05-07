@@ -1,6 +1,16 @@
+//
+//  ChecklistRow.swift
+//  FluxMac
+//
+//  Created by Spencer Dearman.
+//
+
 import SwiftData
 import SwiftUI
 
+// MARK: - ChecklistRow
+
+/// A single checklist item row with tap-to-toggle completion.
 struct ChecklistRow: View {
     @Environment(\.modelContext) private var modelContext
     @Bindable var item: ChecklistItem

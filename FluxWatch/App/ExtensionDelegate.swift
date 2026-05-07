@@ -1,50 +1,60 @@
 //
 //  ExtensionDelegate.swift
-//  Flux Watch App
+//  FluxWatch
 //
 //  Created by Spencer Dearman.
 //
 
-import WatchKit
-import UserNotifications
 import SwiftData
+import UserNotifications
+import WatchKit
 
+// MARK: - ExtensionDelegate
+
+/// Handles application lifecycle events and notification actions for the Watch extension.
 class ExtensionDelegate: NSObject, WKApplicationDelegate, UNUserNotificationCenterDelegate {
+
+    // MARK: - Properties
+
     private static let cloudKitContainerIdentifier = "iCloud.com.spencerdearman.Flux"
-    
+
+    // MARK: - WKApplicationDelegate
+
     func applicationDidFinishLaunching() {
         let center = UNUserNotificationCenter.current()
         center.delegate = self
-        
+
         center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
             if let error = error {
                 print("Authorization error: \(error.localizedDescription)")
             }
         }
-        
+
         let markDoneAction = UNNotificationAction(
             identifier: "markAllDone",
             title: "Mark All Done",
             options: [.foreground]
         )
-        
+
         let category = UNNotificationCategory(
             identifier: "dailyReminderCategory",
             actions: [markDoneAction],
             intentIdentifiers: [],
             options: []
         )
-        
+
         center.setNotificationCategories([category])
     }
-    
+
+    // MARK: - UNUserNotificationCenterDelegate
+
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
         if response.actionIdentifier == "markAllDone" {
             Task { @MainActor in
                 do {
                     let context = try makeModelContext()
                     let tasks = try context.fetch(FetchDescriptor<DailyTask>())
-                    
+
                     for task in tasks {
                         if !task.isCompleted {
                             task.isCompleted = true
@@ -61,17 +71,20 @@ class ExtensionDelegate: NSObject, WKApplicationDelegate, UNUserNotificationCent
             completionHandler()
         }
     }
-    
+
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         completionHandler([.banner, .sound])
     }
-    
+
+    // MARK: - Private Methods
+
+    /// Creates or retrieves a `ModelContext` for persisting task data.
     @MainActor
     private func makeModelContext() throws -> ModelContext {
         if let container = TaskManager.shared.modelContainer {
             return container.mainContext
         }
-        
+
         let schema = Schema([DailyTask.self])
         let configuration = ModelConfiguration(
             "Flux",

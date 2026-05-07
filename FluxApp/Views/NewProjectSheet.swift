@@ -1,18 +1,39 @@
+//
+//  NewProjectSheet.swift
+//  FluxApp
+//
+//  Created by Spencer Dearman.
+//
+
 import SwiftData
 import SwiftUI
 
+// MARK: - NewProjectSheet
+
+/// A sheet for creating a new project with an optional area assignment and tint color.
 struct NewProjectSheet: View {
+
+    // MARK: - Environment
+
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
 
+    // MARK: - Queries
+
     @Query(sort: \Area.sortOrder) private var areas: [Area]
+
+    // MARK: - State
 
     @State private var title = ""
     @State private var notes = ""
     @State private var selectedAreaID: UUID?
     @State private var tintHex = "#2E6BC6"
 
+    // MARK: - Constants
+
     private let tintOptions = ["#2E6BC6", "#62666D", "#6D7563", "#8A7D6A", "#7A7068", "#5B83B7"]
+
+    // MARK: - Body
 
     var body: some View {
         NavigationStack {
@@ -65,6 +86,8 @@ struct NewProjectSheet: View {
             }
         }
     }
+
+    // MARK: - Actions
 
     private func createProject() {
         let area = areas.first(where: { $0.id == selectedAreaID })

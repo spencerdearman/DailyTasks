@@ -1,16 +1,23 @@
 //
 //  TasksCompleteView.swift
-//  Flux Watch App
+//  FluxWatch
 //
 //  Created by Spencer Dearman.
 //
 
 import SwiftUI
-import SwiftData
 
+// MARK: - TasksCompleteView
+
+/// Celebratory view shown when all visible tasks have been completed.
 struct TasksCompleteView: View {
+
+    // MARK: - Properties
+
     var totalTasks: Int
-    
+
+    // MARK: - Body
+
     var body: some View {
         VStack(spacing: 8) {
             ZStack {
@@ -25,12 +32,12 @@ struct TasksCompleteView: View {
             }
             .frame(width: 90, height: 90)
             .padding(6)
-            
+
             Text("All Done")
                 .font(.headline)
                 .bold()
                 .foregroundColor(.white)
-            
+
             Text("\(totalTasks) tasks completed")
                 .font(.footnote)
                 .foregroundColor(.gray)

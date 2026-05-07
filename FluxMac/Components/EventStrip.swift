@@ -1,19 +1,31 @@
-import SwiftData
+//
+//  EventStrip.swift
+//  FluxMac
+//
+//  Created by Spencer Dearman.
+//
+
 import SwiftUI
 
+// MARK: - EventStrip
+
+/// A vertical timeline view displaying grouped calendar events by day.
 struct EventStrip: View {
     let events: [CalendarEvent]
-    
+
+    // MARK: Private
+
     private var groupedEvents: [(date: Date, events: [CalendarEvent])] {
         let calendar = Calendar.current
         let grouped = Dictionary(grouping: events) { event in
             calendar.startOfDay(for: event.startDate)
         }
-        
         return grouped
             .sorted { $0.key < $1.key }
             .map { ($0.key, $0.value.sorted { $0.startDate < $1.startDate }) }
     }
+
+    // MARK: Body
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {

@@ -1,6 +1,3 @@
-import SwiftData
-import SwiftUI
-
 //
 //  ContentView.swift
 //  FluxMac
@@ -12,6 +9,9 @@ import SwiftData
 import SwiftUI
 import UniformTypeIdentifiers
 
+// MARK: - ContentView
+
+/// The root view of the app, containing the navigation sidebar and detail views.
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openWindow) private var openWindow
@@ -30,6 +30,9 @@ struct ContentView: View {
     @State private var completingTaskIDs: Set<UUID> = []
     @State private var showQuickFind = false
     @State private var showAgent = false
+    @State private var showSynthesis = false
+    @State private var currentSynthesis: DailySynthesis?
+    @AppStorage("geminiAPIKey") private var geminiAPIKey = ""
 
     var body: some View {
         NavigationSplitView {
@@ -57,6 +60,7 @@ struct ContentView: View {
         }
         .onAppear {
             calendarStore.refresh()
+            checkForMorningSynthesis()
         }
         .focusedSceneValue(\.selectedProjectID, selectedProjectID)
         .overlay {
@@ -114,6 +118,18 @@ struct ContentView: View {
                         showAgent = false
                     }
                 )
+                .transition(.opacity)
+            }
+        }
+        .overlay {
+            if showSynthesis, let synthesis = currentSynthesis {
+                ZStack {
+                    Color.black.opacity(0.25)
+                        .ignoresSafeArea()
+                        .onTapGesture { dismissSynthesis() }
+
+                    SynthesisView(synthesis: synthesis, onDismiss: dismissSynthesis)
+                }
                 .transition(.opacity)
             }
         }
@@ -328,7 +344,9 @@ struct ContentView: View {
                 events: calendarStore.todayEvents,
                 expandedTaskID: $expandedTaskID,
                 completingTaskIDs: $completingTaskIDs,
-                onToggle: toggleTask
+                onToggle: toggleTask,
+                synthesis: currentSynthesis,
+                onOpenSynthesis: { withAnimation { showSynthesis = true } }
             )
         case .upcoming:
             TaskCollectionView(
@@ -460,7 +478,7 @@ struct ContentView: View {
             try? modelContext.save()
         } else {
             // Show completed look immediately, but delay actual status change
-            withAnimation(.easeInOut(duration: 0.25)) {
+            _ = withAnimation(.easeInOut(duration: 0.25)) {
                 completingTaskIDs.insert(task.id)
             }
             
@@ -516,5 +534,74 @@ struct ContentView: View {
             }
         }
     }
-    
+
+    // MARK: - Daily Synthesis
+
+    private func checkForMorningSynthesis() {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: .now)
+
+        // Only show before noon
+        guard cal.component(.hour, from: .now) < 12 else { return }
+
+        // Check if we already have one for today
+        let descriptor = FetchDescriptor<DailySynthesis>(
+            predicate: #Predicate { $0.date >= today }
+        )
+        if let existing = try? modelContext.fetch(descriptor).first {
+            if !existing.wasDismissed {
+                currentSynthesis = existing
+                withAnimation { showSynthesis = true }
+            }
+            return
+        }
+
+        // Generate a new one
+        guard !geminiAPIKey.isEmpty else { return }
+
+        Task {
+            let service = SynthesisService()
+            let yesterday = cal.date(byAdding: .day, value: -1, to: today) ?? today
+            let completedYesterday = tasks.filter {
+                guard let d = $0.completedAt else { return false }
+                return d >= yesterday && d < today
+            }
+
+            do {
+                let result = try await service.generate(
+                    activeTasks: activeTasks,
+                    calendarEvents: calendarStore.allEvents,
+                    areas: areas,
+                    completedYesterday: completedYesterday,
+                    apiKey: geminiAPIKey
+                )
+
+                let overdue = activeTasks.filter {
+                    guard let d = $0.effectiveDate else { return false }
+                    return d < today
+                }
+
+                let synthesis = DailySynthesis(
+                    date: today,
+                    greeting: result.greeting,
+                    conflicts: result.conflicts,
+                    overdueCount: overdue.count,
+                    suggestedPlan: result.suggestedPlan
+                )
+                modelContext.insert(synthesis)
+                try? modelContext.save()
+
+                currentSynthesis = synthesis
+                withAnimation { showSynthesis = true }
+            } catch {
+                print("[Synthesis] Failed to generate: \(error)")
+            }
+        }
+    }
+
+    private func dismissSynthesis() {
+        currentSynthesis?.wasDismissed = true
+        try? modelContext.save()
+        withAnimation { showSynthesis = false }
+    }
 }

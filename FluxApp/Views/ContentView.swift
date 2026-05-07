@@ -1,10 +1,25 @@
+//
+//  ContentView.swift
+//  FluxApp
+//
+//  Created by Spencer Dearman.
+//
+
 import SwiftData
 import SwiftUI
 
+// MARK: - ContentView
+
+/// The root sidebar view displaying core lists, areas, and projects.
 struct ContentView: View {
+
+    // MARK: - Queries
+
     @Query(sort: \Area.sortOrder) private var areas: [Area]
     @Query(sort: \Project.sortOrder) private var projects: [Project]
     @Query(sort: \TaskItem.createdAt, order: .reverse) private var tasks: [TaskItem]
+
+    // MARK: - State
 
     @State private var quickEntrySelection: SidebarSelection?
     @State private var showingQuickEntry = false
@@ -12,6 +27,8 @@ struct ContentView: View {
     @State private var showingNewArea = false
     @State private var showQuickFind = false
     @State private var quickFindPath: [SidebarSelection] = []
+
+    // MARK: - Body
 
     var body: some View {
         NavigationStack(path: $quickFindPath) {
@@ -146,6 +163,8 @@ struct ContentView: View {
         }
     }
 
+    // MARK: - Sidebar Helpers
+
     private func coreLink(_ title: String, systemImage: String, selection: SidebarSelection, count: Int) -> some View {
         NavigationLink(value: selection) {
             HStack {
@@ -156,6 +175,8 @@ struct ContentView: View {
             }
         }
     }
+
+    // MARK: - Navigation Destinations
 
     @ViewBuilder
     private func destination(for selection: SidebarSelection) -> some View {
@@ -187,11 +208,15 @@ struct ContentView: View {
         }
     }
 
+    // MARK: - Filtered Data
+
     private var filteredAreas: [Area] { areas }
 
     private func filteredProjects(in area: Area) -> [Project] {
         projects.filter { $0.area?.id == area.id }
     }
+
+    // MARK: - Task Filters
 
     private var inboxTasks: [TaskItem] { activeTasks.filter(\.isInInbox) }
 
@@ -233,7 +258,7 @@ struct ContentView: View {
     }
 }
 
-// MARK: - Environment key for Quick Find
+// MARK: - Environment Key for Quick Find
 
 private struct ShowQuickFindKey: EnvironmentKey {
     static let defaultValue: Binding<Bool> = .constant(false)
@@ -246,12 +271,16 @@ extension EnvironmentValues {
     }
 }
 
-// MARK: - Pull-down Quick Find modifier
+// MARK: - PullToQuickFind
 
+/// A view modifier that triggers Quick Find when the user pulls down past a threshold.
 struct PullToQuickFind: ViewModifier {
+
     @Environment(\.showQuickFind) private var showQuickFind
+
     @State private var pullOffset: CGFloat = 0
     @State private var hasTriggeredHaptic = false
+
     private let threshold: CGFloat = 140
 
     func body(content: Content) -> some View {
@@ -306,6 +335,7 @@ struct PullToQuickFind: ViewModifier {
 }
 
 extension View {
+    /// Adds a pull-to-search gesture that opens Quick Find.
     func pullToQuickFind() -> some View {
         modifier(PullToQuickFind())
     }

@@ -1,29 +1,37 @@
 //
 //  TaskListView.swift
-//  Flux Watch App
+//  FluxWatch
 //
 //  Created by Spencer Dearman.
 //
 
-import SwiftUI
 import SwiftData
+import SwiftUI
 
+// MARK: - TaskListView
+
+/// Primary task list view showing visible tasks, progress, and supporting walk detection.
 struct TaskListView: View {
+
+    // MARK: - Properties
+
     @Environment(\.modelContext) private var modelContext
     @Environment(\.scenePhase) private var scenePhase
     @Query(sort: \DailyTask.createdAt, order: .reverse) private var tasks: [DailyTask]
     @AppStorage("lastResetDate") private var lastResetDateInterval: TimeInterval = Calendar.current.startOfDay(for: .now).timeIntervalSince1970
     @AppStorage("currentStreak") private var currentStreak: Int = 0
     @AppStorage("bestStreak") private var bestStreak: Int = 0
-    
+
     @State private var isShowingSheet = false
     @State private var newTaskTitle = ""
     @State private var showConfetti = false
     @State private var showingWalkConfirmation = false
     @State private var taskToDelete: DailyTask?
-    
+
     var walkManager = WalkDetectionManager.shared
-    
+
+    // MARK: - Computed Properties
+
     private var visibleTasks: [DailyTask] {
         tasks.filter { task in
             if let hiddenDate = task.hiddenUntil {
@@ -32,11 +40,13 @@ struct TaskListView: View {
             return true
         }
     }
-    
+
     private var allCompleted: Bool {
         !visibleTasks.isEmpty && visibleTasks.allSatisfy(\.isCompleted)
     }
-    
+
+    // MARK: - Body
+
     var body: some View {
         NavigationStack {
             Group {
@@ -75,7 +85,7 @@ struct TaskListView: View {
                             .tint(.accentColor)
                             .glassEffect()
                             .animation(.spring(response: 0.5, dampingFraction: 0.8), value: visibleTasks.filter(\.isCompleted).count)
-                            
+
                             Text("\(visibleTasks.filter(\.isCompleted).count)")
                                 .font(.system(size: 15, weight: .bold, design: .rounded))
                                 .foregroundColor(.accentColor)
@@ -83,7 +93,7 @@ struct TaskListView: View {
                         .frame(width: 34, height: 34)
                     }
                 }
-                
+
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         isShowingSheet = true
@@ -128,7 +138,7 @@ struct TaskListView: View {
             .onAppear {
                 refreshWidget()
                 updateWalkMonitoring()
-                
+
                 if walkManager.walkDetected {
                     walkManager.resetWalkDetected()
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -145,7 +155,7 @@ struct TaskListView: View {
             }
             .onChange(of: tasks.map { $0.isCompleted }) { oldValue, newValue in
                 refreshWidget()
-                
+
                 let completedCount = visibleTasks.filter(\.isCompleted).count
                 let total = visibleTasks.count
                 let remaining = total - completedCount
@@ -153,7 +163,7 @@ struct TaskListView: View {
                 updateWalkMonitoring()
                 let wasAllCompleted = !oldValue.isEmpty && oldValue.allSatisfy { $0 }
                 let isAllCompleted = !visibleTasks.isEmpty && visibleTasks.allSatisfy(\.isCompleted)
-                
+
                 if !wasAllCompleted && isAllCompleted {
                     Task {
                         try? await Task.sleep(nanoseconds: 600_000_000)
@@ -165,7 +175,7 @@ struct TaskListView: View {
             }
             .onChange(of: visibleTasks.count) { _, newCount in
                 refreshWidget()
-                
+
                 let completedCount = visibleTasks.filter(\.isCompleted).count
                 let remaining = newCount - completedCount
                 SmartReminderManager.scheduleSmartReminder(total: newCount, remaining: remaining)
@@ -198,11 +208,11 @@ struct TaskListView: View {
             } message: {
                 Text("We noticed you've been walking. Mark your walk task as complete?")
             }
-            .confirmationDialog("Delete Task?", 
+            .confirmationDialog("Delete Task?",
                                 isPresented: Binding(
                                     get: { taskToDelete != nil },
                                     set: { if !$0 { taskToDelete = nil } }
-                                ), 
+                                ),
                                 titleVisibility: .visible
             ) {
                 Button("Delete", role: .destructive) {
@@ -232,12 +242,16 @@ struct TaskListView: View {
             }
         }
     }
-    
+
+    // MARK: - Private Methods
+
+    /// Updates the widget with the latest completion counts.
     private func refreshWidget() {
         let completed = visibleTasks.filter(\.isCompleted).count
         WidgetDataManager.shared.updateWidgetData(completed: completed, total: visibleTasks.count)
     }
-    
+
+    /// Starts or stops walk monitoring based on task state and scene phase.
     private func updateWalkMonitoring() {
         let hasIncompleteWalk = visibleTasks.contains { $0.title.lowercased().contains("walk") && !$0.isCompleted }
         if scenePhase == .active && hasIncompleteWalk && !walkManager.walkDetected {
@@ -246,23 +260,26 @@ struct TaskListView: View {
             walkManager.stopMonitoring()
         }
     }
-    
+
+    /// Creates a new task from the current input and saves it.
     private func addTask() {
         let trimmedTitle = newTaskTitle.trimmingCharacters(in: .whitespaces)
         guard !trimmedTitle.isEmpty else { return }
-        
+
         let newTask = DailyTask(title: trimmedTitle)
         modelContext.insert(newTask)
         saveChanges()
         newTaskTitle = ""
         isShowingSheet = false
     }
-    
+
+    /// Deletes the given task from the model context.
     private func deleteTask(_ task: DailyTask) {
         modelContext.delete(task)
         saveChanges()
     }
-    
+
+    /// Seeds default example tasks when the list is empty.
     private func seedDefaultTasks() {
         if tasks.isEmpty {
             let defaults = ["🐕 Walk dog", "🪥 Brush teeth"]
@@ -270,11 +287,12 @@ struct TaskListView: View {
                 let task = DailyTask(title: title, streak: 2)
                 modelContext.insert(task)
             }
-            
+
             saveChanges()
         }
     }
-    
+
+    /// Performs the daily streak update and task reset when a new day begins.
     private func dailyReset() {
         let lastReset = Date(timeIntervalSince1970: lastResetDateInterval)
         let today = Calendar.current.startOfDay(for: .now)
@@ -290,7 +308,7 @@ struct TaskListView: View {
             }
             for task in tasks {
                 let wasHidden = task.hiddenUntil != nil && task.hiddenUntil! > today
-                
+
                 if !wasHidden {
                     if task.isCompleted {
                         task.streak += 1
@@ -300,18 +318,19 @@ struct TaskListView: View {
                 } else if let hiddenDate = task.hiddenUntil, hiddenDate <= today {
                     task.hiddenUntil = nil
                 }
-                
+
                 task.isCompleted = false
             }
-            
+
             saveChanges()
         }
         lastResetDateInterval = today.timeIntervalSince1970
     }
-    
+
+    /// Persists any pending model context changes.
     private func saveChanges() {
         guard modelContext.hasChanges else { return }
-        
+
         do {
             try modelContext.save()
         } catch {

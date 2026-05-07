@@ -1,7 +1,19 @@
-import SwiftData
+//
+//  QuickFindOverlay.swift
+//  FluxApp
+//
+//  Created by Spencer Dearman.
+//
+
 import SwiftUI
 
+// MARK: - QuickFindOverlay
+
+/// A full-screen overlay providing search across lists, areas, projects, and tasks.
 struct QuickFindOverlay: View {
+
+    // MARK: - Properties
+
     let areas: [Area]
     let projects: [Project]
     let tasks: [TaskItem]
@@ -9,8 +21,12 @@ struct QuickFindOverlay: View {
     let onSelectTask: (TaskItem) -> Void
     let onDismiss: () -> Void
 
+    // MARK: - State
+
     @State private var query = ""
     @FocusState private var isFocused: Bool
+
+    // MARK: - Computed Properties
 
     private var coreListResults: [(String, String, Color, SidebarSelection)] {
         let lists: [(String, String, Color, SidebarSelection)] = [
@@ -44,6 +60,8 @@ struct QuickFindOverlay: View {
     private var allEmpty: Bool {
         coreListResults.isEmpty && areaResults.isEmpty && projectResults.isEmpty && taskResults.isEmpty
     }
+
+    // MARK: - Body
 
     var body: some View {
         ZStack {
@@ -86,6 +104,7 @@ struct QuickFindOverlay: View {
                 Divider()
                     .padding(.horizontal, 12)
 
+                // Results
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
                         if !coreListResults.isEmpty {
@@ -130,6 +149,8 @@ struct QuickFindOverlay: View {
             isFocused = true
         }
     }
+
+    // MARK: - Section Builder
 
     private func quickFindSection(_ title: String, items: [(id: String, icon: String, color: Color, title: String, subtitle: String?, action: () -> Void)]) -> some View {
         VStack(alignment: .leading, spacing: 0) {

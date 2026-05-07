@@ -1,8 +1,21 @@
+//
+//  Area.swift
+//  FluxApp
+//
+//  Created by Spencer Dearman.
+//
+
 import Foundation
 import SwiftData
 
+// MARK: - Area
+
+/// A top-level organizational container representing a life area (e.g., Work, Health).
 @Model
 final class Area {
+
+    // MARK: Properties
+
     var id: UUID = UUID()
     var title: String = ""
     var notes: String = ""
@@ -10,11 +23,15 @@ final class Area {
     var tintHex: String = "#5B83B7"
     var sortOrder: Double = 0
 
+    // MARK: Relationships
+
     @Relationship(deleteRule: .cascade, inverse: \Project.area)
     var projects: [Project]?
 
     @Relationship(deleteRule: .nullify, inverse: \TaskItem.area)
     var tasks: [TaskItem]?
+
+    // MARK: Initialization
 
     init(
         id: UUID = UUID(),

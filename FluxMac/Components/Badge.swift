@@ -1,6 +1,15 @@
-import SwiftData
+//
+//  Badge.swift
+//  FluxMac
+//
+//  Created by Spencer Dearman.
+//
+
 import SwiftUI
 
+// MARK: - Badge
+
+/// A compact pill-shaped label with optional icon, used for metadata display.
 struct Badge: View {
     let text: String
     let tint: String

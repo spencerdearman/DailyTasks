@@ -1,6 +1,16 @@
+//
+//  TaskSection.swift
+//  FluxMac
+//
+//  Created by Spencer Dearman.
+//
+
 import SwiftData
 import SwiftUI
 
+// MARK: - TaskSection
+
+/// A titled group of task rows with reordering and deletion support.
 struct TaskSection: View {
     @Environment(\.modelContext) private var modelContext
     let title: String
@@ -109,8 +119,9 @@ struct TaskSection: View {
 }
 
 
-// MARK: - Task Row
+// MARK: - TaskActionMode
 
+/// The currently active inline action panel in an expanded task row.
 enum TaskActionMode: Hashable {
     case calendar
     case tags

@@ -16,13 +16,15 @@ struct AgentResponse {
     let subtasks: [String]?
     let taskCards: [TaskCard]?
     let eventCards: [EventCard]?
+    let isPlanDay: Bool
 
-    init(message: String, affectedTaskIDs: [UUID] = [], subtasks: [String]? = nil, taskCards: [TaskCard]? = nil, eventCards: [EventCard]? = nil) {
+    init(message: String, affectedTaskIDs: [UUID] = [], subtasks: [String]? = nil, taskCards: [TaskCard]? = nil, eventCards: [EventCard]? = nil, isPlanDay: Bool = false) {
         self.message = message
         self.affectedTaskIDs = affectedTaskIDs
         self.subtasks = subtasks
         self.taskCards = taskCards
         self.eventCards = eventCards
+        self.isPlanDay = isPlanDay
     }
 }
 
@@ -52,6 +54,7 @@ struct EventCard: Identifiable {
 struct AgentContext {
     let modelContext: ModelContext
     let calendarStore: CalendarStore?
+    let locationService: LocationService?
     let areas: [Area]
     let projects: [Project]
     let tasks: [TaskItem]
@@ -66,11 +69,35 @@ final class TaskAgent {
     var lastResponse: AgentResponse?
 
     private let gemini = GeminiService()
+    private let categorizer = CategorizationService()
     private let dateFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
         return f
     }()
+
+    /// Convenience overload that constructs an `AgentContext` from individual parameters.
+    func process(
+        _ input: String,
+        apiKey: String,
+        context modelContext: ModelContext,
+        areas: [Area],
+        projects: [Project],
+        tasks: [TaskItem],
+        calendarEvents: [CalendarEvent],
+        calendarStore: CalendarStore?
+    ) async -> AgentResponse {
+        let ctx = AgentContext(
+            modelContext: modelContext,
+            calendarStore: calendarStore,
+            locationService: nil,
+            areas: areas,
+            projects: projects,
+            tasks: tasks,
+            calendarEvents: calendarEvents
+        )
+        return await process(input, apiKey: apiKey, context: ctx)
+    }
 
     func process(_ input: String, apiKey: String, context: AgentContext) async -> AgentResponse {
         print("[TaskAgent] process called with input: \"\(input)\", apiKey empty: \(apiKey.isEmpty)")
@@ -163,7 +190,23 @@ final class TaskAgent {
         case "decompose_task":
             return AgentResponse(message: message, subtasks: response.subtasks)
 
-        case "plan_day", "reschedule_overdue", "query", "chat":
+        case "plan_day":
+            // Always show today's tasks and events for daily planning
+            return buildPlanDayResponse(message: message, ctx: ctx)
+
+        case "reschedule_overdue":
+            // Show overdue tasks
+            let cal = Calendar.current
+            let today = cal.startOfDay(for: .now)
+            let overdue = ctx.tasks.filter {
+                $0.status == .active && ($0.effectiveDate ?? .distantFuture) < today
+            }
+            let cards = overdue.prefix(15).map { task in
+                TaskCard(id: task.id, title: task.title, project: task.project?.title, area: task.area?.title, whenDate: task.whenDate, deadline: task.deadline, isCompleted: false)
+            }
+            return AgentResponse(message: message, taskCards: cards.isEmpty ? nil : cards)
+
+        case "query", "chat":
             let eventCards = matchCalendarEvents(message: message, calendarEvents: ctx.calendarEvents)
             let taskCards = matchTaskCards(message: message, tasks: ctx.tasks)
             return AgentResponse(
@@ -181,9 +224,30 @@ final class TaskAgent {
 
     private func doCreateTask(_ response: GeminiActionResponse, message: String, ctx: AgentContext) async -> AgentResponse {
         let title = response.title ?? "Untitled"
-        let project = response.targetProject.flatMap { findProject(named: $0, in: ctx.projects) }
-        let area = response.targetArea.flatMap { findArea(named: $0, in: ctx.areas) } ?? project?.area
+        var project = response.targetProject.flatMap { findProject(named: $0, in: ctx.projects) }
+        var area = response.targetArea.flatMap { findArea(named: $0, in: ctx.areas) } ?? project?.area
         let whenDate = response.date.flatMap { parseDate($0) }
+
+        // Auto-categorize if Gemini didn't assign area/project
+        if area == nil && project == nil {
+            let classification = await categorizer.categorize(
+                title: title,
+                notes: response.notes ?? "",
+                areas: ctx.areas.map { (name: $0.title, description: $0.notes) },
+                projects: ctx.projects.map { (name: $0.title, areaName: $0.area?.title) },
+                apiKey: UserDefaults.standard.string(forKey: "geminiAPIKey") ?? ""
+            )
+            if let areaName = classification.area {
+                area = findArea(named: areaName, in: ctx.areas)
+            }
+            if let projName = classification.project {
+                project = findProject(named: projName, in: ctx.projects)
+                if area == nil { area = project?.area }
+            }
+            if area != nil || project != nil {
+                print("[TaskAgent] Auto-categorized '\(title)' → area: \(area?.title ?? "nil"), project: \(project?.title ?? "nil")")
+            }
+        }
 
         let task = TaskItem(
             title: title,
@@ -191,6 +255,7 @@ final class TaskAgent {
             whenDate: whenDate,
             status: .active,
             isInInbox: area == nil && project == nil,
+            locationName: response.locationName,
             area: area,
             project: project
         )
@@ -462,6 +527,60 @@ final class TaskAgent {
         return AgentResponse(message: "\(label) — \(tasks.count) task(s):\n\(lines)", affectedTaskIDs: tasks.map(\.id))
     }
 
+    // MARK: - Plan Day Response
+
+    private func buildPlanDayResponse(message: String, ctx: AgentContext) -> AgentResponse {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: .now)
+        let active = ctx.tasks.filter { $0.status == .active }
+
+        // Today's tasks
+        let todayTasks = active.filter {
+            guard let d = $0.effectiveDate else { return false }
+            return cal.isDateInToday(d)
+        }
+
+        // Overdue tasks
+        let overdueTasks = active.filter {
+            guard let d = $0.effectiveDate else { return false }
+            return d < today
+        }
+
+        // Inbox tasks (unsorted)
+        let inboxTasks = active.filter(\.isInInbox)
+
+        // Combine: overdue first, then today, then inbox
+        var allRelevant: [TaskItem] = []
+        allRelevant.append(contentsOf: overdueTasks)
+        allRelevant.append(contentsOf: todayTasks)
+        allRelevant.append(contentsOf: inboxTasks.filter { t in
+            !overdueTasks.contains(where: { $0.id == t.id }) &&
+            !todayTasks.contains(where: { $0.id == t.id })
+        })
+
+        let taskCards: [TaskCard]? = allRelevant.isEmpty ? nil : Array(allRelevant.prefix(15).map { task in
+            TaskCard(
+                id: task.id, title: task.title, project: task.project?.title,
+                area: task.area?.title, whenDate: task.whenDate,
+                deadline: task.deadline, isCompleted: task.isCompleted
+            )
+        })
+
+        // Today's calendar events
+        let todayEvents = ctx.calendarEvents.filter { cal.isDateInToday($0.startDate) }
+        let eventCards: [EventCard]? = todayEvents.isEmpty ? nil : todayEvents.map { event in
+            EventCard(id: event.id, title: event.title, startDate: event.startDate, endDate: event.endDate, location: event.location, isAllDay: event.isAllDay)
+        }
+
+        return AgentResponse(
+            message: message,
+            affectedTaskIDs: allRelevant.map(\.id),
+            taskCards: taskCards,
+            eventCards: eventCards,
+            isPlanDay: true
+        )
+    }
+
     // MARK: - Card Matching for Query/Chat Responses
 
     private func matchCalendarEvents(message: String, calendarEvents: [CalendarEvent]) -> [EventCard] {
@@ -581,7 +700,8 @@ final class TaskAgent {
                     area: task.area?.title,
                     whenDate: task.whenDate.map { dateFmt.string(from: $0) },
                     deadline: task.deadline.map { dateFmt.string(from: $0) },
-                    isInInbox: task.isInInbox
+                    isInInbox: task.isInInbox,
+                    locationName: task.locationName
                 )
             },
             completedTasks: completedTasks.map { task in
@@ -606,7 +726,8 @@ final class TaskAgent {
                     location: event.location
                 )
             },
-            todayDate: todayStr
+            todayDate: todayStr,
+            userLocation: ctx.locationService?.locationSummary
         )
     }
 }

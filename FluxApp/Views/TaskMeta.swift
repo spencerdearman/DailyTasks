@@ -1,8 +1,22 @@
-import SwiftData
+//
+//  TaskMeta.swift
+//  FluxApp
+//
+//  Created by Spencer Dearman.
+//
+
 import SwiftUI
 
+// MARK: - TaskMeta
+
+/// A flow-layout row of metadata badges for a task (project, dates, tags, checklist progress).
 struct TaskMeta: View {
+
+    // MARK: - Properties
+
     let task: TaskItem
+
+    // MARK: - Body
 
     var body: some View {
         FlowLayout(spacing: 6) {
@@ -60,6 +74,8 @@ struct TaskMeta: View {
             }
         }
     }
+
+    // MARK: - Helpers
 
     private func deadlineLabel(_ date: Date) -> String {
         let calendar = Calendar.current

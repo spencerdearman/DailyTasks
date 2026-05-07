@@ -1,6 +1,16 @@
+//
+//  TagPanel.swift
+//  FluxMac
+//
+//  Created by Spencer Dearman.
+//
+
 import SwiftData
 import SwiftUI
 
+// MARK: - TagPanel
+
+/// A popover panel for assigning and creating tags on a task.
 struct TagPanel: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Tag.title) private var allTags: [Tag]

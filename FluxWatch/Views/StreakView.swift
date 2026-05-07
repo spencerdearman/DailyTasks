@@ -1,19 +1,27 @@
 //
 //  StreakView.swift
-//  Flux Watch App
+//  FluxWatch
 //
 //  Created by Spencer Dearman.
 //
 
-import SwiftUI
 import SwiftData
+import SwiftUI
 
+// MARK: - StreakView
+
+/// Displays the user's current and best task-completion streaks.
 struct StreakView: View {
+
+    // MARK: - Properties
+
     @Query(sort: \DailyTask.createdAt, order: .reverse) private var tasks: [DailyTask]
     @AppStorage("currentStreak") private var currentStreak: Int = 0
     @AppStorage("bestStreak") private var bestStreak: Int = 0
     @State var test: Bool = true
-    
+
+    // MARK: - Body
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 8) {
@@ -28,7 +36,7 @@ struct StreakView: View {
                 Text("all tasks completed")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                
+
                 HStack {
                     Image(systemName: "trophy.fill")
                         .foregroundStyle(.accent)

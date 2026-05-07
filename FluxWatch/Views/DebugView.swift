@@ -1,11 +1,13 @@
 //
 //  DebugView.swift
-//  Flux Watch App
+//  FluxWatch
 //
 //  Created by Spencer Dearman.
 //
 
 import SwiftUI
+
+// MARK: - Notification.Name + Debug
 
 extension Notification.Name {
     static let testNotification = Notification.Name("debug.testNotification")
@@ -15,11 +17,21 @@ extension Notification.Name {
 
 #if DEBUG
 import SwiftData
+
+// MARK: - DebugView
+
+/// Developer-only view providing test triggers for notifications, walk simulation, and resets.
 struct DebugView: View {
+
+    // MARK: - Properties
+
     @Query(sort: \DailyTask.createdAt, order: .reverse) private var tasks: [DailyTask]
     @AppStorage("lastResetDate") private var lastResetDateInterval: TimeInterval = 0
+
     var walkManager = WalkDetectionManager.shared
-    
+
+    // MARK: - Body
+
     var body: some View {
         NavigationStack {
             List {
@@ -31,25 +43,25 @@ struct DebugView: View {
                                 granted,
                                 _ in
                                 guard granted else { return }
-                                
+
                                 let remaining = tasks.filter { !$0.isCompleted }.count
                                 let content = UNMutableNotificationContent()
                                 content.title = "Test Reminder 🛠️"
                                 content.body = "You have \(remaining) tasks left. (TEST)"
                                 content.sound = .default
-                                
+
                                 let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)
                                 let request = UNNotificationRequest(
                                     identifier: "debug_reminder",
                                     content: content,
                                     trigger: trigger
                                 )
-                                
+
                                 UNUserNotificationCenter.current().add(request)
                             }
                     }
                 }
-                
+
                 Section {
                     Button("Simulate Walk") {
                         walkManager.simulateWalkDetected()
@@ -59,8 +71,7 @@ struct DebugView: View {
                 } footer: {
                     Text("Switch to Tasks tab to see dialog.")
                 }
-                
-                
+
                 Section("Lifecycle") {
                     Button("Midnight Reset") {
                         lastResetDateInterval = Date().addingTimeInterval(-86400 * 2).timeIntervalSince1970

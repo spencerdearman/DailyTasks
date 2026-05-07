@@ -1,6 +1,16 @@
+//
+//  QuickFindOverlay.swift
+//  FluxMac
+//
+//  Created by Spencer Dearman.
+//
+
 import SwiftData
 import SwiftUI
 
+// MARK: - QuickFindOverlay
+
+/// A command-palette style overlay for searching tasks, projects, areas, and lists.
 struct QuickFindOverlay: View {
     let areas: [Area]
     let projects: [Project]

@@ -1,6 +1,15 @@
-import Foundation
-import SwiftData
+//
+//  SidebarSelection.swift
+//  FluxMac
+//
+//  Created by Spencer Dearman.
+//
 
+import Foundation
+
+// MARK: - SidebarSelection
+
+/// Identifies the currently selected item in the navigation sidebar.
 enum SidebarSelection: Hashable {
     case inbox
     case today

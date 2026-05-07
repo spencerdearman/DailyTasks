@@ -1,6 +1,16 @@
+//
+//  InlineTaskAdder.swift
+//  FluxMac
+//
+//  Created by Spencer Dearman.
+//
+
 import SwiftData
 import SwiftUI
 
+// MARK: - InlineTaskAdder
+
+/// A compact inline text field for quickly adding tasks within a project section.
 struct InlineTaskAdder: View {
     @Environment(\.modelContext) private var modelContext
     let project: Project

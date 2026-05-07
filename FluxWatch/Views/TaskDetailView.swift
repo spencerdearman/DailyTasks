@@ -1,19 +1,27 @@
 //
 //  TaskDetailView.swift
-//  Flux Watch App
+//  FluxWatch
 //
 //  Created by Spencer Dearman.
 //
 
-import SwiftUI
 import SwiftData
+import SwiftUI
 
+// MARK: - TaskDetailView
+
+/// Displays details for a single task with options to complete, push, or delete it.
 struct TaskDetailView: View {
+
+    // MARK: - Properties
+
     @Bindable var task: DailyTask
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @State private var showingPushOptions = false
-    
+
+    // MARK: - Body
+
     var body: some View {
         ScrollView {
             VStack(spacing: 12) {
@@ -39,7 +47,7 @@ struct TaskDetailView: View {
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
-                    
+
                     Button {
                         showingPushOptions = true
                     } label: {
@@ -51,7 +59,7 @@ struct TaskDetailView: View {
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
-                    
+
                     Button {
                         modelContext.delete(task)
                         saveChanges()
@@ -89,7 +97,10 @@ struct TaskDetailView: View {
             Button("Cancel", role: .cancel) { }
         }
     }
-    
+
+    // MARK: - Private Methods
+
+    /// Pushes a task forward by the specified number of days.
     private func pushTask(days: Int) {
         let calendar = Calendar.current
         if let targetDate = calendar.date(byAdding: .day, value: days, to: calendar.startOfDay(for: .now)) {
@@ -99,10 +110,11 @@ struct TaskDetailView: View {
             dismiss()
         }
     }
-    
+
+    /// Persists any pending model context changes.
     private func saveChanges() {
         guard modelContext.hasChanges else { return }
-        
+
         do {
             try modelContext.save()
         } catch {

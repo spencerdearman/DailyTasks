@@ -1,14 +1,33 @@
+//
+//  QuickEntrySheet.swift
+//  FluxApp
+//
+//  Created by Spencer Dearman.
+//
+
 import SwiftData
 import SwiftUI
 
+// MARK: - QuickEntrySheet
+
+/// A sheet for quickly creating a new task with optional placement and timing.
 struct QuickEntrySheet: View {
+
+    // MARK: - Environment
+
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+
+    // MARK: - Queries
 
     @Query(sort: \Area.sortOrder) private var areas: [Area]
     @Query(sort: \Project.sortOrder) private var projects: [Project]
 
+    // MARK: - Properties
+
     let defaultSelection: SidebarSelection?
+
+    // MARK: - State
 
     @State private var title = ""
     @State private var notes = ""
@@ -18,6 +37,8 @@ struct QuickEntrySheet: View {
     @State private var deadline: Date?
     @State private var isEvening = false
     @State private var status: TaskStatus = .active
+
+    // MARK: - Body
 
     var body: some View {
         NavigationStack {
@@ -82,6 +103,8 @@ struct QuickEntrySheet: View {
         }
     }
 
+    // MARK: - Computed Properties
+
     private var filteredProjects: [Project] {
         guard let selectedAreaID else { return [] }
         return projects.filter { $0.area?.id == selectedAreaID }
@@ -100,6 +123,8 @@ struct QuickEntrySheet: View {
             set: { deadline = $0 }
         )
     }
+
+    // MARK: - Actions
 
     private func applyDefaultSelection() {
         guard selectedAreaID == nil, selectedProjectID == nil else { return }

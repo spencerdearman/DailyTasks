@@ -9,7 +9,7 @@ import Foundation
 
 // MARK: - Gemini Structured Response
 
-struct GeminiActionResponse: Codable {
+struct GeminiActionResponse: Codable, Sendable {
     let action: String
     let title: String?
     let notes: String?
@@ -24,6 +24,8 @@ struct GeminiActionResponse: Codable {
     let eventStart: String?
     let eventEnd: String?
     let eventLocation: String?
+    let addToCalendar: Bool?
+    let locationName: String?
 
     enum CodingKeys: String, CodingKey {
         case action
@@ -40,6 +42,8 @@ struct GeminiActionResponse: Codable {
         case eventStart = "event_start"
         case eventEnd = "event_end"
         case eventLocation = "event_location"
+        case addToCalendar = "add_to_calendar"
+        case locationName = "location_name"
     }
 }
 
@@ -84,7 +88,9 @@ actor GeminiService {
             "event_title": ["type": "STRING", "description": "For create_event: calendar event title"],
             "event_start": ["type": "STRING", "description": "For create_event: start datetime as ISO 8601 (YYYY-MM-DDTHH:mm:ss) or natural language"],
             "event_end": ["type": "STRING", "description": "For create_event: end datetime as ISO 8601 (YYYY-MM-DDTHH:mm:ss) or natural language"],
-            "event_location": ["type": "STRING", "description": "For create_event: location of the event"]
+            "event_location": ["type": "STRING", "description": "For create_event: location of the event"],
+            "add_to_calendar": ["type": "BOOLEAN", "description": "For create_task: also create a calendar event for this task (true when user mentions calendar/schedule/book)"],
+            "location_name": ["type": "STRING", "description": "Location name for the task or event (e.g. 'Whole Foods', 'Office', 'Home')"]
         ],
         "required": ["action", "message"]
     ]
@@ -203,11 +209,12 @@ enum GeminiPromptBuilder {
     static func buildSystemPrompt(
         areas: [(name: String, symbol: String)],
         projects: [(name: String, areaName: String?)],
-        activeTasks: [(title: String, project: String?, area: String?, whenDate: String?, deadline: String?, isInInbox: Bool)],
+        activeTasks: [(title: String, project: String?, area: String?, whenDate: String?, deadline: String?, isInInbox: Bool, locationName: String?)],
         completedTasks: [(title: String, completedAt: String?)] = [],
         somedayTasks: [(title: String, project: String?, area: String?)] = [],
         calendarEvents: [(title: String, date: String, start: String, end: String, location: String?)],
-        todayDate: String
+        todayDate: String,
+        userLocation: String? = nil
     ) -> String {
         var prompt = """
         You are Flux Agent, an intelligent assistant built into the Flux task manager app. \
@@ -217,7 +224,9 @@ enum GeminiPromptBuilder {
         AVAILABLE ACTIONS:
         - create_task: Create a new task. Set title, notes, date, target_project, target_area as needed. \
         Parse natural language dates (e.g. "Tuesday" → the next Tuesday as YYYY-MM-DD, "next week" → next Monday). \
-        Infer the best area/project from context.
+        Infer the best area/project from context. \
+        If the user wants this on their calendar too, set add_to_calendar=true and provide event_start/event_end times. \
+        If a location is mentioned, set location_name.
         - complete_task: Mark a task as done. Set search_text to match the task title.
         - move_task: Move a task to a different project or area. Set search_text + target_project/target_area.
         - schedule_task: Set or change a task's date. Set search_text + date.
@@ -227,7 +236,12 @@ enum GeminiPromptBuilder {
         - decompose_task: Break a goal into subtasks. Set title (the goal) and subtasks (array of subtask titles). \
         Generate 3-7 concrete, actionable subtasks.
         - plan_day: Suggest a prioritized plan for today. Look at today's tasks, deadlines, and calendar. \
-        Return a message with the suggested order and reasoning.
+        The app will automatically show task and event cards below your message, so your message should provide \
+        a time-blocked plan with specific reasoning. For example: \
+        "*9:00 – 10:30 AM* — Focus block: tackle **Report draft** before your 11 AM meeting. \
+        *12:00 – 1:00 PM* — Lunch break, good time to handle **Pick up dry cleaning** since it's nearby. \
+        *2:00 – 3:30 PM* — Deep work on **Prepare Presentation**." \
+        Be specific about time slots and WHY you're suggesting that order. Include overdue items prominently.
         - reschedule_overdue: Find overdue tasks and suggest new dates in the message.
         - create_event: Add a calendar event. Set event_title, event_start (ISO 8601: YYYY-MM-DDTHH:mm:ss), \
         event_end (ISO 8601), and optionally event_location. For example, "dinner at 7pm" → event_start "2026-05-06T19:00:00", \
@@ -248,6 +262,11 @@ enum GeminiPromptBuilder {
         - If the user asks about tasks and there are none matching, say so explicitly (e.g. "You have no tasks scheduled for tomorrow.").
 
         """
+
+        // User location
+        if let userLocation {
+            prompt += "\nUSER LOCATION: \(userLocation). Use this for location-aware suggestions (e.g. nearby errands, commute time estimates)."
+        }
 
         // Areas
         if !areas.isEmpty {
@@ -273,6 +292,7 @@ enum GeminiPromptBuilder {
                 if task.isInInbox { line += " [inbox]" }
                 if let d = task.whenDate { line += " [scheduled: \(d)]" }
                 if let dl = task.deadline { line += " [deadline: \(dl)]" }
+                if let loc = task.locationName { line += " [location: \(loc)]" }
                 prompt += "\n\(line)"
             }
         }

@@ -5,14 +5,19 @@
 //  Created by Spencer Dearman.
 //
 
-import SwiftUI
 import SwiftData
+import SwiftUI
 
+// MARK: - FluxApp
+
+/// The main entry point for the Flux application.
 @main
 struct FluxApp: App {
     private static let cloudKitContainerIdentifier = "iCloud.com.spencerdearman.Flux"
     let sharedModelContainer: ModelContainer
-    
+
+    // MARK: Initialization
+
     init() {
         let schema = Schema([
             Area.self,
@@ -28,7 +33,7 @@ struct FluxApp: App {
             schema: schema,
             cloudKitDatabase: .private(Self.cloudKitContainerIdentifier)
         )
-        
+
         do {
             let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
             SampleDataSeeder.bootstrapIfNeeded(in: container.mainContext)
@@ -37,7 +42,9 @@ struct FluxApp: App {
             fatalError("Could not create ModelContainer: \(error)")
         }
     }
-    
+
+    // MARK: Body
+
     var body: some Scene {
         WindowGroup {
             ContentView()

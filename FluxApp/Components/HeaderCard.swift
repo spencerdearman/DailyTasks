@@ -1,8 +1,19 @@
-import SwiftData
+//
+//  HeaderCard.swift
+//  FluxApp
+//
+//  Created by Spencer Dearman.
+//
+
 import SwiftUI
 
+// MARK: - HeaderCard
+
+/// A prominent title card rendered on a thin-material background with rounded corners.
 struct HeaderCard: View {
     let title: String
+
+    // MARK: Body
 
     var body: some View {
         Text(title)

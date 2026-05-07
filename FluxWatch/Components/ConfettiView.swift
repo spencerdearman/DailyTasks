@@ -1,12 +1,15 @@
 //
 //  ConfettiView.swift
-//  Flux Watch App
+//  FluxWatch
 //
 //  Created by Spencer Dearman.
 //
 
 import SwiftUI
 
+// MARK: - ConfettiParticle
+
+/// Model for a single confetti particle with randomized visual properties.
 struct ConfettiParticle: Identifiable {
     let id = UUID()
     var color: Color
@@ -15,10 +18,18 @@ struct ConfettiParticle: Identifiable {
     var endOffsetY: CGFloat
 }
 
+// MARK: - ConfettiView
+
+/// Animates a burst of confetti particles, used to celebrate task completion.
 struct ConfettiView: View {
+
+    // MARK: - Properties
+
     @State private var particles: [ConfettiParticle] = []
     @State private var animate = false
-    
+
+    // MARK: - Body
+
     var body: some View {
         ZStack {
             ForEach(particles) { particle in
@@ -41,7 +52,7 @@ struct ConfettiView: View {
                 )
                 particles.append(particle)
             }
-            
+
             withAnimation(.easeOut(duration: 1.5)) {
                 animate = true
             }
