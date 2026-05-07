@@ -75,7 +75,7 @@ struct QuickFindOverlay: View {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 17, weight: .medium))
                         .foregroundStyle(.secondary)
-                    TextField("Quick Find", text: $query)
+                    TextField("Find", text: $query)
                         .textFieldStyle(.plain)
                         .font(.system(size: 18, weight: .light))
                         .focused($isFocused)

@@ -69,7 +69,7 @@ struct AgentSheet: View {
 
                 inputBar
             }
-            .navigationTitle("Flux Agent")
+            .navigationTitle("Agent")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -374,28 +374,46 @@ struct AgentSheet: View {
                     .foregroundStyle(.primary.opacity(0.8))
                     .lineSpacing(3)
             } else {
-                VStack(alignment: .leading, spacing: 0) {
+                VStack(spacing: 0) {
                     ForEach(Array(blocks.enumerated()), id: \.element.id) { index, block in
-                        HStack(alignment: .firstTextBaseline, spacing: 0) {
-                            // Accent dot
-                            Circle()
-                                .fill(accentColor(for: block.blockType))
-                                .frame(width: 6, height: 6)
-                                .padding(.trailing, 8)
+                        let times = splitTimeRange(block.timeRange)
 
-                            // Combined time + description
-                            Text(markdownString("*\(block.timeRange)*: \(block.description)"))
-                                .font(.system(size: 13))
+                        HStack(alignment: .top, spacing: 0) {
+                            // Stacked time column
+                            VStack(alignment: .trailing, spacing: 1) {
+                                Text(times.start)
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundStyle(.primary.opacity(0.55))
+                                if let end = times.end {
+                                    Text(end)
+                                        .font(.system(size: 10))
+                                        .foregroundStyle(.tertiary)
+                                }
+                            }
+                            .frame(width: 64, alignment: .trailing)
+                            .padding(.trailing, 8)
+
+                            // Description with accent bar as leading border
+                            Text(markdownString(block.description))
+                                .font(.system(size: 12))
                                 .foregroundStyle(.primary.opacity(0.85))
-                                .lineSpacing(3)
+                                .lineSpacing(2)
                                 .fixedSize(horizontal: false, vertical: true)
+                                .padding(.leading, 12)
+                                .overlay(alignment: .leading) {
+                                    RoundedRectangle(cornerRadius: 1.5)
+                                        .fill(accentColor(for: block.blockType))
+                                        .frame(width: 3)
+                                }
+
+                            Spacer(minLength: 0)
                         }
-                        .padding(.vertical, 7)
+                        .padding(.vertical, 6)
 
                         if index < blocks.count - 1 {
                             Divider()
-                                .padding(.leading, 14)
-                                .opacity(0.2)
+                                .padding(.leading, 82)
+                                .opacity(0.3)
                         }
                     }
                 }
@@ -609,15 +627,9 @@ struct AgentSheet: View {
     // MARK: - Thinking
 
     private var thinkingView: some View {
-        HStack(spacing: 8) {
-            ProgressView()
-                .controlSize(.small)
-            Text("Thinking...")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .center)
-        .padding(.vertical, 16)
+        ThinkingShimmer()
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.vertical, 16)
     }
 
     // MARK: - Input Bar

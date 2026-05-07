@@ -189,8 +189,59 @@ struct DailyPlanCard: View {
     // MARK: - Task List
 
     private func taskList(_ cards: [TaskCard]) -> some View {
+        let today = Calendar.current.startOfDay(for: .now)
+        let overdue = cards.filter { card in
+            guard let date = card.whenDate ?? card.deadline else { return false }
+            return date < today && !card.isCompleted
+        }
+        let todayCards = cards.filter { card in
+            guard let date = card.whenDate ?? card.deadline else { return false }
+            return Calendar.current.isDateInToday(date) && !card.isCompleted
+        }
+        let upcoming = cards.filter { card in
+            guard let date = card.whenDate ?? card.deadline else { return false }
+            return date > Calendar.current.startOfDay(for: Calendar.current.date(byAdding: .day, value: 1, to: .now)!) && !card.isCompleted
+        }
+        let unscheduled = cards.filter { card in
+            (card.whenDate ?? card.deadline) == nil && !card.isCompleted
+        }
+
+        return VStack(spacing: 0) {
+            if !overdue.isEmpty {
+                taskSection("Overdue", color: .red, tasks: overdue)
+            }
+            if !todayCards.isEmpty {
+                taskSection("Today", color: .blue, tasks: todayCards)
+            }
+            if !upcoming.isEmpty {
+                taskSection("Upcoming", color: .secondary, tasks: upcoming)
+            }
+            if !unscheduled.isEmpty {
+                taskSection("Open", color: .secondary, tasks: unscheduled)
+            }
+        }
+    }
+
+    private func taskSection(_ title: String, color: Color, tasks: [TaskCard]) -> some View {
         VStack(spacing: 0) {
-            ForEach(cards) { task in
+            HStack {
+                Text(title)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(color.opacity(0.8))
+                    .textCase(.uppercase)
+                    .tracking(0.5)
+
+                Text("\(tasks.count)")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(color.opacity(0.6))
+
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .padding(.bottom, 4)
+
+            ForEach(tasks) { task in
                 HStack(spacing: 8) {
                     Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
                         .font(.system(size: 13))

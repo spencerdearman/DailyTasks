@@ -41,7 +41,7 @@ struct ContentView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "magnifyingglass")
                             .foregroundStyle(.secondary)
-                        Text("Quick Find")
+                        Text("Find")
                             .foregroundStyle(.secondary)
                         Spacer()
                     }

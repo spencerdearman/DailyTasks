@@ -93,92 +93,96 @@ struct QuickFindOverlay: View {
                 .onTapGesture { onDismiss() }
                 .animation(.easeOut(duration: 0.2), value: showPanel)
 
-            VStack(spacing: 0) {
-                // Search bar
-                HStack(spacing: 10) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(.tertiary)
+            GeometryReader { geo in
+                VStack(spacing: 0) {
+                    // Search bar
+                    HStack(spacing: 10) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(.tertiary)
 
-                    TextField("Quick Find", text: $query)
-                        .textFieldStyle(.plain)
-                        .font(.system(size: 17, weight: .light))
-                        .focused($isFocused)
-                        .onSubmit {
-                            if let item = allItems[safe: selectedIndex] {
-                                item.action()
+                        TextField("Find", text: $query)
+                            .textFieldStyle(.plain)
+                            .font(.system(size: 17, weight: .light))
+                            .focused($isFocused)
+                            .onSubmit {
+                                if let item = allItems[safe: selectedIndex] {
+                                    item.action()
+                                }
                             }
+
+                        if !query.isEmpty {
+                            Button {
+                                query = ""
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(.quaternary)
+                            }
+                            .buttonStyle(.plain)
                         }
 
-                    if !query.isEmpty {
-                        Button {
-                            query = ""
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 14))
-                                .foregroundStyle(.quaternary)
-                        }
-                        .buttonStyle(.plain)
+                        Text("⌘F")
+                            .font(.system(size: 10, weight: .medium, design: .rounded))
+                            .foregroundStyle(.quaternary)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 4, style: .continuous))
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
 
-                    Text("⌘F")
-                        .font(.system(size: 10, weight: .medium, design: .rounded))
-                        .foregroundStyle(.quaternary)
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 2)
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 4, style: .continuous))
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
+                    if hasResults {
+                        Divider()
+                            .opacity(0.5)
+                            .padding(.horizontal, 16)
 
-                if hasResults {
-                    Divider()
-                        .opacity(0.5)
-                        .padding(.horizontal, 16)
-
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 0) {
-                            if !coreListItems.isEmpty {
-                                quickFindSection("Lists", items: coreListItems)
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 0) {
+                                if !coreListItems.isEmpty {
+                                    quickFindSection("Lists", items: coreListItems)
+                                }
+                                if !areaItems.isEmpty {
+                                    quickFindSection("Areas", items: areaItems)
+                                }
+                                if !projectItems.isEmpty {
+                                    quickFindSection("Projects", items: projectItems)
+                                }
+                                if !taskItems.isEmpty {
+                                    quickFindSection("Tasks", items: taskItems)
+                                }
+                                if allItems.isEmpty && !query.isEmpty {
+                                    Text("No results")
+                                        .font(.system(size: 13))
+                                        .foregroundStyle(.tertiary)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(20)
+                                }
                             }
-                            if !areaItems.isEmpty {
-                                quickFindSection("Areas", items: areaItems)
-                            }
-                            if !projectItems.isEmpty {
-                                quickFindSection("Projects", items: projectItems)
-                            }
-                            if !taskItems.isEmpty {
-                                quickFindSection("Tasks", items: taskItems)
-                            }
-                            if allItems.isEmpty && !query.isEmpty {
-                                Text("No results")
-                                    .font(.system(size: 13))
-                                    .foregroundStyle(.tertiary)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(20)
-                            }
+                            .padding(.vertical, 4)
+                            .padding(.bottom, 6)
                         }
-                        .padding(.vertical, 4)
-                        .padding(.bottom, 6)
+                        .frame(maxHeight: 360)
+                        .mask(
+                            VStack(spacing: 0) {
+                                LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
+                                    .frame(height: 6)
+                                Color.black
+                                LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
+                                    .frame(height: 4)
+                            }
+                        )
                     }
-                    .frame(maxHeight: 360)
-                    .mask(
-                        VStack(spacing: 0) {
-                            LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
-                                .frame(height: 6)
-                            Color.black
-                            LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
-                                .frame(height: 4)
-                        }
-                    )
                 }
+                .frame(width: 580)
+                .glassEffect(.regular, in: .rect(cornerRadius: hasResults ? 22 : 26))
+                .shadow(color: .black.opacity(0.35), radius: 40, y: 12)
+                .scaleEffect(showPanel ? 1 : 0.97)
+                .opacity(showPanel ? 1 : 0)
+                .animation(.easeOut(duration: 0.15), value: hasResults)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .padding(.top, geo.size.height * 0.28)
             }
-            .frame(width: 580)
-            .glassEffect(.regular, in: .rect(cornerRadius: hasResults ? 22 : 26))
-            .shadow(color: .black.opacity(0.35), radius: 40, y: 12)
-            .scaleEffect(showPanel ? 1 : 0.97)
-            .opacity(showPanel ? 1 : 0)
-            .animation(.easeOut(duration: 0.15), value: hasResults)
         }
         .onAppear {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {

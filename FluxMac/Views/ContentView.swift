@@ -192,7 +192,7 @@ struct ContentView: View {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(.secondary)
-                    Text("Quick Find")
+                    Text("Find")
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(.secondary)
                     Spacer()

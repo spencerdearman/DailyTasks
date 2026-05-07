@@ -8,17 +8,10 @@
 import SwiftData
 import SwiftUI
 
-// MARK: - TaskRowView
-
-/// A single row representing a task in the task list, with toggle and project badge.
 struct TaskRowView: View {
-
-    // MARK: - Properties
 
     @Bindable var task: TaskItem
     @Environment(\.modelContext) private var modelContext
-
-    // MARK: - Body
 
     var body: some View {
         HStack {
@@ -28,11 +21,11 @@ struct TaskRowView: View {
                 } else {
                     task.markComplete()
                 }
-                saveChanges()
+                try? modelContext.save()
             } label: {
                 Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
-                    .foregroundStyle(task.isCompleted ? Color.accentColor : Color.gray)
+                    .foregroundStyle(task.isCompleted ? Color.accentColor : .gray)
             }
             .buttonStyle(.plain)
 
@@ -56,19 +49,6 @@ struct TaskRowView: View {
                     .font(.system(size: 10))
                     .foregroundColor(.orange)
             }
-        }
-    }
-
-    // MARK: - Private Methods
-
-    /// Persists any pending model context changes.
-    private func saveChanges() {
-        guard modelContext.hasChanges else { return }
-
-        do {
-            try modelContext.save()
-        } catch {
-            assertionFailure("Failed to save Flux changes: \(error)")
         }
     }
 }

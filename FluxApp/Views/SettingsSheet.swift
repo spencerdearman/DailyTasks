@@ -67,7 +67,7 @@ struct SettingsSheet: View {
                         }
                     }
                 } header: {
-                    Label("Flux Agent", systemImage: "sparkles")
+                    Label("Agent", systemImage: "sparkles")
                 } footer: {
                     Text("Get a free key from Google AI Studio. Powers natural language task management.")
                 }

@@ -53,16 +53,17 @@ struct AgentOverlay: View {
 
                     if !responses.isEmpty || agent.isProcessing {
                         resultArea
+                            .transition(.identity)
                     }
                 }
                 .frame(width: 580)
-                .glassEffect(.regular, in: .rect(cornerRadius: hasContent ? 22 : 26))
+                .background(Color(white: 0.08).opacity(0.6), in: .rect(cornerRadius: 22))
+                .glassEffect(.regular, in: .rect(cornerRadius: 22))
                 .shadow(color: .black.opacity(0.35), radius: 40, y: 12)
                 .scaleEffect(showPanel ? 1 : 0.97)
                 .opacity(showPanel ? 1 : 0)
-                .animation(.easeOut(duration: 0.15), value: hasContent)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .padding(.top, max((geo.size.height - 400) / 2, 40))
+                .padding(.top, geo.size.height * 0.28)
             }
         }
         .onAppear {
@@ -92,7 +93,7 @@ struct AgentOverlay: View {
                 .foregroundStyle(.tertiary)
                 .symbolEffect(.pulse, isActive: agent.isProcessing)
 
-            TextField("Ask Flux anything...", text: $input)
+            TextField("Agent", text: $input)
                 .textFieldStyle(.plain)
                 .font(.system(size: 17, weight: .light))
                 .focused($isFocused)
@@ -388,21 +389,10 @@ struct AgentOverlay: View {
     // MARK: - Thinking
 
     private var thinkingView: some View {
-        HStack(spacing: 8) {
-            ForEach(0..<3, id: \.self) { i in
-                Circle()
-                    .fill(Color.secondary.opacity(0.3))
-                    .frame(width: 4, height: 4)
-                    .animation(
-                        .easeInOut(duration: 0.5)
-                        .repeatForever()
-                        .delay(Double(i) * 0.15),
-                        value: agent.isProcessing
-                    )
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .center)
-        .padding(.vertical, 10)
+        ThinkingShimmer()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 12)
     }
 
     // MARK: - Helpers
