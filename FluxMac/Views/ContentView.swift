@@ -5,6 +5,7 @@
 //  Created by Spencer Dearman.
 //
 
+import CoreLocation
 import SwiftData
 import SwiftUI
 import UniformTypeIdentifiers
@@ -16,7 +17,9 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openWindow) private var openWindow
     @EnvironmentObject private var calendarStore: CalendarStore
-    
+    @EnvironmentObject private var locationService: LocationService
+    @EnvironmentObject private var weatherService: FluxWeatherService
+
     @Query(sort: \Area.sortOrder) private var areas: [Area]
     @Query(sort: \Project.sortOrder) private var projects: [Project]
     @Query(sort: \TaskItem.createdAt, order: .reverse) private var tasks: [TaskItem]
@@ -61,6 +64,7 @@ struct ContentView: View {
         .onAppear {
             calendarStore.refresh()
             checkForMorningSynthesis()
+            fetchWeatherIfNeeded()
         }
         .focusedSceneValue(\.selectedProjectID, selectedProjectID)
         .overlay {
@@ -128,9 +132,16 @@ struct ContentView: View {
                         .ignoresSafeArea()
                         .onTapGesture { dismissSynthesis() }
 
-                    SynthesisView(synthesis: synthesis, onDismiss: dismissSynthesis)
+                    SynthesisView(
+                        synthesis: synthesis,
+                        overdueTasks: activeTasks.filter { ($0.effectiveDate ?? .distantFuture) < Calendar.current.startOfDay(for: .now) },
+                        weatherSummary: weatherService.summary,
+                        onDismiss: dismissSynthesis
+                    )
+                    .transition(.scale(scale: 0.95).combined(with: .opacity))
                 }
                 .transition(.opacity)
+                .animation(.spring(response: 0.35, dampingFraction: 0.85), value: showSynthesis)
             }
         }
         .background {
@@ -145,6 +156,26 @@ struct ContentView: View {
                 withAnimation(.easeOut(duration: 0.25)) { showAgent.toggle() }
             }
                 .keyboardShortcut("a", modifiers: .command)
+                .hidden()
+
+            // Core list shortcuts: ⌘1–⌘6
+            Button("") { selection = .inbox }
+                .keyboardShortcut("1", modifiers: .command)
+                .hidden()
+            Button("") { selection = .today }
+                .keyboardShortcut("2", modifiers: .command)
+                .hidden()
+            Button("") { selection = .upcoming }
+                .keyboardShortcut("3", modifiers: .command)
+                .hidden()
+            Button("") { selection = .anytime }
+                .keyboardShortcut("4", modifiers: .command)
+                .hidden()
+            Button("") { selection = .someday }
+                .keyboardShortcut("5", modifiers: .command)
+                .hidden()
+            Button("") { selection = .logbook }
+                .keyboardShortcut("6", modifiers: .command)
                 .hidden()
         }
     }
@@ -535,31 +566,82 @@ struct ContentView: View {
         }
     }
 
+    // MARK: - Weather
+
+    private func fetchWeatherIfNeeded() {
+        guard let coord = locationService.currentLocation else {
+            // Retry once location is available
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                if let coord = locationService.currentLocation {
+                    Task {
+                        await weatherService.fetch(for: CLLocation(latitude: coord.latitude, longitude: coord.longitude))
+                    }
+                }
+            }
+            return
+        }
+        Task {
+            await weatherService.fetch(for: CLLocation(latitude: coord.latitude, longitude: coord.longitude))
+        }
+    }
+
     // MARK: - Daily Synthesis
+
+    /// Returns the current period of day: "morning" (5am–noon), "afternoon" (noon–5pm), "evening" (5pm–5am).
+    private var currentPeriod: String {
+        let hour = Calendar.current.component(.hour, from: .now)
+        if hour >= 5 && hour < 12 { return "morning" }
+        if hour >= 12 && hour < 17 { return "afternoon" }
+        return "evening"
+    }
 
     private func checkForMorningSynthesis() {
         let cal = Calendar.current
         let today = cal.startOfDay(for: .now)
 
-        // Only show before noon
-        guard cal.component(.hour, from: .now) < 12 else { return }
+        print("[Synthesis] checkForMorningSynthesis called, apiKey empty: \(geminiAPIKey.isEmpty), period: \(currentPeriod)")
+        guard !geminiAPIKey.isEmpty else {
+            print("[Synthesis] No API key, skipping")
+            return
+        }
 
-        // Check if we already have one for today
+        // Check for an existing synthesis for today
         let descriptor = FetchDescriptor<DailySynthesis>(
             predicate: #Predicate { $0.date >= today }
         )
         if let existing = try? modelContext.fetch(descriptor).first {
-            if !existing.wasDismissed {
-                currentSynthesis = existing
-                withAnimation { showSynthesis = true }
+            print("[Synthesis] Found existing synthesis, dismissed: \(existing.wasDismissed), generatedAt: \(existing.generatedAt)")
+            currentSynthesis = existing
+
+            // Check if it needs a period refresh
+            let generatedPeriod = periodForDate(existing.generatedAt)
+            if generatedPeriod != currentPeriod {
+                print("[Synthesis] Period changed (\(generatedPeriod) → \(currentPeriod)), refreshing")
+                generateSynthesis(replacing: existing)
             }
+
             return
         }
 
-        // Generate a new one
-        guard !geminiAPIKey.isEmpty else { return }
+        // No synthesis exists for today — generate one
+        print("[Synthesis] No synthesis for today, generating new one")
+        generateSynthesis(replacing: nil)
+    }
 
-        Task {
+    private func periodForDate(_ date: Date) -> String {
+        let hour = Calendar.current.component(.hour, from: date)
+        if hour >= 5 && hour < 12 { return "morning" }
+        if hour >= 12 && hour < 17 { return "afternoon" }
+        return "evening"
+    }
+
+    private func generateSynthesis(replacing existing: DailySynthesis?) {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: .now)
+
+        print("[Synthesis] Starting generation (replacing: \(existing != nil ? "yes" : "no"))")
+
+        Task { @MainActor in
             let service = SynthesisService()
             let yesterday = cal.date(byAdding: .day, value: -1, to: today) ?? today
             let completedYesterday = tasks.filter {
@@ -573,26 +655,41 @@ struct ContentView: View {
                     calendarEvents: calendarStore.allEvents,
                     areas: areas,
                     completedYesterday: completedYesterday,
-                    apiKey: geminiAPIKey
+                    apiKey: geminiAPIKey,
+                    period: currentPeriod,
+                    weatherSummary: weatherService.promptSummary
                 )
+
+                print("[Synthesis] Generation succeeded: greeting=\(result.greeting.prefix(50))")
 
                 let overdue = activeTasks.filter {
                     guard let d = $0.effectiveDate else { return false }
                     return d < today
                 }
 
-                let synthesis = DailySynthesis(
-                    date: today,
-                    greeting: result.greeting,
-                    conflicts: result.conflicts,
-                    overdueCount: overdue.count,
-                    suggestedPlan: result.suggestedPlan
-                )
-                modelContext.insert(synthesis)
+                if let existing {
+                    existing.greeting = result.greeting
+                    existing.conflicts = result.conflicts
+                    existing.overdueCount = overdue.count
+                    existing.suggestedPlan = result.suggestedPlan
+                    existing.generatedAt = Date()
+                    existing.wasDismissed = false
+                    currentSynthesis = existing
+                } else {
+                    let synthesis = DailySynthesis(
+                        date: today,
+                        greeting: result.greeting,
+                        conflicts: result.conflicts,
+                        overdueCount: overdue.count,
+                        suggestedPlan: result.suggestedPlan
+                    )
+                    modelContext.insert(synthesis)
+                    currentSynthesis = synthesis
+                }
                 try? modelContext.save()
+                print("[Synthesis] Saved. currentSynthesis set: \(currentSynthesis != nil)")
 
-                currentSynthesis = synthesis
-                withAnimation { showSynthesis = true }
+                // Don't auto-popup — let the user open via banner tap
             } catch {
                 print("[Synthesis] Failed to generate: \(error)")
             }

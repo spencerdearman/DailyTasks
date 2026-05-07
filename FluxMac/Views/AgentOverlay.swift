@@ -15,6 +15,7 @@ struct AgentOverlay: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var calendarStore: CalendarStore
     @EnvironmentObject private var locationService: LocationService
+    @EnvironmentObject private var weatherService: FluxWeatherService
     @AppStorage("geminiAPIKey") private var apiKey = ""
 
     let onDismiss: () -> Void
@@ -36,6 +37,7 @@ struct AgentOverlay: View {
         let eventCards: [EventCard]?
         let subtasks: [String]?
         let isPlanDay: Bool
+        let proposal: ScheduleProposal?
     }
 
     var body: some View {
@@ -45,19 +47,23 @@ struct AgentOverlay: View {
                 .onTapGesture { dismiss() }
                 .animation(.easeOut(duration: 0.2), value: showPanel)
 
-            VStack(spacing: 0) {
-                searchBar
+            GeometryReader { geo in
+                VStack(spacing: 0) {
+                    searchBar
 
-                if !responses.isEmpty || agent.isProcessing {
-                    resultArea
+                    if !responses.isEmpty || agent.isProcessing {
+                        resultArea
+                    }
                 }
+                .frame(width: 580)
+                .glassEffect(.regular, in: .rect(cornerRadius: hasContent ? 22 : 26))
+                .shadow(color: .black.opacity(0.35), radius: 40, y: 12)
+                .scaleEffect(showPanel ? 1 : 0.97)
+                .opacity(showPanel ? 1 : 0)
+                .animation(.easeOut(duration: 0.15), value: hasContent)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .padding(.top, max((geo.size.height - 400) / 2, 40))
             }
-            .frame(width: 580)
-            .glassEffect(.regular, in: .rect(cornerRadius: hasContent ? 22 : 26))
-            .shadow(color: .black.opacity(0.35), radius: 40, y: 12)
-            .scaleEffect(showPanel ? 1 : 0.97)
-            .opacity(showPanel ? 1 : 0)
-            .animation(.easeOut(duration: 0.15), value: hasContent)
         }
         .onAppear {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
@@ -185,16 +191,21 @@ struct AgentOverlay: View {
             .padding(.bottom, 6)
 
             if result.isPlanDay {
-                // Dedicated plan day card
                 DailyPlanCard(
                     message: result.text,
                     taskCards: result.taskCards,
-                    eventCards: result.eventCards
+                    eventCards: result.eventCards,
+                    weatherSummary: weatherService.summary
                 )
                 .padding(.horizontal, 12)
                 .padding(.bottom, 4)
+            } else if let proposal = result.proposal {
+                ScheduleProposalCard(proposal: proposal) { option in
+                    acceptProposal(proposal: proposal, option: option)
+                }
+                .padding(.horizontal, 12)
+                .padding(.bottom, 4)
             } else {
-                // Standard response layout
                 standardResultContent(result)
             }
         }
@@ -476,6 +487,7 @@ struct AgentOverlay: View {
                 modelContext: modelContext,
                 calendarStore: calendarStore,
                 locationService: locationService,
+                weatherSummary: weatherService.promptSummary,
                 areas: areas,
                 projects: projects,
                 tasks: tasks,
@@ -494,8 +506,50 @@ struct AgentOverlay: View {
                     taskCards: response.taskCards,
                     eventCards: response.eventCards,
                     subtasks: response.subtasks,
-                    isPlanDay: response.isPlanDay
+                    isPlanDay: response.isPlanDay,
+                    proposal: response.proposal
                 ))
+            }
+        }
+    }
+
+    private func acceptProposal(proposal: ScheduleProposal, option: ScheduleOption) {
+        Task {
+            do {
+                let event = try await calendarStore.createEvent(
+                    title: proposal.eventTitle,
+                    startDate: option.startDate,
+                    endDate: option.endDate,
+                    location: option.location
+                )
+                let card = EventCard(
+                    id: event.id, title: event.title,
+                    startDate: event.startDate, endDate: event.endDate,
+                    location: event.location, isAllDay: false
+                )
+                let timeFmt = DateFormatter()
+                timeFmt.dateFormat = "h:mm a"
+
+                withAnimation(.easeOut(duration: 0.25)) {
+                    responses.append(AgentResult(
+                        query: "Schedule: \(proposal.eventTitle)",
+                        text: "Scheduled **\(proposal.eventTitle)** for \(timeFmt.string(from: option.startDate)) – \(timeFmt.string(from: option.endDate)).",
+                        taskCards: nil,
+                        eventCards: [card],
+                        subtasks: nil,
+                        isPlanDay: false,
+                        proposal: nil
+                    ))
+                }
+            } catch {
+                withAnimation(.easeOut(duration: 0.25)) {
+                    responses.append(AgentResult(
+                        query: "Schedule: \(proposal.eventTitle)",
+                        text: "Failed to create event: \(error.localizedDescription)",
+                        taskCards: nil, eventCards: nil, subtasks: nil,
+                        isPlanDay: false, proposal: nil
+                    ))
+                }
             }
         }
     }

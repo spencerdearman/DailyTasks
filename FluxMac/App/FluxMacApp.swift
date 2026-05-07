@@ -15,6 +15,7 @@ import SwiftUI
 struct FluxMacApp: App {
     @StateObject private var calendarStore = CalendarStore()
     @StateObject private var locationService = LocationService()
+    @StateObject private var weatherService = FluxWeatherService()
     private static let cloudKitContainerIdentifier = "iCloud.com.spencerdearman.Flux"
     let sharedModelContainer: ModelContainer
     
@@ -50,6 +51,7 @@ struct FluxMacApp: App {
             ContentView()
                 .environmentObject(calendarStore)
                 .environmentObject(locationService)
+                .environmentObject(weatherService)
                 .modelContainer(sharedModelContainer)
                 .onAppear { locationService.start() }
         }
@@ -59,6 +61,7 @@ struct FluxMacApp: App {
             QuickEntryView(defaultSelection: .inbox)
                 .environmentObject(calendarStore)
                 .environmentObject(locationService)
+                .environmentObject(weatherService)
                 .modelContainer(sharedModelContainer)
         }
         .defaultSize(width: 560, height: 560)

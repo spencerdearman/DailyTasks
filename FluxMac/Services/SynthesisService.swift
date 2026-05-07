@@ -54,13 +54,16 @@ actor SynthesisService {
 
     // MARK: Public Methods
 
-    /// Generates a morning briefing from the user's tasks, calendar, and recent completions.
+    /// Generates a briefing from the user's tasks, calendar, and recent completions.
+    /// The `period` parameter shapes the tone: "morning", "afternoon", or "evening".
     func generate(
         activeTasks: [TaskItem],
         calendarEvents: [CalendarEvent],
         areas: [Area],
         completedYesterday: [TaskItem],
-        apiKey: String
+        apiKey: String,
+        period: String = "morning",
+        weatherSummary: String? = nil
     ) async throws -> SynthesisResponse {
         guard !apiKey.isEmpty else {
             throw SynthesisError.noAPIKey
@@ -88,10 +91,24 @@ actor SynthesisService {
         let tomorrowEvents = calendarEvents.filter { cal.isDateInTomorrow($0.startDate) }
         let inboxTasks = activeTasks.filter(\.isInInbox)
 
+        let periodInstruction: String
+        switch period {
+        case "afternoon":
+            periodInstruction = "Generate an afternoon check-in. Focus on what's been accomplished, what's remaining, and how to best use the rest of the day."
+        case "evening":
+            periodInstruction = "Generate an evening wrap-up. Summarize what was done today, flag anything still pending, and preview tomorrow's schedule."
+        default:
+            periodInstruction = "Generate a morning briefing. Help the user start their day with a clear plan."
+        }
+
         var prompt = """
-        Today is \(dayFmt.string(from: .now)). Generate a morning briefing for the user.
+        Today is \(dayFmt.string(from: .now)). \(periodInstruction)
 
         """
+
+        if let weather = weatherSummary {
+            prompt += "\nCURRENT WEATHER: \(weather)"
+        }
 
         if !overdueTasks.isEmpty {
             prompt += "\nOVERDUE TASKS (\(overdueTasks.count)):"
@@ -137,16 +154,20 @@ actor SynthesisService {
         prompt += """
 
         \nINSTRUCTIONS:
-        - Generate a brief, encouraging greeting (1 sentence).
+        - Generate a brief, warm greeting (1 sentence, no generic motivational fluff). \
+        Example: "You have a packed schedule today with 3 meetings and 2 deadlines." or \
+        "Lighter day ahead — a good chance to clear your inbox." Be specific to their actual day.
         - List any scheduling conflicts (overlapping events, overdue tasks with today's deadlines, etc.).
-        - Create a time-blocked suggested plan that fits tasks around calendar events.
+        - Create a time-blocked suggested plan. Each time block MUST be on its own line in the format: \
+        "*9:00 AM - 10:00 AM*: Description here." Use separate lines (actual newlines, not \\n).
         - Suggest which overdue tasks to tackle first and which to reschedule.
-        - Be concise and actionable. Use **bold** for task names.
+        - If weather data is available, factor it in (e.g. suggest indoor tasks during rain, outdoor errands during nice weather).
+        - Be concise and actionable. Use **bold** for task names. No filler phrases.
         """
 
         let requestBody: [String: Any] = [
             "system_instruction": [
-                "parts": [["text": "You are a productivity assistant generating a morning briefing. Be concise, warm, and actionable."]],
+                "parts": [["text": "You are a productivity assistant generating a \(period) briefing. Be concise, warm, and actionable. Adapt your tone to the time of day."]],
             ],
             "contents": [
                 ["role": "user", "parts": [["text": prompt]]],

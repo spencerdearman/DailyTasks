@@ -17,15 +17,35 @@ struct AgentResponse {
     let taskCards: [TaskCard]?
     let eventCards: [EventCard]?
     let isPlanDay: Bool
+    let proposal: ScheduleProposal?
 
-    init(message: String, affectedTaskIDs: [UUID] = [], subtasks: [String]? = nil, taskCards: [TaskCard]? = nil, eventCards: [EventCard]? = nil, isPlanDay: Bool = false) {
+    init(message: String, affectedTaskIDs: [UUID] = [], subtasks: [String]? = nil, taskCards: [TaskCard]? = nil, eventCards: [EventCard]? = nil, isPlanDay: Bool = false, proposal: ScheduleProposal? = nil) {
         self.message = message
         self.affectedTaskIDs = affectedTaskIDs
         self.subtasks = subtasks
         self.taskCards = taskCards
         self.eventCards = eventCards
         self.isPlanDay = isPlanDay
+        self.proposal = proposal
     }
+}
+
+/// A schedule proposal with alternative time slots when a conflict is detected.
+struct ScheduleProposal {
+    let eventTitle: String
+    let originalStart: Date?
+    let originalEnd: Date?
+    let conflictDescription: String
+    let suggestions: [ScheduleOption]
+}
+
+struct ScheduleOption: Identifiable {
+    let id = UUID()
+    let label: String
+    let startDate: Date
+    let endDate: Date
+    let reason: String
+    let location: String?
 }
 
 struct TaskCard: Identifiable {
@@ -55,6 +75,7 @@ struct AgentContext {
     let modelContext: ModelContext
     let calendarStore: CalendarStore?
     let locationService: LocationService?
+    let weatherSummary: String?
     let areas: [Area]
     let projects: [Project]
     let tasks: [TaskItem]
@@ -91,6 +112,7 @@ final class TaskAgent {
             modelContext: modelContext,
             calendarStore: calendarStore,
             locationService: nil,
+            weatherSummary: nil,
             areas: areas,
             projects: projects,
             tasks: tasks,
@@ -205,6 +227,9 @@ final class TaskAgent {
                 TaskCard(id: task.id, title: task.title, project: task.project?.title, area: task.area?.title, whenDate: task.whenDate, deadline: task.deadline, isCompleted: false)
             }
             return AgentResponse(message: message, taskCards: cards.isEmpty ? nil : cards)
+
+        case "propose_reschedule":
+            return buildProposal(response, message: message, ctx: ctx)
 
         case "query", "chat":
             let eventCards = matchCalendarEvents(message: message, calendarEvents: ctx.calendarEvents)
@@ -581,6 +606,37 @@ final class TaskAgent {
         )
     }
 
+    // MARK: - Action: Propose Reschedule
+
+    private func buildProposal(_ response: GeminiActionResponse, message: String, ctx: AgentContext) -> AgentResponse {
+        let title = response.eventTitle ?? response.title ?? "Event"
+        let originalStart = response.eventStart.flatMap { parseDatetime($0) }
+        let originalEnd = response.eventEnd.flatMap { parseDatetime($0) }
+        let location = response.eventLocation
+
+        let options: [ScheduleOption] = (response.suggestions ?? []).compactMap { suggestion in
+            guard let start = parseDatetime(suggestion.start),
+                  let end = parseDatetime(suggestion.end) else { return nil }
+            return ScheduleOption(
+                label: suggestion.label,
+                startDate: start,
+                endDate: end,
+                reason: suggestion.reason,
+                location: location
+            )
+        }
+
+        let proposal = ScheduleProposal(
+            eventTitle: title,
+            originalStart: originalStart,
+            originalEnd: originalEnd,
+            conflictDescription: message,
+            suggestions: options
+        )
+
+        return AgentResponse(message: message, proposal: proposal)
+    }
+
     // MARK: - Card Matching for Query/Chat Responses
 
     private func matchCalendarEvents(message: String, calendarEvents: [CalendarEvent]) -> [EventCard] {
@@ -727,7 +783,8 @@ final class TaskAgent {
                 )
             },
             todayDate: todayStr,
-            userLocation: ctx.locationService?.locationSummary
+            userLocation: ctx.locationService?.locationSummary,
+            weatherSummary: ctx.weatherSummary
         )
     }
 }

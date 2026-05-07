@@ -26,6 +26,7 @@ struct GeminiActionResponse: Codable, Sendable {
     let eventLocation: String?
     let addToCalendar: Bool?
     let locationName: String?
+    let suggestions: [TimeSuggestion]?
 
     enum CodingKeys: String, CodingKey {
         case action
@@ -44,7 +45,16 @@ struct GeminiActionResponse: Codable, Sendable {
         case eventLocation = "event_location"
         case addToCalendar = "add_to_calendar"
         case locationName = "location_name"
+        case suggestions
     }
+}
+
+struct TimeSuggestion: Codable, Sendable, Identifiable {
+    var id: String { start }
+    let label: String
+    let start: String
+    let end: String
+    let reason: String
 }
 
 // MARK: - Conversation Message
@@ -69,7 +79,8 @@ actor GeminiService {
                 "enum": [
                     "create_task", "complete_task", "move_task", "schedule_task",
                     "defer_task", "list_tasks", "decompose_task", "plan_day",
-                    "reschedule_overdue", "create_event", "query", "chat"
+                    "reschedule_overdue", "create_event", "propose_reschedule",
+                    "query", "chat"
                 ]
             ],
             "title": ["type": "STRING", "description": "Task title for create_task, or goal for decompose_task"],
@@ -90,7 +101,21 @@ actor GeminiService {
             "event_end": ["type": "STRING", "description": "For create_event: end datetime as ISO 8601 (YYYY-MM-DDTHH:mm:ss) or natural language"],
             "event_location": ["type": "STRING", "description": "For create_event: location of the event"],
             "add_to_calendar": ["type": "BOOLEAN", "description": "For create_task: also create a calendar event for this task (true when user mentions calendar/schedule/book)"],
-            "location_name": ["type": "STRING", "description": "Location name for the task or event (e.g. 'Whole Foods', 'Office', 'Home')"]
+            "location_name": ["type": "STRING", "description": "Location name for the task or event (e.g. 'Whole Foods', 'Office', 'Home')"],
+            "suggestions": [
+                "type": "ARRAY",
+                "items": [
+                    "type": "OBJECT",
+                    "properties": [
+                        "label": ["type": "STRING", "description": "Short display label like '3:00 – 4:00 PM'"],
+                        "start": ["type": "STRING", "description": "ISO 8601 start datetime"],
+                        "end": ["type": "STRING", "description": "ISO 8601 end datetime"],
+                        "reason": ["type": "STRING", "description": "Brief reason this slot works (e.g. 'Free after GPU Programming')"],
+                    ],
+                    "required": ["label", "start", "end", "reason"],
+                ],
+                "description": "For propose_reschedule: 2-4 alternative time slots when the requested time has a conflict"
+            ]
         ],
         "required": ["action", "message"]
     ]
@@ -214,7 +239,8 @@ enum GeminiPromptBuilder {
         somedayTasks: [(title: String, project: String?, area: String?)] = [],
         calendarEvents: [(title: String, date: String, start: String, end: String, location: String?)],
         todayDate: String,
-        userLocation: String? = nil
+        userLocation: String? = nil,
+        weatherSummary: String? = nil
     ) -> String {
         var prompt = """
         You are Flux Agent, an intelligent assistant built into the Flux task manager app. \
@@ -236,16 +262,23 @@ enum GeminiPromptBuilder {
         - decompose_task: Break a goal into subtasks. Set title (the goal) and subtasks (array of subtask titles). \
         Generate 3-7 concrete, actionable subtasks.
         - plan_day: Suggest a prioritized plan for today. Look at today's tasks, deadlines, and calendar. \
-        The app will automatically show task and event cards below your message, so your message should provide \
-        a time-blocked plan with specific reasoning. For example: \
-        "*9:00 – 10:30 AM* — Focus block: tackle **Report draft** before your 11 AM meeting. \
-        *12:00 – 1:00 PM* — Lunch break, good time to handle **Pick up dry cleaning** since it's nearby. \
-        *2:00 – 3:30 PM* — Deep work on **Prepare Presentation**." \
-        Be specific about time slots and WHY you're suggesting that order. Include overdue items prominently.
+        The app renders your message as a structured timeline, so you MUST format each time block on its own line \
+        using this exact format (one block per line, separated by newlines): \
+        "*9:00 – 10:30 AM* — Focus block: tackle **Report draft** before your 11 AM meeting.\n*12:00 – 1:00 PM* — Lunch break, good time to handle **Pick up dry cleaning** since it's nearby.\n*2:00 – 3:30 PM* — Deep work on **Prepare Presentation**." \
+        CRITICAL: Each time block MUST be on a separate line (use \\n). Do NOT put multiple blocks in one paragraph. \
+        Start with a brief 1-sentence summary, then the time blocks. Be specific about WHY you suggest each slot. \
+        Include overdue items prominently.
         - reschedule_overdue: Find overdue tasks and suggest new dates in the message.
         - create_event: Add a calendar event. Set event_title, event_start (ISO 8601: YYYY-MM-DDTHH:mm:ss), \
         event_end (ISO 8601), and optionally event_location. For example, "dinner at 7pm" → event_start "2026-05-06T19:00:00", \
-        event_end "2026-05-06T20:00:00". Default duration is 1 hour if not specified. Always use today's date if the user says "tonight" or "today".
+        event_end "2026-05-06T20:00:00". Default duration is 1 hour if not specified. Always use today's date if the user says "tonight" or "today". \
+        IMPORTANT: Before creating, check if the requested time overlaps with an existing calendar event. \
+        If there IS a conflict, use propose_reschedule instead of create_event.
+        - propose_reschedule: Use this when the user wants to schedule something but the time conflicts \
+        with an existing event. Set event_title, event_start, event_end with the ORIGINALLY requested time. \
+        Set the message to explain the conflict. Set suggestions with 2-4 alternative time slots that are FREE \
+        (no calendar conflicts). Each suggestion needs: label (e.g. "3:00 – 4:00 PM"), start (ISO 8601), \
+        end (ISO 8601), and reason (e.g. "Free after your meeting"). Look at the calendar carefully to find gaps.
         - query: Answer questions about tasks, productivity, workload. Return answer in message.
         - chat: For general conversation or when no action fits. Return response in message.
 
@@ -266,6 +299,11 @@ enum GeminiPromptBuilder {
         // User location
         if let userLocation {
             prompt += "\nUSER LOCATION: \(userLocation). Use this for location-aware suggestions (e.g. nearby errands, commute time estimates)."
+        }
+
+        // Weather
+        if let weatherSummary {
+            prompt += "\nWEATHER: \(weatherSummary). Factor this into scheduling suggestions (e.g. outdoor errands during good weather, indoor tasks during rain)."
         }
 
         // Areas

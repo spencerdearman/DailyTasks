@@ -12,6 +12,8 @@ import SwiftUI
 
 /// A scrollable list of tasks grouped into sections, with optional event display.
 struct TaskCollectionView: View {
+    @EnvironmentObject private var weatherService: FluxWeatherService
+
     let title: String
     let tasks: [TaskItem]
     var eveningTasks: [TaskItem] = []
@@ -31,7 +33,7 @@ struct TaskCollectionView: View {
 
                 // Morning briefing banner
                 if let synthesis {
-                    SynthesisBanner(synthesis: synthesis, onTap: { onOpenSynthesis?() })
+                    SynthesisBanner(synthesis: synthesis, weatherSummary: weatherService.summary, onTap: { onOpenSynthesis?() })
                 }
 
                 if !events.isEmpty {
@@ -69,6 +71,7 @@ struct TaskCollectionView: View {
 /// A compact card shown at the top of the Today view when a morning briefing is available.
 struct SynthesisBanner: View {
     let synthesis: DailySynthesis
+    var weatherSummary: String? = nil
     let onTap: () -> Void
 
     var body: some View {
@@ -87,8 +90,16 @@ struct SynthesisBanner: View {
 
                 // Text content
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Morning Briefing")
-                        .font(.system(size: 13, weight: .semibold))
+                    HStack(spacing: 8) {
+                        Text(periodTitle)
+                            .font(.system(size: 13, weight: .semibold))
+
+                        if let weather = weatherSummary {
+                            Text(weather)
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
 
                     Text(briefingSummary)
                         .font(.system(size: 11))
@@ -119,9 +130,15 @@ struct SynthesisBanner: View {
         .buttonStyle(.plain)
     }
 
+    private var periodTitle: String {
+        let hour = Calendar.current.component(.hour, from: .now)
+        if hour >= 5 && hour < 12 { return "Morning Briefing" }
+        if hour >= 12 && hour < 17 { return "Afternoon Check-In" }
+        return "Evening Wrap-Up"
+    }
+
     private var briefingSummary: String {
         if !synthesis.greeting.isEmpty {
-            // Take the first sentence of the greeting
             let firstSentence = synthesis.greeting.components(separatedBy: ".").first ?? synthesis.greeting
             return String(firstSentence.prefix(80))
         }

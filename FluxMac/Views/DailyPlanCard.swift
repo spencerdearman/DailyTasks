@@ -16,278 +16,332 @@ struct TimeBlock: Identifiable {
     let blockType: BlockType
 
     enum BlockType {
-        case calendar   // An existing calendar event
-        case focus      // Deep work / task block
-        case errand     // Errands, breaks, personal
-        case flex       // Flex / buffer time
+        case calendar
+        case focus
+        case errand
+        case flex
     }
 }
 
 // MARK: - DailyPlanCard
 
-/// A structured timeline card for plan_day responses in the agent overlay.
 struct DailyPlanCard: View {
 
     let message: String
     let taskCards: [TaskCard]?
     let eventCards: [EventCard]?
+    var weatherSummary: String? = nil
 
-    private var timeBlocks: [TimeBlock] {
-        parseTimeBlocks(from: message)
-    }
-
-    private var headerText: String {
-        // Extract the intro line before the first time block
-        let lines = message.components(separatedBy: "\n")
-        var intro: [String] = []
-        for line in lines {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            if trimmed.isEmpty { continue }
-            if looksLikeTimeBlock(trimmed) { break }
-            intro.append(trimmed)
-        }
-        return intro.joined(separator: " ")
+    private var parsed: ParsedPlan {
+        parsePlan(from: message)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Header
-            header
-                .padding(.horizontal, 18)
-                .padding(.top, 14)
-                .padding(.bottom, 10)
+            HStack(spacing: 8) {
+                Image(systemName: "sun.max.fill")
+                    .font(.system(size: 14))
+                    .foregroundStyle(.orange)
 
-            // Intro text (if any)
-            if !headerText.isEmpty {
-                Text(markdownString(headerText))
-                    .font(.system(size: 12, weight: .regular))
-                    .foregroundStyle(.primary.opacity(0.65))
-                    .lineSpacing(2)
-                    .padding(.horizontal, 18)
-                    .padding(.bottom, 10)
+                Text("Your Day")
+                    .font(.system(size: 14, weight: .semibold))
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 1) {
+                    Text(dateLabel)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.tertiary)
+
+                    if let weather = weatherSummary {
+                        Text(weather)
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(.blue.opacity(0.7))
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 14)
+            .padding(.bottom, 4)
+
+            Divider()
+                .padding(.horizontal, 16)
+                .opacity(0.4)
+
+            // Summary line
+            if !parsed.intro.isEmpty {
+                Text(markdownString(parsed.intro))
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .lineSpacing(3)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 10)
+                    .padding(.bottom, 6)
             }
 
-            // Timeline
-            if !timeBlocks.isEmpty {
-                timeline
-                    .padding(.horizontal, 12)
-                    .padding(.bottom, 8)
+            // Schedule blocks
+            if !parsed.blocks.isEmpty {
+                scheduleList
+                    .padding(.top, 6)
+                    .padding(.bottom, 4)
+            } else {
+                // Fallback: render the full message as styled markdown
+                Text(markdownString(parsed.intro.isEmpty ? message : message.replacingOccurrences(of: parsed.intro, with: "").trimmingCharacters(in: .whitespacesAndNewlines)))
+                    .font(.system(size: 12))
+                    .foregroundStyle(.primary.opacity(0.8))
+                    .lineSpacing(3)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
             }
 
-            // Task cards (compact)
+            // Tasks
             if let cards = taskCards, !cards.isEmpty {
-                taskSection(cards)
-                    .padding(.horizontal, 12)
+                Divider()
+                    .padding(.horizontal, 16)
+                    .opacity(0.3)
+
+                taskList(cards)
+                    .padding(.top, 6)
                     .padding(.bottom, 8)
             }
         }
-        .background(Color.primary.opacity(0.02), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
-    // MARK: - Header
+    // MARK: - Schedule List
 
-    private var header: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "calendar.day.timeline.leading")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.blue)
-
-            Text("Daily Plan")
-                .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-                .tracking(0.5)
-
-            Spacer()
-
-            Text(dateLabel)
-                .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(.tertiary)
-        }
-    }
-
-    // MARK: - Timeline
-
-    private var timeline: some View {
+    private var scheduleList: some View {
         VStack(spacing: 0) {
-            ForEach(Array(timeBlocks.enumerated()), id: \.element.id) { index, block in
-                HStack(alignment: .top, spacing: 10) {
-                    // Time label
-                    Text(block.timeRange)
-                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 105, alignment: .trailing)
-                        .padding(.top, 2)
-
-                    // Timeline indicator
-                    VStack(spacing: 0) {
-                        Circle()
-                            .fill(accentColor(for: block.blockType))
-                            .frame(width: 8, height: 8)
-                            .padding(.top, 3)
-
-                        if index < timeBlocks.count - 1 {
-                            Rectangle()
-                                .fill(Color.primary.opacity(0.08))
-                                .frame(width: 1.5)
-                                .frame(minHeight: 24)
+            ForEach(parsed.blocks) { block in
+                let times = splitTimeRange(block.timeRange)
+                HStack(alignment: .top, spacing: 0) {
+                    // Time column — stacked start/end
+                    VStack(alignment: .trailing, spacing: 1) {
+                        Text(times.start)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(.primary.opacity(0.6))
+                        if let end = times.end {
+                            Text(end)
+                                .font(.system(size: 10))
+                                .foregroundStyle(.tertiary)
                         }
                     }
-                    .frame(width: 10)
+                    .frame(width: 72, alignment: .trailing)
 
-                    // Description
+                    // Accent bar
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(accentColor(for: block.blockType))
+                        .frame(width: 3)
+                        .padding(.leading, 10)
+                        .padding(.trailing, 10)
+                        .padding(.vertical, 2)
+
+                    // Content
                     VStack(alignment: .leading, spacing: 3) {
                         Text(markdownString(block.description))
-                            .font(.system(size: 12, weight: .regular))
-                            .foregroundStyle(.primary.opacity(0.8))
+                            .font(.system(size: 12))
+                            .foregroundStyle(.primary.opacity(0.85))
                             .lineSpacing(2)
                             .fixedSize(horizontal: false, vertical: true)
 
-                        // Show matching event card inline if this is a calendar block
-                        if block.blockType == .calendar, let events = eventCards {
-                            if let matchingEvent = findMatchingEvent(block: block, events: events) {
-                                inlineEventBadge(matchingEvent)
+                        // Inline event badge
+                        if block.blockType == .calendar, let events = eventCards,
+                           let event = events.first(where: { block.description.localizedCaseInsensitiveContains($0.title) }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "calendar")
+                                    .font(.system(size: 8))
+                                Text(event.title)
+                                    .font(.system(size: 10, weight: .medium))
+                                if let loc = event.location, !loc.isEmpty {
+                                    Text(loc)
+                                        .font(.system(size: 9))
+                                        .foregroundStyle(.tertiary)
+                                }
                             }
+                            .foregroundStyle(.blue.opacity(0.7))
+                            .padding(.vertical, 2)
+                            .padding(.horizontal, 6)
+                            .background(Color.blue.opacity(0.06), in: RoundedRectangle(cornerRadius: 5, style: .continuous))
                         }
                     }
-                    .padding(.bottom, index < timeBlocks.count - 1 ? 10 : 4)
+                    .padding(.trailing, 16)
+
+                    Spacer(minLength: 0)
                 }
+                .padding(.vertical, 8)
             }
         }
-        .padding(10)
-        .background(Color.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 
-    // MARK: - Inline Event Badge
-
-    private func inlineEventBadge(_ event: EventCard) -> some View {
-        HStack(spacing: 6) {
-            RoundedRectangle(cornerRadius: 1.5)
-                .fill(Color.blue.opacity(0.5))
-                .frame(width: 2.5, height: 14)
-
-            Text(event.title)
-                .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(.blue.opacity(0.8))
-
-            if let loc = event.location, !loc.isEmpty {
-                Text("@ \(loc)")
-                    .font(.system(size: 9))
-                    .foregroundStyle(.tertiary)
+    /// Splits "9:00 AM – 10:30 AM" into (start: "9:00 AM", end: "10:30 AM")
+    private func splitTimeRange(_ range: String) -> (start: String, end: String?) {
+        for sep in ["–", "—", "-"] {
+            let parts = range.components(separatedBy: sep)
+            if parts.count == 2 {
+                let start = parts[0].trimmingCharacters(in: .whitespaces)
+                let end = parts[1].trimmingCharacters(in: .whitespaces)
+                return (start, end.isEmpty ? nil : end)
             }
         }
-        .padding(.vertical, 3)
-        .padding(.horizontal, 6)
-        .background(Color.blue.opacity(0.06), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+        return (range.trimmingCharacters(in: .whitespaces), nil)
     }
 
-    // MARK: - Task Section
+    // MARK: - Task List
 
-    private func taskSection(_ cards: [TaskCard]) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 6) {
-                Image(systemName: "checklist")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.orange)
-
-                Text("Tasks")
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(.secondary)
-                    .textCase(.uppercase)
-                    .tracking(0.5)
-            }
-            .padding(.horizontal, 10)
-            .padding(.top, 8)
-            .padding(.bottom, 4)
-
+    private func taskList(_ cards: [TaskCard]) -> some View {
+        VStack(spacing: 0) {
             ForEach(cards) { task in
                 HStack(spacing: 8) {
                     Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 12))
-                        .foregroundColor(task.isCompleted ? .green : Color.secondary.opacity(0.3))
+                        .font(.system(size: 13))
+                        .foregroundColor(task.isCompleted ? .green : Color.primary.opacity(0.2))
 
                     Text(task.title)
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(task.isCompleted ? .secondary : Color.primary.opacity(0.8))
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(task.isCompleted ? .secondary : .primary)
                         .lineLimit(1)
 
                     Spacer()
 
                     if let project = task.project {
                         Text(project)
-                            .font(.system(size: 9))
+                            .font(.system(size: 10))
                             .foregroundStyle(.tertiary)
+                            .lineLimit(1)
                     }
 
                     if let date = task.whenDate ?? task.deadline {
                         Text(shortDate(date))
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundColor(isOverdue(date) ? Color.red.opacity(0.8) : Color.gray)
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(isOverdue(date) ? .red : .secondary)
                     }
                 }
-                .padding(.vertical, 4)
-                .padding(.horizontal, 10)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 5)
             }
         }
-        .padding(.bottom, 6)
-        .background(Color.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 
     // MARK: - Parsing
 
-    private func parseTimeBlocks(from text: String) -> [TimeBlock] {
+    private struct ParsedPlan {
+        let intro: String
+        let blocks: [TimeBlock]
+    }
+
+    private func parsePlan(from text: String) -> ParsedPlan {
+        // Unescape literal \n from Gemini responses
+        let cleaned = text.replacingOccurrences(of: "\\n", with: "\n")
+
+        // First try line-by-line parsing
+        var blocks = parseLineByLine(cleaned)
+
+        // If that yields <= 1 block, the model likely put everything in one paragraph.
+        // Try splitting on inline time patterns.
+        if blocks.count <= 1 {
+            blocks = parseInline(cleaned)
+        }
+
+        // Extract intro: everything before the first time reference
+        let intro = extractIntro(from: cleaned)
+
+        return ParsedPlan(intro: intro, blocks: blocks)
+    }
+
+    private func parseLineByLine(_ text: String) -> [TimeBlock] {
         let lines = text.components(separatedBy: "\n")
         var blocks: [TimeBlock] = []
 
         for line in lines {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
-            guard !trimmed.isEmpty else { continue }
+            guard !trimmed.isEmpty, looksLikeTimeBlock(trimmed) else { continue }
+            if let block = extractBlock(from: trimmed) {
+                blocks.append(block)
+            }
+        }
+        return blocks
+    }
 
-            // Match patterns like:
-            // *7:00 – 8:00 AM* — description
-            // 7:00 – 8:00 AM — description
-            // *7:00 AM – 8:00 AM* — description
-            // **7:00 – 8:00 AM** — description
-            let patterns = [
-                // *time* — desc  or  *time* - desc
-                #"^\*{1,2}(.+?)\*{1,2}\s*[—–\-]\s*(.+)$"#,
-                // time — desc (no asterisks)
-                #"^(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?\s*[—–\-]\s*\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?)\s*[—–\-]\s*(.+)$"#,
-            ]
+    private func parseInline(_ text: String) -> [TimeBlock] {
+        // Split on time patterns like "*9:00 AM – 12:00 PM*" or "9:00 AM – 12:00 PM"
+        // The regex finds time ranges and splits the text around them
+        let timePattern = #"\*{0,2}(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?\s*[—–\-]+\s*\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?)\*{0,2}\s*[—–\-]\s*"#
+        guard let regex = try? NSRegularExpression(pattern: timePattern, options: []) else { return [] }
 
-            var matched = false
-            for pattern in patterns {
-                if let regex = try? NSRegularExpression(pattern: pattern, options: []),
-                   let match = regex.firstMatch(in: trimmed, options: [], range: NSRange(trimmed.startIndex..., in: trimmed)),
-                   match.numberOfRanges >= 3 {
-                    let timeRange = String(trimmed[Range(match.range(at: 1), in: trimmed)!]).trimmingCharacters(in: .whitespaces)
-                    let desc = String(trimmed[Range(match.range(at: 2), in: trimmed)!]).trimmingCharacters(in: .whitespaces)
-                    let blockType = classifyBlock(desc)
-                    blocks.append(TimeBlock(timeRange: timeRange, description: desc, blockType: blockType))
-                    matched = true
-                    break
-                }
+        let nsText = text as NSString
+        let matches = regex.matches(in: text, options: [], range: NSRange(location: 0, length: nsText.length))
+        guard !matches.isEmpty else { return [] }
+
+        var blocks: [TimeBlock] = []
+
+        for (i, match) in matches.enumerated() {
+            let timeRange = nsText.substring(with: match.range(at: 1))
+                .trimmingCharacters(in: CharacterSet.whitespaces.union(.init(charactersIn: "*")))
+
+            let descStart = match.range.location + match.range.length
+            let descEnd: Int
+            if i + 1 < matches.count {
+                // Find the start of the next time pattern, but back up to trim trailing punctuation/space
+                descEnd = matches[i + 1].range.location
+            } else {
+                descEnd = nsText.length
             }
 
-            if !matched && looksLikeTimeBlock(trimmed) {
-                // Fallback: try splitting on em-dash
-                let dashVariants = ["—", "–", " - "]
-                for dash in dashVariants {
-                    if let range = trimmed.range(of: dash) {
-                        let before = String(trimmed[trimmed.startIndex..<range.lowerBound])
-                            .trimmingCharacters(in: CharacterSet.whitespaces.union(.init(charactersIn: "*")))
-                        let after = String(trimmed[range.upperBound...])
-                            .trimmingCharacters(in: .whitespaces)
-                        if !before.isEmpty && !after.isEmpty {
-                            blocks.append(TimeBlock(timeRange: before, description: after, blockType: classifyBlock(after)))
-                            break
-                        }
-                    }
+            guard descStart < descEnd else { continue }
+            let desc = nsText.substring(with: NSRange(location: descStart, length: descEnd - descStart))
+                .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines.union(.init(charactersIn: ".")))
+
+            guard !desc.isEmpty else { continue }
+            blocks.append(TimeBlock(timeRange: timeRange, description: desc, blockType: classifyBlock(desc)))
+        }
+
+        return blocks
+    }
+
+    private func extractBlock(from line: String) -> TimeBlock? {
+        // Try: *time* — desc
+        let patterns = [
+            #"^\*{1,2}(.+?)\*{1,2}\s*[—–\-]\s*(.+)$"#,
+            #"^(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?\s*[—–\-]\s*\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?)\s*[—–\-]\s*(.+)$"#,
+        ]
+
+        for pattern in patterns {
+            if let regex = try? NSRegularExpression(pattern: pattern, options: []),
+               let match = regex.firstMatch(in: line, options: [], range: NSRange(line.startIndex..., in: line)),
+               match.numberOfRanges >= 3,
+               let r1 = Range(match.range(at: 1), in: line),
+               let r2 = Range(match.range(at: 2), in: line) {
+                let time = String(line[r1]).trimmingCharacters(in: .whitespaces)
+                let desc = String(line[r2]).trimmingCharacters(in: .whitespaces)
+                return TimeBlock(timeRange: time, description: desc, blockType: classifyBlock(desc))
+            }
+        }
+
+        // Fallback: split on first em-dash after a time-like string
+        for dash in ["—", "–", " - "] {
+            if let range = line.range(of: dash) {
+                let before = String(line[line.startIndex..<range.lowerBound])
+                    .trimmingCharacters(in: CharacterSet.whitespaces.union(.init(charactersIn: "*")))
+                let after = String(line[range.upperBound...]).trimmingCharacters(in: .whitespaces)
+                if looksLikeTimeBlock(before) && !after.isEmpty {
+                    return TimeBlock(timeRange: before, description: after, blockType: classifyBlock(after))
                 }
             }
         }
 
-        return blocks
+        return nil
+    }
+
+    private func extractIntro(from text: String) -> String {
+        // Everything before the first time-like pattern
+        let stripped = text.replacingOccurrences(of: "**", with: "").replacingOccurrences(of: "*", with: "")
+        guard let match = stripped.range(of: #"\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?"#, options: .regularExpression) else {
+            return ""
+        }
+        let intro = String(stripped[stripped.startIndex..<match.lowerBound])
+            .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines.union(.init(charactersIn: "!.")))
+        // Only return if it's a real intro (not just whitespace or very short)
+        return intro.count > 10 ? intro : ""
     }
 
     private func looksLikeTimeBlock(_ line: String) -> Bool {
@@ -301,10 +355,10 @@ struct DailyPlanCard: View {
             return .flex
         }
         if lower.contains("lunch") || lower.contains("errand") || lower.contains("break") ||
-           lower.contains("pick up") || lower.contains("gym") || lower.contains("run") {
+           lower.contains("pick up") || lower.contains("gym") || lower.contains("run ") ||
+           lower.contains("personal") {
             return .errand
         }
-        // Check if it references a known calendar event
         if let events = eventCards {
             for event in events {
                 if lower.contains(event.title.lowercased()) {
@@ -315,19 +369,14 @@ struct DailyPlanCard: View {
         return .focus
     }
 
-    private func findMatchingEvent(block: TimeBlock, events: [EventCard]) -> EventCard? {
-        let lower = block.description.lowercased()
-        return events.first { lower.contains($0.title.lowercased()) }
-    }
-
-    // MARK: - Helpers
+    // MARK: - Styling
 
     private func accentColor(for type: TimeBlock.BlockType) -> Color {
         switch type {
         case .calendar: return .blue
         case .focus:    return .orange
         case .errand:   return .green
-        case .flex:     return .purple.opacity(0.6)
+        case .flex:     return .purple
         }
     }
 
