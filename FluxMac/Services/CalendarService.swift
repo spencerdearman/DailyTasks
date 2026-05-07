@@ -25,27 +25,48 @@ final class CalendarStore: ObservableObject {
     @Published private(set) var upcomingEvents: [CalendarEvent] = []
     @Published private(set) var calendarAccessGranted = false
     @Published private(set) var remindersAccessGranted = false
-    
+
+    /// All events (today + upcoming) for the agent to use
+    var allEvents: [CalendarEvent] {
+        todayEvents + upcomingEvents
+    }
+
     private let syncService = EventKitSyncService()
+    private var refreshTimer: Timer?
     
     func refresh() {
+        fetchEvents()
+
+        // Schedule periodic refresh to keep events current (only create once)
+        if refreshTimer == nil {
+            refreshTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+                Task { @MainActor in
+                    self?.fetchEvents()
+                }
+            }
+        }
+    }
+
+    private func fetchEvents() {
         Task {
             do {
                 let granted = try await syncService.requestCalendarAccess()
                 calendarAccessGranted = granted
-                
+
                 guard granted else {
                     todayEvents = []
                     upcomingEvents = []
                     return
                 }
-                
+
                 let calendar = Calendar.current
                 let start = calendar.startOfDay(for: .now)
                 let weekAhead = calendar.date(byAdding: .day, value: 7, to: start) ?? .now
                 let tomorrow = calendar.date(byAdding: .day, value: 1, to: start) ?? .now
-                
+
+                let now = Date()
                 todayEvents = syncService.events(from: start, to: tomorrow)
+                    .filter { $0.endDate > now }
                 upcomingEvents = syncService.events(from: tomorrow, to: weekAhead)
             } catch {
                 calendarAccessGranted = false

@@ -29,7 +29,8 @@ struct ContentView: View {
     @State private var expandedTaskID: UUID?
     @State private var completingTaskIDs: Set<UUID> = []
     @State private var showQuickFind = false
-    
+    @State private var showAgent = false
+
     var body: some View {
         NavigationSplitView {
             sidebar
@@ -90,9 +91,20 @@ struct ContentView: View {
                 )
             }
         }
+        .overlay {
+            if showAgent {
+                AgentOverlay {
+                    showAgent = false
+                }
+                .transition(.opacity)
+            }
+        }
         .background {
             Button("") { showQuickFind.toggle() }
                 .keyboardShortcut("f", modifiers: .command)
+                .hidden()
+            Button("") { withAnimation(.easeOut(duration: 0.25)) { showAgent.toggle() } }
+                .keyboardShortcut("a", modifiers: .command)
                 .hidden()
         }
     }
