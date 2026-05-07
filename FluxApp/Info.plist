@@ -6,5 +6,7 @@
 	<array>
 		<string>remote-notification</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Flux uses your location to provide weather information in your daily briefing.</string>
 </dict>
 </plist>

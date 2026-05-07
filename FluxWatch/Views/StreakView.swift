@@ -5,7 +5,6 @@
 //  Created by Spencer Dearman.
 //
 
-import SwiftData
 import SwiftUI
 
 // MARK: - StreakView
@@ -15,10 +14,8 @@ struct StreakView: View {
 
     // MARK: - Properties
 
-    @Query(sort: \DailyTask.createdAt, order: .reverse) private var tasks: [DailyTask]
     @AppStorage("currentStreak") private var currentStreak: Int = 0
     @AppStorage("bestStreak") private var bestStreak: Int = 0
-    @State var test: Bool = true
 
     // MARK: - Body
 

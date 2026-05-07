@@ -10,12 +10,12 @@ import SwiftUI
 
 // MARK: - TaskRowView
 
-/// A single row representing a task in the task list, with toggle and streak badge.
+/// A single row representing a task in the task list, with toggle and project badge.
 struct TaskRowView: View {
 
     // MARK: - Properties
 
-    @Bindable var task: DailyTask
+    @Bindable var task: TaskItem
     @Environment(\.modelContext) private var modelContext
 
     // MARK: - Body
@@ -23,7 +23,11 @@ struct TaskRowView: View {
     var body: some View {
         HStack {
             Button {
-                task.isCompleted.toggle()
+                if task.isCompleted {
+                    task.reopen()
+                } else {
+                    task.markComplete()
+                }
                 saveChanges()
             } label: {
                 Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
@@ -31,27 +35,26 @@ struct TaskRowView: View {
                     .foregroundStyle(task.isCompleted ? Color.accentColor : Color.gray)
             }
             .buttonStyle(.plain)
-            Text(task.title)
-                .font(.subheadline)
-                .strikethrough(task.isCompleted)
-                .foregroundStyle(task.isCompleted ? .secondary : .primary)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(task.title)
+                    .font(.subheadline)
+                    .strikethrough(task.isCompleted)
+                    .foregroundStyle(task.isCompleted ? .secondary : .primary)
+
+                if let project = task.project {
+                    Text(project.title)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                }
+            }
 
             Spacer()
 
-            if task.streak > 0 {
-                HStack(spacing: 2) {
-                    Image(systemName: "flame.fill")
-                        .font(.system(size: 10))
-                        .foregroundColor(.accentColor)
-                    Text(String(task.streak))
-                        .fontWeight(.semibold)
-                        .font(.system(size: 12))
-                        .foregroundColor(.accentColor)
-                }
-                .padding(.horizontal, 5)
-                .padding(.vertical, 2)
-                .background(Color.accentColor.opacity(0.2))
-                .cornerRadius(20)
+            if task.deadline != nil {
+                Image(systemName: "flag.fill")
+                    .font(.system(size: 10))
+                    .foregroundColor(.orange)
             }
         }
     }

@@ -57,12 +57,14 @@ struct TaskEditorSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
+                    Button {
                         task.updatedAt = .now
                         try? modelContext.save()
                         dismiss()
+                    } label: {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 14, weight: .semibold))
                     }
-                    .fontWeight(.semibold)
                 }
             }
             .confirmationDialog("Delete this task?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {

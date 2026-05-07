@@ -10,12 +10,12 @@ import SwiftUI
 
 // MARK: - TaskDetailView
 
-/// Displays details for a single task with options to complete, push, or delete it.
+/// Displays details for a single task with options to complete, defer, or view notes.
 struct TaskDetailView: View {
 
     // MARK: - Properties
 
-    @Bindable var task: DailyTask
+    @Bindable var task: TaskItem
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @State private var showingPushOptions = false
@@ -31,17 +31,30 @@ struct TaskDetailView: View {
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.top, 4)
+
+                if let project = task.project {
+                    Text(project.title)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
                 HStack(spacing: 8) {
                     Button(action: {
                         withAnimation {
-                            task.isCompleted = true
+                            if task.isCompleted {
+                                task.reopen()
+                            } else {
+                                task.markComplete()
+                            }
                         }
                         saveChanges()
-                        dismiss()
+                        if task.isCompleted {
+                            dismiss()
+                        }
                     }) {
-                        Image(systemName: "checkmark")
+                        Image(systemName: task.isCompleted ? "arrow.uturn.backward" : "checkmark")
                             .font(.title3.bold())
-                            .foregroundColor(.green)
+                            .foregroundColor(task.isCompleted ? .orange : .green)
                             .frame(width: 48, height: 48)
                             .glassEffect()
                             .clipShape(Circle())
@@ -59,38 +72,61 @@ struct TaskDetailView: View {
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
-
-                    Button {
-                        modelContext.delete(task)
-                        saveChanges()
-                        dismiss()
-                    } label: {
-                        Image(systemName: "trash")
-                            .font(.title3.bold())
-                            .foregroundColor(.red)
-                            .frame(width: 48, height: 48)
-                            .glassEffect()
-                            .clipShape(Circle())
-                    }
-                    .buttonStyle(.plain)
                 }
                 .padding(.bottom, 6)
-                VStack(alignment: .leading) {
-                    TextField("Add notes...", text: $task.notes, axis: .vertical)
-                        .textFieldStyle(.plain)
-                        .font(.body)
-                        .foregroundColor(.primary)
-                        .frame(minHeight: 80, alignment: .topLeading)
+
+                if !task.notes.isEmpty {
+                    VStack(alignment: .leading) {
+                        Text(task.notes)
+                            .font(.body)
+                            .foregroundColor(.primary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .padding()
+                    .background(.ultraThinMaterial, in: .rect(cornerRadius: 16))
                 }
-                .padding()
-                .background(.ultraThinMaterial, in: .rect(cornerRadius: 16))
+
+                // Checklist
+                let items = task.checklist?.sorted(by: { $0.sortOrder < $1.sortOrder }) ?? []
+                if !items.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(items) { item in
+                            HStack(spacing: 8) {
+                                Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
+                                    .font(.body)
+                                    .foregroundStyle(item.isCompleted ? Color.accentColor : .gray)
+                                    .onTapGesture {
+                                        item.isCompleted.toggle()
+                                        saveChanges()
+                                    }
+                                Text(item.title)
+                                    .font(.subheadline)
+                                    .strikethrough(item.isCompleted)
+                                    .foregroundStyle(item.isCompleted ? .secondary : .primary)
+                            }
+                        }
+                    }
+                    .padding()
+                    .background(.ultraThinMaterial, in: .rect(cornerRadius: 16))
+                }
+
+                if let deadline = task.deadline {
+                    HStack {
+                        Image(systemName: "flag.fill")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                        Text("Due \(deadline, style: .date)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
         }
         .navigationBarTitleDisplayMode(.inline)
         .onDisappear {
             saveChanges()
         }
-        .confirmationDialog("Push Task To...", isPresented: $showingPushOptions, titleVisibility: .visible) {
+        .confirmationDialog("Reschedule To...", isPresented: $showingPushOptions, titleVisibility: .visible) {
             Button("Tomorrow") { pushTask(days: 1) }
             Button("In 3 Days") { pushTask(days: 3) }
             Button("Next Week") { pushTask(days: 7) }
@@ -100,12 +136,12 @@ struct TaskDetailView: View {
 
     // MARK: - Private Methods
 
-    /// Pushes a task forward by the specified number of days.
+    /// Reschedules a task forward by the specified number of days.
     private func pushTask(days: Int) {
         let calendar = Calendar.current
         if let targetDate = calendar.date(byAdding: .day, value: days, to: calendar.startOfDay(for: .now)) {
-            task.hiddenUntil = targetDate
-            task.isCompleted = false
+            task.whenDate = targetDate
+            task.updatedAt = Date()
             saveChanges()
             dismiss()
         }

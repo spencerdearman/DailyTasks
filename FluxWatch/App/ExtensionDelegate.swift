@@ -53,13 +53,21 @@ class ExtensionDelegate: NSObject, WKApplicationDelegate, UNUserNotificationCent
             Task { @MainActor in
                 do {
                     let context = try makeModelContext()
-                    let tasks = try context.fetch(FetchDescriptor<DailyTask>())
+                    let today = Calendar.current.startOfDay(for: .now)
+                    let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today)!
+
+                    var descriptor = FetchDescriptor<TaskItem>(
+                        predicate: #Predicate<TaskItem> { task in
+                            task.statusRaw == "active" &&
+                            task.whenDate != nil &&
+                            task.whenDate! >= today &&
+                            task.whenDate! < tomorrow
+                        }
+                    )
+                    let tasks = try context.fetch(descriptor)
 
                     for task in tasks {
-                        if !task.isCompleted {
-                            task.isCompleted = true
-                            task.streak += 1
-                        }
+                        task.markComplete()
                     }
                     try context.save()
                 } catch {
@@ -85,7 +93,15 @@ class ExtensionDelegate: NSObject, WKApplicationDelegate, UNUserNotificationCent
             return container.mainContext
         }
 
-        let schema = Schema([DailyTask.self])
+        let schema = Schema([
+            Area.self,
+            Project.self,
+            Heading.self,
+            TaskItem.self,
+            ChecklistItem.self,
+            Tag.self,
+            TaskTagAssignment.self
+        ])
         let configuration = ModelConfiguration(
             "Flux",
             schema: schema,

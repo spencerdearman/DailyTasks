@@ -26,6 +26,8 @@ struct ContentView: View {
     @State private var showingNewProject = false
     @State private var showingNewArea = false
     @State private var showQuickFind = false
+    @State private var showAgent = false
+    @State private var showSettings = false
     @State private var quickFindPath: [SidebarSelection] = []
 
     // MARK: - Body
@@ -96,27 +98,45 @@ struct ContentView: View {
             .scrollContentBackground(.hidden)
             .background(AppBackground())
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Button {
-                            quickEntrySelection = .inbox
-                            showingQuickEntry = true
-                        } label: {
-                            Label("New Task", systemImage: "checkmark.circle")
-                        }
-                        Button {
-                            showingNewProject = true
-                        } label: {
-                            Label("New Project", systemImage: "paperplane")
-                        }
-                        Button {
-                            showingNewArea = true
-                        } label: {
-                            Label("New Area", systemImage: "square.grid.2x2")
-                        }
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        showAgent = true
                     } label: {
-                        Image(systemName: "plus")
+                        Image(systemName: "sparkles")
                             .font(.system(size: 15, weight: .semibold))
+                    }
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    HStack(spacing: 16) {
+                        Button {
+                            showSettings = true
+                        } label: {
+                            Image(systemName: "gear")
+                                .font(.system(size: 15, weight: .semibold))
+                        }
+
+                        Menu {
+                            Button {
+                                quickEntrySelection = .inbox
+                                showingQuickEntry = true
+                            } label: {
+                                Label("New Task", systemImage: "checkmark.circle")
+                            }
+                            Button {
+                                showingNewProject = true
+                            } label: {
+                                Label("New Project", systemImage: "paperplane")
+                            }
+                            Button {
+                                showingNewArea = true
+                            } label: {
+                                Label("New Area", systemImage: "square.grid.2x2")
+                            }
+                        } label: {
+                            Image(systemName: "plus")
+                                .font(.system(size: 15, weight: .semibold))
+                        }
                     }
                 }
             }
@@ -128,6 +148,12 @@ struct ContentView: View {
             }
             .sheet(isPresented: $showingNewArea) {
                 NewAreaSheet()
+            }
+            .sheet(isPresented: $showAgent) {
+                AgentSheet()
+            }
+            .sheet(isPresented: $showSettings) {
+                SettingsSheet()
             }
             .navigationDestination(for: SidebarSelection.self) { selection in
                 destination(for: selection)

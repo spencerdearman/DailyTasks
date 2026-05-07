@@ -26,7 +26,15 @@ struct FluxWatchApp: App {
     // MARK: - Initialization
 
     init() {
-        let schema = Schema([DailyTask.self])
+        let schema = Schema([
+            Area.self,
+            Project.self,
+            Heading.self,
+            TaskItem.self,
+            ChecklistItem.self,
+            Tag.self,
+            TaskTagAssignment.self
+        ])
 
         let modelConfiguration = ModelConfiguration(
             "Flux",

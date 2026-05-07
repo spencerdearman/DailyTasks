@@ -25,7 +25,13 @@ struct DebugView: View {
 
     // MARK: - Properties
 
-    @Query(sort: \DailyTask.createdAt, order: .reverse) private var tasks: [DailyTask]
+    @Query(
+        filter: #Predicate<TaskItem> { task in
+            task.statusRaw != "completed" && task.statusRaw != "someday"
+        },
+        sort: \TaskItem.sortOrder
+    ) private var activeTasks: [TaskItem]
+
     @AppStorage("lastResetDate") private var lastResetDateInterval: TimeInterval = 0
 
     var walkManager = WalkDetectionManager.shared
@@ -44,9 +50,9 @@ struct DebugView: View {
                                 _ in
                                 guard granted else { return }
 
-                                let remaining = tasks.filter { !$0.isCompleted }.count
+                                let remaining = activeTasks.filter { !$0.isCompleted }.count
                                 let content = UNMutableNotificationContent()
-                                content.title = "Test Reminder 🛠️"
+                                content.title = "Test Reminder"
                                 content.body = "You have \(remaining) tasks left. (TEST)"
                                 content.sound = .default
 
