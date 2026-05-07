@@ -76,6 +76,16 @@ final class CalendarStore: ObservableObject {
         }
     }
     
+    /// Create a calendar event directly (used by the agent)
+    func createEvent(title: String, startDate: Date, endDate: Date, location: String?) async throws -> CalendarEvent {
+        let granted = try await syncService.requestCalendarAccess()
+        guard granted else { throw EventKitSyncError.accessDenied }
+        let event = try await syncService.createCalendarEvent(title: title, startDate: startDate, endDate: endDate, location: location)
+        // Refresh to pick up the new event
+        fetchEvents()
+        return event
+    }
+
     func importReminders(into context: ModelContext, areas: [Area]) {
         Task {
             do {

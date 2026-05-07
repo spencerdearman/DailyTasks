@@ -118,10 +118,16 @@ struct ContentView: View {
             }
         }
         .background {
-            Button("") { showQuickFind.toggle() }
+            Button("") {
+                if showAgent { showAgent = false }
+                showQuickFind.toggle()
+            }
                 .keyboardShortcut("f", modifiers: .command)
                 .hidden()
-            Button("") { withAnimation(.easeOut(duration: 0.25)) { showAgent.toggle() } }
+            Button("") {
+                if showQuickFind { showQuickFind = false }
+                withAnimation(.easeOut(duration: 0.25)) { showAgent.toggle() }
+            }
                 .keyboardShortcut("a", modifiers: .command)
                 .hidden()
         }

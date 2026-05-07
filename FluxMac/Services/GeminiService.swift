@@ -20,6 +20,10 @@ struct GeminiActionResponse: Codable {
     let filter: String?
     let message: String?
     let subtasks: [String]?
+    let eventTitle: String?
+    let eventStart: String?
+    let eventEnd: String?
+    let eventLocation: String?
 
     enum CodingKeys: String, CodingKey {
         case action
@@ -32,6 +36,10 @@ struct GeminiActionResponse: Codable {
         case filter
         case message
         case subtasks
+        case eventTitle = "event_title"
+        case eventStart = "event_start"
+        case eventEnd = "event_end"
+        case eventLocation = "event_location"
     }
 }
 
@@ -57,7 +65,7 @@ actor GeminiService {
                 "enum": [
                     "create_task", "complete_task", "move_task", "schedule_task",
                     "defer_task", "list_tasks", "decompose_task", "plan_day",
-                    "reschedule_overdue", "query", "chat"
+                    "reschedule_overdue", "create_event", "query", "chat"
                 ]
             ],
             "title": ["type": "STRING", "description": "Task title for create_task, or goal for decompose_task"],
@@ -72,7 +80,11 @@ actor GeminiService {
                 "type": "ARRAY",
                 "items": ["type": "STRING"],
                 "description": "For decompose_task: list of suggested subtask titles"
-            ]
+            ],
+            "event_title": ["type": "STRING", "description": "For create_event: calendar event title"],
+            "event_start": ["type": "STRING", "description": "For create_event: start datetime as ISO 8601 (YYYY-MM-DDTHH:mm:ss) or natural language"],
+            "event_end": ["type": "STRING", "description": "For create_event: end datetime as ISO 8601 (YYYY-MM-DDTHH:mm:ss) or natural language"],
+            "event_location": ["type": "STRING", "description": "For create_event: location of the event"]
         ],
         "required": ["action", "message"]
     ]
@@ -217,6 +229,9 @@ enum GeminiPromptBuilder {
         - plan_day: Suggest a prioritized plan for today. Look at today's tasks, deadlines, and calendar. \
         Return a message with the suggested order and reasoning.
         - reschedule_overdue: Find overdue tasks and suggest new dates in the message.
+        - create_event: Add a calendar event. Set event_title, event_start (ISO 8601: YYYY-MM-DDTHH:mm:ss), \
+        event_end (ISO 8601), and optionally event_location. For example, "dinner at 7pm" → event_start "2026-05-06T19:00:00", \
+        event_end "2026-05-06T20:00:00". Default duration is 1 hour if not specified. Always use today's date if the user says "tonight" or "today".
         - query: Answer questions about tasks, productivity, workload. Return answer in message.
         - chat: For general conversation or when no action fits. Return response in message.
 

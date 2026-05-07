@@ -459,7 +459,8 @@ struct AgentOverlay: View {
                 areas: areas,
                 projects: projects,
                 tasks: tasks,
-                calendarEvents: calendarStore.allEvents
+                calendarEvents: calendarStore.allEvents,
+                calendarStore: calendarStore
             )
 
             withAnimation(.easeOut(duration: 0.25)) {

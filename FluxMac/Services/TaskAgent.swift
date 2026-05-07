@@ -45,6 +45,19 @@ struct EventCard: Identifiable {
     let isAllDay: Bool
 }
 
+// MARK: - Execution Context
+
+/// Bundles all dependencies the agent needs to execute actions.
+/// Add new system capabilities here — all action methods receive this automatically.
+struct AgentContext {
+    let modelContext: ModelContext
+    let calendarStore: CalendarStore?
+    let areas: [Area]
+    let projects: [Project]
+    let tasks: [TaskItem]
+    let calendarEvents: [CalendarEvent]
+}
+
 // MARK: - TaskAgent
 
 @Observable
@@ -59,7 +72,7 @@ final class TaskAgent {
         return f
     }()
 
-    func process(_ input: String, apiKey: String, context: ModelContext, areas: [Area], projects: [Project], tasks: [TaskItem], calendarEvents: [CalendarEvent]) async -> AgentResponse {
+    func process(_ input: String, apiKey: String, context: AgentContext) async -> AgentResponse {
         print("[TaskAgent] process called with input: \"\(input)\", apiKey empty: \(apiKey.isEmpty)")
         isProcessing = true
         defer {
@@ -67,29 +80,26 @@ final class TaskAgent {
             print("[TaskAgent] isProcessing set to false")
         }
 
-        // If no API key, use keyword fallback
         guard !apiKey.isEmpty else {
             print("[TaskAgent] No API key, using keyword fallback")
-            let response = keywordFallback(input: input, context: context, areas: areas, projects: projects, tasks: tasks)
+            let response = keywordFallback(input: input, ctx: context)
             lastResponse = response
             return response
         }
 
-        // Build system prompt with full context
-        let systemPrompt = buildSystemPrompt(areas: areas, projects: projects, tasks: tasks, calendarEvents: calendarEvents)
+        let systemPrompt = buildSystemPrompt(ctx: context)
         print("[TaskAgent] System prompt built (\(systemPrompt.count) chars), calling Gemini...")
 
         do {
             let geminiResponse = try await gemini.send(input, apiKey: apiKey, systemPrompt: systemPrompt)
             print("[TaskAgent] Gemini returned action: \(geminiResponse.action), message: \(geminiResponse.message ?? "nil")")
-            let response = await execute(geminiResponse, context: context, areas: areas, projects: projects, tasks: tasks, calendarEvents: calendarEvents)
+            let response = await execute(geminiResponse, ctx: context)
             print("[TaskAgent] Executed action, final message: \(response.message.prefix(100))")
             lastResponse = response
             return response
         } catch {
             print("[TaskAgent] ERROR from Gemini: \(error)")
-            // On API error, try keyword fallback
-            let fallbackResponse = keywordFallback(input: input, context: context, areas: areas, projects: projects, tasks: tasks)
+            let fallbackResponse = keywordFallback(input: input, ctx: context)
             lastResponse = fallbackResponse
             return fallbackResponse
         }
@@ -101,26 +111,17 @@ final class TaskAgent {
 
     // MARK: - Execute Gemini Response
 
-    private func execute(_ response: GeminiActionResponse, context: ModelContext, areas: [Area], projects: [Project], tasks: [TaskItem], calendarEvents: [CalendarEvent]) async -> AgentResponse {
+    private func execute(_ response: GeminiActionResponse, ctx: AgentContext) async -> AgentResponse {
         let message = response.message ?? "Done"
 
         switch response.action {
         case "create_task":
-            return doCreateTask(
-                title: response.title ?? "Untitled",
-                notes: response.notes ?? "",
-                projectName: response.targetProject,
-                areaName: response.targetArea,
-                date: response.date,
-                context: context, areas: areas, projects: projects,
-                geminiMessage: message
-            )
+            return await doCreateTask(response, message: message, ctx: ctx)
 
         case "complete_task":
             return doCompleteTask(
                 searchText: response.searchText ?? response.title ?? "",
-                tasks: tasks, context: context,
-                geminiMessage: message
+                message: message, ctx: ctx
             )
 
         case "move_task":
@@ -128,105 +129,142 @@ final class TaskAgent {
                 searchText: response.searchText ?? "",
                 targetProject: response.targetProject,
                 targetArea: response.targetArea,
-                tasks: tasks, areas: areas, projects: projects, context: context,
-                geminiMessage: message
+                message: message, ctx: ctx
             )
 
         case "schedule_task":
             return doScheduleTask(
                 searchText: response.searchText ?? "",
                 date: response.date ?? "today",
-                tasks: tasks, context: context,
-                geminiMessage: message
+                message: message, ctx: ctx
             )
 
         case "defer_task":
             return doDeferTask(
                 searchText: response.searchText ?? "",
-                tasks: tasks, context: context,
-                geminiMessage: message
+                message: message, ctx: ctx
             )
 
         case "list_tasks":
             return doListTasks(
                 filter: response.filter ?? "today",
-                tasks: tasks, areas: areas, projects: projects,
-                calendarEvents: calendarEvents,
-                geminiMessage: message
+                message: message, ctx: ctx
+            )
+
+        case "create_event":
+            return await doCreateEvent(
+                title: response.eventTitle ?? response.title ?? "New Event",
+                startString: response.eventStart ?? response.date,
+                endString: response.eventEnd,
+                location: response.eventLocation,
+                message: message, ctx: ctx
             )
 
         case "decompose_task":
-            return AgentResponse(
-                message: message,
-                subtasks: response.subtasks
-            )
+            return AgentResponse(message: message, subtasks: response.subtasks)
 
         case "plan_day", "reschedule_overdue", "query", "chat":
-            // Check if the message references calendar events — attach event cards
-            let eventCards = matchCalendarEvents(message: message, calendarEvents: calendarEvents)
-            let taskCards = matchTaskCards(message: message, tasks: tasks)
-            return AgentResponse(message: message, taskCards: taskCards.isEmpty ? nil : taskCards, eventCards: eventCards.isEmpty ? nil : eventCards)
+            let eventCards = matchCalendarEvents(message: message, calendarEvents: ctx.calendarEvents)
+            let taskCards = matchTaskCards(message: message, tasks: ctx.tasks)
+            return AgentResponse(
+                message: message,
+                taskCards: taskCards.isEmpty ? nil : taskCards,
+                eventCards: eventCards.isEmpty ? nil : eventCards
+            )
 
         default:
             return AgentResponse(message: message)
         }
     }
 
-    // MARK: - Action Implementations
+    // MARK: - Action: Create Task
 
-    private func doCreateTask(title: String, notes: String, projectName: String?, areaName: String?, date: String?, context: ModelContext, areas: [Area], projects: [Project], geminiMessage: String) -> AgentResponse {
-        let project = projectName.flatMap { findProject(named: $0, in: projects) }
-        let area = areaName.flatMap { findArea(named: $0, in: areas) } ?? project?.area
-        let whenDate = date.flatMap { parseDate($0) }
+    private func doCreateTask(_ response: GeminiActionResponse, message: String, ctx: AgentContext) async -> AgentResponse {
+        let title = response.title ?? "Untitled"
+        let project = response.targetProject.flatMap { findProject(named: $0, in: ctx.projects) }
+        let area = response.targetArea.flatMap { findArea(named: $0, in: ctx.areas) } ?? project?.area
+        let whenDate = response.date.flatMap { parseDate($0) }
 
         let task = TaskItem(
             title: title,
-            notes: notes,
+            notes: response.notes ?? "",
             whenDate: whenDate,
             status: .active,
             isInInbox: area == nil && project == nil,
             area: area,
             project: project
         )
-        context.insert(task)
-        try? context.save()
+        ctx.modelContext.insert(task)
+        try? ctx.modelContext.save()
 
-        let card = TaskCard(id: task.id, title: task.title, project: project?.title, area: area?.title, whenDate: whenDate, deadline: nil, isCompleted: false)
-        return AgentResponse(message: geminiMessage, affectedTaskIDs: [task.id], taskCards: [card])
+        let taskCard = TaskCard(id: task.id, title: task.title, project: project?.title, area: area?.title, whenDate: whenDate, deadline: nil, isCompleted: false)
+        var eventCards: [EventCard]? = nil
+
+        // If Gemini says to also add to calendar, create the event
+        if response.addToCalendar == true, let calendarStore = ctx.calendarStore {
+            let startDate = parseDatetime(response.eventStart ?? "") ?? whenDate ?? Date()
+            let endDate: Date
+            if let endStr = response.eventEnd, let parsed = parseDatetime(endStr) {
+                endDate = parsed
+            } else {
+                endDate = startDate.addingTimeInterval(3600)
+            }
+
+            do {
+                let event = try await calendarStore.createEvent(
+                    title: title,
+                    startDate: startDate,
+                    endDate: endDate,
+                    location: response.eventLocation
+                )
+                eventCards = [EventCard(id: event.id, title: event.title, startDate: event.startDate, endDate: event.endDate, location: event.location, isAllDay: false)]
+                print("[TaskAgent] Also created calendar event for task: \(title)")
+            } catch {
+                print("[TaskAgent] Failed to create calendar event alongside task: \(error)")
+            }
+        }
+
+        return AgentResponse(message: message, affectedTaskIDs: [task.id], taskCards: [taskCard], eventCards: eventCards)
     }
 
-    private func doCompleteTask(searchText: String, tasks: [TaskItem], context: ModelContext, geminiMessage: String) -> AgentResponse {
-        let active = tasks.filter { $0.status == .active }
+    // MARK: - Action: Complete Task
+
+    private func doCompleteTask(searchText: String, message: String, ctx: AgentContext) -> AgentResponse {
+        let active = ctx.tasks.filter { $0.status == .active }
         guard let match = bestMatch(for: searchText, in: active) else {
             return AgentResponse(message: "Couldn't find a task matching \"\(searchText)\"")
         }
         match.markComplete()
-        try? context.save()
+        try? ctx.modelContext.save()
         let card = TaskCard(id: match.id, title: match.title, project: match.project?.title, area: match.area?.title, whenDate: match.whenDate, deadline: match.deadline, isCompleted: true)
-        return AgentResponse(message: geminiMessage, affectedTaskIDs: [match.id], taskCards: [card])
+        return AgentResponse(message: message, affectedTaskIDs: [match.id], taskCards: [card])
     }
 
-    private func doMoveTask(searchText: String, targetProject: String?, targetArea: String?, tasks: [TaskItem], areas: [Area], projects: [Project], context: ModelContext, geminiMessage: String) -> AgentResponse {
-        let active = tasks.filter { !$0.isCompleted }
+    // MARK: - Action: Move Task
+
+    private func doMoveTask(searchText: String, targetProject: String?, targetArea: String?, message: String, ctx: AgentContext) -> AgentResponse {
+        let active = ctx.tasks.filter { !$0.isCompleted }
         guard let match = bestMatch(for: searchText, in: active) else {
             return AgentResponse(message: "Couldn't find a task matching \"\(searchText)\"")
         }
 
-        let proj = targetProject.flatMap { findProject(named: $0, in: projects) }
-        let area = targetArea.flatMap { findArea(named: $0, in: areas) } ?? proj?.area
+        let proj = targetProject.flatMap { findProject(named: $0, in: ctx.projects) }
+        let area = targetArea.flatMap { findArea(named: $0, in: ctx.areas) } ?? proj?.area
 
         match.project = proj
         match.area = area
         match.heading = nil
         match.isInInbox = area == nil && proj == nil
         match.updatedAt = .now
-        try? context.save()
+        try? ctx.modelContext.save()
 
-        return AgentResponse(message: geminiMessage, affectedTaskIDs: [match.id])
+        return AgentResponse(message: message, affectedTaskIDs: [match.id])
     }
 
-    private func doScheduleTask(searchText: String, date: String, tasks: [TaskItem], context: ModelContext, geminiMessage: String) -> AgentResponse {
-        let active = tasks.filter { $0.status == .active }
+    // MARK: - Action: Schedule Task
+
+    private func doScheduleTask(searchText: String, date: String, message: String, ctx: AgentContext) -> AgentResponse {
+        let active = ctx.tasks.filter { $0.status == .active }
         guard let match = bestMatch(for: searchText, in: active) else {
             return AgentResponse(message: "Couldn't find a task matching \"\(searchText)\"")
         }
@@ -235,26 +273,58 @@ final class TaskAgent {
         }
         match.whenDate = whenDate
         match.updatedAt = .now
-        try? context.save()
-        return AgentResponse(message: geminiMessage, affectedTaskIDs: [match.id])
+        try? ctx.modelContext.save()
+        return AgentResponse(message: message, affectedTaskIDs: [match.id])
     }
 
-    private func doDeferTask(searchText: String, tasks: [TaskItem], context: ModelContext, geminiMessage: String) -> AgentResponse {
-        let active = tasks.filter { $0.status == .active }
+    // MARK: - Action: Defer Task
+
+    private func doDeferTask(searchText: String, message: String, ctx: AgentContext) -> AgentResponse {
+        let active = ctx.tasks.filter { $0.status == .active }
         guard let match = bestMatch(for: searchText, in: active) else {
             return AgentResponse(message: "Couldn't find a task matching \"\(searchText)\"")
         }
         match.status = .someday
         match.whenDate = nil
         match.updatedAt = .now
-        try? context.save()
-        return AgentResponse(message: geminiMessage, affectedTaskIDs: [match.id])
+        try? ctx.modelContext.save()
+        return AgentResponse(message: message, affectedTaskIDs: [match.id])
     }
 
-    private func doListTasks(filter: String, tasks: [TaskItem], areas: [Area], projects: [Project], calendarEvents: [CalendarEvent] = [], geminiMessage: String) -> AgentResponse {
+    // MARK: - Action: Create Calendar Event
+
+    private func doCreateEvent(title: String, startString: String?, endString: String?, location: String?, message: String, ctx: AgentContext) async -> AgentResponse {
+        guard let calendarStore = ctx.calendarStore else {
+            return AgentResponse(message: "Calendar access is not available.")
+        }
+
+        guard let startStr = startString, let startDate = parseDatetime(startStr) else {
+            return AgentResponse(message: "Couldn't understand the event time. Please try again with a specific date and time.")
+        }
+
+        let endDate: Date
+        if let endStr = endString, let parsed = parseDatetime(endStr) {
+            endDate = parsed
+        } else {
+            endDate = startDate.addingTimeInterval(3600)
+        }
+
+        do {
+            let event = try await calendarStore.createEvent(title: title, startDate: startDate, endDate: endDate, location: location)
+            let card = EventCard(id: event.id, title: event.title, startDate: event.startDate, endDate: event.endDate, location: event.location, isAllDay: false)
+            return AgentResponse(message: message, eventCards: [card])
+        } catch {
+            print("[TaskAgent] Failed to create calendar event: \(error)")
+            return AgentResponse(message: "Failed to create calendar event: \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - Action: List Tasks
+
+    private func doListTasks(filter: String, message: String, ctx: AgentContext) -> AgentResponse {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: .now)
-        let active = tasks.filter { $0.status == .active }
+        let active = ctx.tasks.filter { $0.status == .active }
 
         let filtered: [TaskItem]
 
@@ -268,7 +338,7 @@ final class TaskAgent {
             }
         case "tomorrow":
             guard let tmrw = calendar.date(byAdding: .day, value: 1, to: today) else {
-                return AgentResponse(message: geminiMessage)
+                return AgentResponse(message: message)
             }
             filtered = active.filter {
                 guard let d = $0.effectiveDate else { return false }
@@ -283,17 +353,16 @@ final class TaskAgent {
         case "open":
             filtered = active.filter { !$0.isInInbox && $0.whenDate == nil }
         case "later":
-            filtered = tasks.filter { $0.status == .someday }
+            filtered = ctx.tasks.filter { $0.status == .someday }
         case "done":
-            filtered = Array(tasks.filter(\.isCompleted)
+            filtered = Array(ctx.tasks.filter(\.isCompleted)
                 .sorted { ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast) }
                 .prefix(10))
         default:
-            // Try project match
-            if let project = findProject(named: filter, in: projects) {
+            if let project = findProject(named: filter, in: ctx.projects) {
                 filtered = project.taskList.filter { !$0.isCompleted }
-            } else if let area = findArea(named: filter, in: areas) {
-                let areaTasks = tasks.filter { $0.area?.id == area.id || $0.project?.area?.id == area.id }
+            } else if let area = findArea(named: filter, in: ctx.areas) {
+                let areaTasks = ctx.tasks.filter { $0.area?.id == area.id || $0.project?.area?.id == area.id }
                 filtered = areaTasks.filter { !$0.isCompleted }
             } else {
                 filtered = active.filter { $0.title.localizedCaseInsensitiveContains(filter) }
@@ -304,14 +373,13 @@ final class TaskAgent {
         let eventCards: [EventCard]?
         let filterLower = filter.lowercased()
         if filterLower == "today" || filterLower == "tomorrow" || filterLower == "upcoming" {
-            let calendar = Calendar.current
             let matchingEvents: [CalendarEvent]
             if filterLower == "today" {
-                matchingEvents = calendarEvents.filter { calendar.isDateInToday($0.startDate) }
+                matchingEvents = ctx.calendarEvents.filter { calendar.isDateInToday($0.startDate) }
             } else if filterLower == "tomorrow" {
-                matchingEvents = calendarEvents.filter { calendar.isDateInTomorrow($0.startDate) }
+                matchingEvents = ctx.calendarEvents.filter { calendar.isDateInTomorrow($0.startDate) }
             } else {
-                matchingEvents = calendarEvents
+                matchingEvents = ctx.calendarEvents
             }
             eventCards = matchingEvents.isEmpty ? nil : matchingEvents.map { event in
                 EventCard(id: event.id, title: event.title, startDate: event.startDate, endDate: event.endDate, location: event.location, isAllDay: event.isAllDay)
@@ -322,34 +390,28 @@ final class TaskAgent {
 
         if filtered.isEmpty && eventCards == nil {
             print("[TaskAgent] doListTasks: no local tasks matched filter '\(filter)'")
-            return AgentResponse(message: geminiMessage)
+            return AgentResponse(message: message)
         }
 
         let cards: [TaskCard]? = filtered.isEmpty ? nil : Array(filtered.prefix(15).map { task in
             TaskCard(
-                id: task.id,
-                title: task.title,
-                project: task.project?.title,
-                area: task.area?.title,
-                whenDate: task.whenDate,
-                deadline: task.deadline,
-                isCompleted: task.isCompleted
+                id: task.id, title: task.title, project: task.project?.title,
+                area: task.area?.title, whenDate: task.whenDate,
+                deadline: task.deadline, isCompleted: task.isCompleted
             )
         })
         print("[TaskAgent] doListTasks: returning \(cards?.count ?? 0) task cards, \(eventCards?.count ?? 0) event cards")
-        return AgentResponse(message: geminiMessage, affectedTaskIDs: filtered.map(\.id), taskCards: cards, eventCards: eventCards)
+        return AgentResponse(message: message, affectedTaskIDs: filtered.map(\.id), taskCards: cards, eventCards: eventCards)
     }
 
     // MARK: - Keyword Fallback (no API key)
 
-    private func keywordFallback(input: String, context: ModelContext, areas: [Area], projects: [Project], tasks: [TaskItem]) -> AgentResponse {
+    private func keywordFallback(input: String, ctx: AgentContext) -> AgentResponse {
         let lowered = input.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-        let active = tasks.filter { $0.status == .active }
+        let active = ctx.tasks.filter { $0.status == .active }
 
-        // Simple list queries
         if lowered.contains("inbox") {
-            let inbox = active.filter(\.isInInbox)
-            return listResponse("Inbox", tasks: inbox)
+            return listResponse("Inbox", tasks: active.filter(\.isInInbox))
         }
         if lowered.contains("today") {
             let today = Calendar.current.startOfDay(for: .now)
@@ -362,32 +424,29 @@ final class TaskAgent {
             return listResponse("Tomorrow", tasks: tmrwTasks)
         }
         if lowered.contains("done") || lowered.contains("completed") {
-            let done = Array(tasks.filter(\.isCompleted).sorted { ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast) }.prefix(10))
+            let done = Array(ctx.tasks.filter(\.isCompleted).sorted { ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast) }.prefix(10))
             return listResponse("Done (recent)", tasks: done)
         }
 
-        // Check project/area references
-        for project in projects {
+        for project in ctx.projects {
             if lowered.contains(project.title.lowercased()) {
-                let projTasks = project.taskList.filter { !$0.isCompleted }
-                return listResponse(project.title, tasks: projTasks)
+                return listResponse(project.title, tasks: project.taskList.filter { !$0.isCompleted })
             }
         }
-        for area in areas {
+        for area in ctx.areas {
             if lowered.contains(area.title.lowercased()) {
-                let areaTasks = tasks.filter { ($0.area?.id == area.id || $0.project?.area?.id == area.id) && !$0.isCompleted }
+                let areaTasks = ctx.tasks.filter { ($0.area?.id == area.id || $0.project?.area?.id == area.id) && !$0.isCompleted }
                 return listResponse(area.title, tasks: areaTasks)
             }
         }
 
-        // Create task
         if lowered.hasPrefix("add ") || lowered.hasPrefix("create ") {
             let prefixLen = lowered.hasPrefix("add ") ? 4 : 7
             let title = String(input.dropFirst(prefixLen)).trimmingCharacters(in: .whitespaces)
             if !title.isEmpty {
                 let task = TaskItem(title: title, status: .active, isInInbox: true)
-                context.insert(task)
-                try? context.save()
+                ctx.modelContext.insert(task)
+                try? ctx.modelContext.save()
                 return AgentResponse(message: "Created \"\(title)\" in Inbox", affectedTaskIDs: [task.id])
             }
         }
@@ -406,7 +465,6 @@ final class TaskAgent {
     // MARK: - Card Matching for Query/Chat Responses
 
     private func matchCalendarEvents(message: String, calendarEvents: [CalendarEvent]) -> [EventCard] {
-        // Match calendar events mentioned in the message by title
         let messageLower = message.lowercased()
         return calendarEvents.filter { event in
             messageLower.contains(event.title.lowercased())
@@ -452,6 +510,28 @@ final class TaskAgent {
         return projects.first { $0.title.localizedCaseInsensitiveContains(name) }
     }
 
+    private func parseDatetime(_ string: String) -> Date? {
+        // ISO 8601 with timezone
+        let isoFormatter = ISO8601DateFormatter()
+        isoFormatter.formatOptions = [.withInternetDateTime]
+        if let date = isoFormatter.date(from: string) { return date }
+
+        // ISO 8601 without timezone (YYYY-MM-DDTHH:mm:ss)
+        let localIso = DateFormatter()
+        localIso.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        localIso.timeZone = .current
+        if let date = localIso.date(from: string) { return date }
+
+        // YYYY-MM-DD HH:mm
+        let spaceFmt = DateFormatter()
+        spaceFmt.dateFormat = "yyyy-MM-dd HH:mm"
+        spaceFmt.timeZone = .current
+        if let date = spaceFmt.date(from: string) { return date }
+
+        // Fall back to date-only parsing
+        return parseDate(string)
+    }
+
     private func parseDate(_ string: String) -> Date? {
         let lowered = string.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         let calendar = Calendar.current
@@ -476,7 +556,7 @@ final class TaskAgent {
 
     // MARK: - System Prompt
 
-    private func buildSystemPrompt(areas: [Area], projects: [Project], tasks: [TaskItem], calendarEvents: [CalendarEvent]) -> String {
+    private func buildSystemPrompt(ctx: AgentContext) -> String {
         let fmt = DateFormatter()
         fmt.dateFormat = "yyyy-MM-dd (EEEE)"
         let todayStr = fmt.string(from: Date())
@@ -487,14 +567,14 @@ final class TaskAgent {
         let timeFmt = DateFormatter()
         timeFmt.dateFormat = "h:mm a"
 
-        let completedTasks = tasks.filter { $0.isCompleted }
+        let completedTasks = ctx.tasks.filter { $0.isCompleted }
             .sorted { ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast) }
-        let somedayTasksList = tasks.filter { $0.status == .someday }
+        let somedayTasksList = ctx.tasks.filter { $0.status == .someday }
 
         return GeminiPromptBuilder.buildSystemPrompt(
-            areas: areas.map { (name: $0.title, symbol: $0.symbolName) },
-            projects: projects.map { (name: $0.title, areaName: $0.area?.title) },
-            activeTasks: tasks.filter { $0.status == .active }.map { task in
+            areas: ctx.areas.map { (name: $0.title, symbol: $0.symbolName) },
+            projects: ctx.projects.map { (name: $0.title, areaName: $0.area?.title) },
+            activeTasks: ctx.tasks.filter { $0.status == .active }.map { task in
                 (
                     title: task.title,
                     project: task.project?.title,
@@ -517,7 +597,7 @@ final class TaskAgent {
                     area: task.area?.title
                 )
             },
-            calendarEvents: calendarEvents.map { event in
+            calendarEvents: ctx.calendarEvents.map { event in
                 (
                     title: event.title,
                     date: dateFmt.string(from: event.startDate),

@@ -130,6 +130,26 @@ final class EventKitSyncService {
         }
     }
     
+    func createCalendarEvent(title: String, startDate: Date, endDate: Date, location: String?) async throws -> CalendarEvent {
+        guard try await requestCalendarAccess() else {
+            throw EventKitSyncError.accessDenied
+        }
+        let event = EKEvent(eventStore: eventStore)
+        guard let defaultCalendar = eventStore.defaultCalendarForNewEvents else {
+            throw EventKitSyncError.missingDefaultCalendar
+        }
+        event.calendar = defaultCalendar
+        event.title = title
+        event.startDate = startDate
+        event.endDate = endDate
+        event.isAllDay = false
+        if let location, !location.isEmpty {
+            event.location = location
+        }
+        try eventStore.save(event, span: .thisEvent)
+        return CalendarEvent(id: event.eventIdentifier, title: event.title, startDate: event.startDate, endDate: event.endDate, location: event.location, isAllDay: false)
+    }
+
     func upsertCalendarEvent(for task: TaskItem) async throws {
         guard try await requestCalendarAccess() else {
             throw EventKitSyncError.accessDenied
