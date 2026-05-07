@@ -26,6 +26,7 @@ struct GeminiActionResponse: Codable, Sendable {
     let eventLocation: String?
     let addToCalendar: Bool?
     let locationName: String?
+    let additionalActions: [GeminiActionResponse]?
 
     enum CodingKeys: String, CodingKey {
         case action
@@ -44,7 +45,15 @@ struct GeminiActionResponse: Codable, Sendable {
         case eventLocation = "event_location"
         case addToCalendar = "add_to_calendar"
         case locationName = "location_name"
+        case additionalActions = "additional_actions"
     }
+}
+
+// MARK: - Gemini Result (includes thinking)
+
+struct GeminiResult {
+    let response: GeminiActionResponse
+    let thinking: String?
 }
 
 // MARK: - Conversation Message
@@ -90,11 +99,42 @@ actor GeminiService {
             "event_location": ["type": "STRING", "description": "For create_event: location of the event"],
             "add_to_calendar": ["type": "BOOLEAN", "description": "For create_task: also create a calendar event for this task"],
             "location_name": ["type": "STRING", "description": "Location name for the task or event"],
+            "additional_actions": [
+                "type": "ARRAY",
+                "items": [
+                    "type": "OBJECT",
+                    "properties": [
+                        "action": [
+                            "type": "STRING",
+                            "enum": [
+                                "create_task", "complete_task", "move_task", "schedule_task",
+                                "defer_task", "list_tasks", "decompose_task", "plan_day",
+                                "reschedule_overdue", "create_event", "query", "chat",
+                            ],
+                        ],
+                        "title": ["type": "STRING"],
+                        "notes": ["type": "STRING"],
+                        "search_text": ["type": "STRING"],
+                        "target_project": ["type": "STRING"],
+                        "target_area": ["type": "STRING"],
+                        "date": ["type": "STRING"],
+                        "filter": ["type": "STRING"],
+                        "message": ["type": "STRING"],
+                        "event_title": ["type": "STRING"],
+                        "event_start": ["type": "STRING"],
+                        "event_end": ["type": "STRING"],
+                        "event_location": ["type": "STRING"],
+                        "location_name": ["type": "STRING"],
+                    ],
+                    "required": ["action", "message"],
+                ],
+                "description": "Additional actions when the user gives multiple commands in one message",
+            ],
         ],
         "required": ["action", "message"],
     ]
 
-    func send(_ input: String, apiKey: String, systemPrompt: String) async throws -> GeminiActionResponse {
+    func send(_ input: String, apiKey: String, systemPrompt: String) async throws -> GeminiResult {
         conversationHistory.append(GeminiMessage(role: "user", text: input))
 
         let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent?key=\(apiKey)")!
@@ -115,7 +155,7 @@ actor GeminiService {
             "generationConfig": [
                 "response_mime_type": "application/json",
                 "response_schema": responseSchema,
-                "temperature": 0.3,
+                "temperature": 0.3
             ],
         ]
 
@@ -125,7 +165,7 @@ actor GeminiService {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = jsonData
-        request.timeoutInterval = 60
+        request.timeoutInterval = 120
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
@@ -143,10 +183,28 @@ actor GeminiService {
         guard let candidates = geminiResponse?["candidates"] as? [[String: Any]],
               let firstCandidate = candidates.first,
               let content = firstCandidate["content"] as? [String: Any],
-              let parts = content["parts"] as? [[String: Any]],
-              let text = parts.first?["text"] as? String else {
+              let parts = content["parts"] as? [[String: Any]] else {
             throw GeminiError.noContent
         }
+
+        // Extract thinking and response text from parts
+        var thinkingParts: [String] = []
+        var responsePart: String?
+
+        for part in parts {
+            guard let text = part["text"] as? String else { continue }
+            if part["thought"] as? Bool == true {
+                thinkingParts.append(text)
+            } else {
+                responsePart = text
+            }
+        }
+
+        guard let text = responsePart else {
+            throw GeminiError.noContent
+        }
+
+        let thinkingText = thinkingParts.isEmpty ? nil : thinkingParts.joined(separator: "\n")
 
         guard let textData = text.data(using: .utf8) else {
             throw GeminiError.noContent
@@ -160,7 +218,7 @@ actor GeminiService {
             conversationHistory = Array(conversationHistory.suffix(10))
         }
 
-        return actionResponse
+        return GeminiResult(response: actionResponse, thinking: thinkingText)
     }
 
     func clearHistory() {
@@ -205,7 +263,8 @@ enum GeminiPromptBuilder {
         - create_task: Create a new task. Set title, notes, date, target_project, target_area as needed.
         - complete_task: Mark a task as done. Set search_text to match the task title.
         - move_task: Move a task to a different project or area. Set search_text + target_project/target_area.
-        - schedule_task: Set or change a task's date. Set search_text + date.
+        - schedule_task: Set or change a task's date. MUST set search_text AND date (YYYY-MM-DD or weekday name). \
+        The date field is REQUIRED — without it the task won't actually move.
         - defer_task: Move a task to "Later" (someday/maybe). Set search_text.
         - list_tasks: Show tasks. Set filter to: inbox, today, tomorrow, upcoming, open, later, done, \
         or a project/area name, or a search query.
@@ -222,6 +281,10 @@ enum GeminiPromptBuilder {
         - Keep messages brief — 1-2 sentences for actions, more for queries/planning.
         - For dates, always convert to YYYY-MM-DD format or use: today, tomorrow, next week.
         - If the user's intent is ambiguous, prefer the most helpful interpretation.
+        - IMPORTANT: If the user gives MULTIPLE commands in one message (e.g. "move X to Y, move Z to tomorrow"), \
+        use the primary action fields for the FIRST command, then put each additional command as a separate object \
+        in the "additional_actions" array. Each additional action needs its own action, search_text, date, etc. \
+        The "message" field should describe ALL actions taken.
 
         """
 

@@ -28,8 +28,8 @@ struct AgentSheet: View {
     @State private var weatherService = FluxWeatherService()
     @State private var input = ""
     @State private var responses: [AgentResult] = []
-    @State private var showOverdueTasks = false
     @State private var isSynthesizing = false
+    @State private var selectedTaskID: UUID?
     @FocusState private var isFocused: Bool
 
     // MARK: Result Model
@@ -50,7 +50,6 @@ struct AgentSheet: View {
         let greeting: String
         let conflicts: [String]
         let suggestedPlan: String
-        let overdueTasks: [AgentTaskCard]
         let weatherSummary: String?
     }
 
@@ -88,6 +87,23 @@ struct AgentSheet: View {
         .task {
             await weatherService.fetchWeather()
         }
+        .sheet(item: selectedTaskBinding) { task in
+            TaskEditorSheet(task: task)
+        }
+    }
+
+    // MARK: - Task Selection
+
+    private var selectedTaskBinding: Binding<TaskItem?> {
+        Binding(
+            get: {
+                guard let id = selectedTaskID else { return nil }
+                return tasks.first(where: { $0.id == id })
+            },
+            set: { newValue in
+                selectedTaskID = newValue?.id
+            }
+        )
     }
 
     // MARK: - Empty State
@@ -219,7 +235,7 @@ struct AgentSheet: View {
             }
 
             if let cards = result.taskCards, !cards.isEmpty {
-                taskChips(cards)
+                taskList(cards)
                     .padding(.horizontal, 12)
                     .padding(.bottom, 4)
             }
@@ -305,15 +321,9 @@ struct AgentSheet: View {
                     .padding(.horizontal, 12)
             }
 
-            // Overdue tasks
-            if !synthesis.overdueTasks.isEmpty {
-                overdueSection(synthesis.overdueTasks)
-                    .padding(.horizontal, 12)
-            }
-
-            // Task cards
+            // Task cards (grouped by section like macOS)
             if let cards = result.taskCards, !cards.isEmpty {
-                taskChips(cards)
+                taskList(cards)
                     .padding(.horizontal, 12)
                     .padding(.bottom, 4)
             }
@@ -355,7 +365,7 @@ struct AgentSheet: View {
             }
 
             if let cards = result.taskCards, !cards.isEmpty {
-                taskChips(cards)
+                taskList(cards)
                     .padding(.horizontal, 12)
                     .padding(.bottom, 4)
             }
@@ -419,66 +429,6 @@ struct AgentSheet: View {
                 }
             }
         }
-    }
-
-    // MARK: - Overdue Section
-
-    private func overdueSection(_ overdueTasks: [AgentTaskCard]) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Button {
-                withAnimation(.easeOut(duration: 0.2)) {
-                    showOverdueTasks.toggle()
-                }
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "clock.badge.exclamationmark")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.red.opacity(0.7))
-
-                    Text("\(overdueTasks.count) overdue tasks need attention")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(.red.opacity(0.7))
-
-                    Spacer()
-
-                    Image(systemName: showOverdueTasks ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(.tertiary)
-                }
-                .padding(12)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            if showOverdueTasks {
-                VStack(spacing: 0) {
-                    ForEach(overdueTasks.prefix(8)) { task in
-                        HStack(spacing: 8) {
-                            Image(systemName: "circle")
-                                .font(.system(size: 12))
-                                .foregroundStyle(.secondary.opacity(0.25))
-
-                            Text(task.title)
-                                .font(.system(size: 12, weight: .medium))
-                                .lineLimit(1)
-
-                            Spacer()
-
-                            if let date = task.whenDate ?? task.deadline {
-                                Text(shortDate(date))
-                                    .font(.system(size: 10, weight: .medium))
-                                    .foregroundStyle(.red.opacity(0.7))
-                            }
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 5)
-                    }
-                }
-                .padding(.bottom, 8)
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        }
-        .background(Color.red.opacity(0.03), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
     // MARK: - Synthesis Section Helper
@@ -562,43 +512,102 @@ struct AgentSheet: View {
         .background(Color.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
-    // MARK: - Task Chips
+    // MARK: - Task List (grouped by section)
 
-    private func taskChips(_ cards: [AgentTaskCard]) -> some View {
-        VStack(spacing: 2) {
-            ForEach(cards) { task in
-                HStack(spacing: 8) {
-                    Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 14))
-                        .foregroundStyle(task.isCompleted ? AnyShapeStyle(.green) : AnyShapeStyle(.secondary.opacity(0.35)))
+    private func taskList(_ cards: [AgentTaskCard]) -> some View {
+        let today = Calendar.current.startOfDay(for: .now)
+        let overdue = cards.filter { card in
+            guard let date = card.whenDate ?? card.deadline else { return false }
+            return date < today && !card.isCompleted
+        }
+        let todayCards = cards.filter { card in
+            guard let date = card.whenDate ?? card.deadline else { return false }
+            return Calendar.current.isDateInToday(date) && !card.isCompleted
+        }
+        let upcoming = cards.filter { card in
+            guard let date = card.whenDate ?? card.deadline else { return false }
+            return date > Calendar.current.startOfDay(for: Calendar.current.date(byAdding: .day, value: 1, to: .now)!) && !card.isCompleted
+        }
+        let unscheduled = cards.filter { card in
+            (card.whenDate ?? card.deadline) == nil && !card.isCompleted
+        }
 
-                    Text(task.title)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(task.isCompleted ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary.opacity(0.85)))
-                        .strikethrough(task.isCompleted, color: .secondary.opacity(0.4))
-                        .lineLimit(1)
-
-                    Spacer()
-
-                    if let project = task.project {
-                        Text(project)
-                            .font(.system(size: 10))
-                            .foregroundStyle(.tertiary)
-                            .lineLimit(1)
-                    }
-
-                    if let date = task.whenDate ?? task.deadline {
-                        Text(shortDate(date))
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(isOverdue(date) ? .red.opacity(0.8) : .secondary)
-                    }
-                }
-                .padding(.vertical, 6)
-                .padding(.horizontal, 10)
+        return VStack(spacing: 0) {
+            if !overdue.isEmpty {
+                taskSection("Overdue", color: .red, tasks: overdue)
+            }
+            if !todayCards.isEmpty {
+                taskSection("Today", color: .blue, tasks: todayCards)
+            }
+            if !upcoming.isEmpty {
+                taskSection("Upcoming", color: .secondary, tasks: upcoming)
+            }
+            if !unscheduled.isEmpty {
+                taskSection("Open", color: .secondary, tasks: unscheduled)
             }
         }
-        .padding(.vertical, 2)
         .background(Color.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private func taskSection(_ title: String, color: Color, tasks: [AgentTaskCard]) -> some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text(title)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(color.opacity(0.8))
+                    .textCase(.uppercase)
+                    .tracking(0.5)
+
+                Text("\(tasks.count)")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(color.opacity(0.6))
+
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .padding(.bottom, 4)
+
+            ForEach(tasks) { task in
+                Button {
+                    selectedTaskID = task.id
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: 13))
+                            .foregroundStyle(task.isCompleted ? .green : Color.primary.opacity(0.2))
+
+                        Text(task.title)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(task.isCompleted ? .secondary : .primary)
+                            .lineLimit(1)
+
+                        Spacer()
+
+                        if let project = task.project {
+                            Text(project)
+                                .font(.system(size: 10))
+                                .foregroundStyle(.tertiary)
+                                .lineLimit(1)
+                        }
+
+                        if let date = task.whenDate ?? task.deadline {
+                            Text(shortDate(date))
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundStyle(isOverdue(date) ? .red : .secondary)
+                        }
+
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 8, weight: .semibold))
+                            .foregroundStyle(.quaternary)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 5)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
     }
 
     // MARK: - Subtask List
@@ -744,23 +753,28 @@ struct AgentSheet: View {
                 weatherSummary: weatherService.promptSummary
             )
 
-            // Build task cards for today + overdue
+            // Build task cards: overdue first, then today, then upcoming, then open
             var allRelevant: [TaskItem] = []
             allRelevant.append(contentsOf: overdueTasks)
             allRelevant.append(contentsOf: todayTasks.filter { t in
                 !overdueTasks.contains(where: { $0.id == t.id })
             })
-            let inboxTasks = active.filter(\.isInInbox)
-            allRelevant.append(contentsOf: inboxTasks.filter { t in
+            // Add upcoming tasks
+            let upcomingTasks = active.filter {
+                guard let d = $0.effectiveDate else { return false }
+                return d > cal.startOfDay(for: cal.date(byAdding: .day, value: 1, to: .now)!)
+            }
+            allRelevant.append(contentsOf: upcomingTasks.filter { t in
+                !allRelevant.contains(where: { $0.id == t.id })
+            })
+            // Add open/unscheduled tasks
+            let openTasks = active.filter { ($0.whenDate ?? $0.deadline) == nil }
+            allRelevant.append(contentsOf: openTasks.filter { t in
                 !allRelevant.contains(where: { $0.id == t.id })
             })
 
-            let taskCards = allRelevant.prefix(15).map { task in
+            let taskCards = allRelevant.prefix(20).map { task in
                 AgentTaskCard(id: task.id, title: task.title, project: task.project?.title, area: task.area?.title, whenDate: task.whenDate, deadline: task.deadline, isCompleted: task.isCompleted)
-            }
-
-            let overdueCards = overdueTasks.prefix(10).map { task in
-                AgentTaskCard(id: task.id, title: task.title, project: task.project?.title, area: task.area?.title, whenDate: task.whenDate, deadline: task.deadline, isCompleted: false)
             }
 
             withAnimation(.easeOut(duration: 0.25)) {
@@ -775,7 +789,6 @@ struct AgentSheet: View {
                         greeting: result.greeting,
                         conflicts: result.conflicts,
                         suggestedPlan: result.suggestedPlan,
-                        overdueTasks: Array(overdueCards),
                         weatherSummary: weatherService.summary
                     )
                 ))

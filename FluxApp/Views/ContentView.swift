@@ -40,14 +40,16 @@ struct ContentView: View {
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "magnifyingglass")
-                            .foregroundStyle(.secondary)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(.tertiary)
                         Text("Find")
-                            .foregroundStyle(.secondary)
+                            .font(.subheadline)
+                            .foregroundStyle(.tertiary)
                         Spacer()
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 10)
-                    .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 11)
+                    .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
                 .buttonStyle(.plain)
                 .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
@@ -102,41 +104,38 @@ struct ContentView: View {
                     Button {
                         showAgent = true
                     } label: {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 15, weight: .semibold))
+                        Label("Agent", systemImage: "sparkles")
                     }
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
-                    HStack(spacing: 16) {
-                        Button {
-                            showSettings = true
-                        } label: {
-                            Image(systemName: "gear")
-                                .font(.system(size: 15, weight: .semibold))
-                        }
+                    Button {
+                        showSettings = true
+                    } label: {
+                        Label("Settings", systemImage: "gear")
+                    }
+                }
 
-                        Menu {
-                            Button {
-                                quickEntrySelection = .inbox
-                                showingQuickEntry = true
-                            } label: {
-                                Label("New Task", systemImage: "checkmark.circle")
-                            }
-                            Button {
-                                showingNewProject = true
-                            } label: {
-                                Label("New Project", systemImage: "paperplane")
-                            }
-                            Button {
-                                showingNewArea = true
-                            } label: {
-                                Label("New Area", systemImage: "square.grid.2x2")
-                            }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button {
+                            quickEntrySelection = .inbox
+                            showingQuickEntry = true
                         } label: {
-                            Image(systemName: "plus")
-                                .font(.system(size: 15, weight: .semibold))
+                            Label("New Task", systemImage: "checkmark.circle")
                         }
+                        Button {
+                            showingNewProject = true
+                        } label: {
+                            Label("New Project", systemImage: "paperplane")
+                        }
+                        Button {
+                            showingNewArea = true
+                        } label: {
+                            Label("New Area", systemImage: "square.grid.2x2")
+                        }
+                    } label: {
+                        Label("Add", systemImage: "plus")
                     }
                 }
             }

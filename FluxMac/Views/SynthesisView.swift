@@ -293,9 +293,10 @@ struct SynthesisView: View {
                     }
                 }
                 .padding(.bottom, 8)
-                .transition(.opacity.combined(with: .move(edge: .top)))
+                .transition(.opacity)
             }
         }
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         .background(Color.red.opacity(0.03), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 

@@ -25,6 +25,7 @@ final class FluxWeatherService: ObservableObject {
     @Published private(set) var todayLow: String?
     @Published private(set) var precipitationChance: Int?
     @Published private(set) var summary: String?
+    @Published private(set) var cityName: String?
 
     // MARK: Private Properties
 
@@ -33,7 +34,7 @@ final class FluxWeatherService: ObservableObject {
     // MARK: Public Methods
 
     /// Fetches weather for the given location. Caches for 30 minutes.
-    func fetch(for location: CLLocation) async {
+    func fetch(for location: CLLocation, cityName: String? = nil) async {
         // Don't refetch within 30 minutes
         if let last = lastFetchDate, Date().timeIntervalSince(last) < 1800 {
             return
@@ -56,6 +57,7 @@ final class FluxWeatherService: ObservableObject {
             }
 
             // Build summary string
+            self.cityName = cityName
             buildSummary()
             lastFetchDate = Date()
 
@@ -86,12 +88,15 @@ final class FluxWeatherService: ObservableObject {
             return
         }
 
-        var parts = ["\(temp), \(condition.lowercased())"]
+        var parts = ["\(temp), \(condition.capitalized)"]
         if let high = todayHigh, let low = todayLow {
             parts.append("H: \(high) L: \(low)")
         }
         if let precip = precipitationChance, precip > 20 {
             parts.append("\(precip)% rain")
+        }
+        if let city = cityName {
+            parts.append(city)
         }
         summary = parts.joined(separator: " · ")
     }

@@ -25,6 +25,7 @@ struct AgentOverlay: View {
     @State private var input = ""
     @State private var responses: [AgentResult] = []
     @State private var showPanel = false
+    @State private var expandedThinking: Set<UUID> = []
     @FocusState private var isFocused: Bool
 
     // MARK: - Result Model
@@ -38,6 +39,7 @@ struct AgentOverlay: View {
         let subtasks: [String]?
         let isPlanDay: Bool
         let proposal: ScheduleProposal?
+        let thinking: String?
     }
 
     var body: some View {
@@ -99,30 +101,29 @@ struct AgentOverlay: View {
                 .focused($isFocused)
                 .onSubmit { submit() }
 
-            if agent.isProcessing {
-                ProgressView()
-                    .controlSize(.small)
-                    .transition(.opacity)
-            }
-
-            if !input.isEmpty && !agent.isProcessing {
-                Button { submit() } label: {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.system(size: 20))
-                        .foregroundStyle(.primary.opacity(0.5))
+            ZStack {
+                if agent.isProcessing {
+                    ProgressView()
+                        .controlSize(.small)
+                        .transition(.opacity)
+                } else if !input.isEmpty {
+                    Button { submit() } label: {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .font(.system(size: 20))
+                            .foregroundStyle(.primary.opacity(0.5))
+                    }
+                    .buttonStyle(.plain)
+                    .transition(.scale.combined(with: .opacity))
+                } else {
+                    Text("⌘A")
+                        .font(.system(size: 10, weight: .medium, design: .rounded))
+                        .foregroundStyle(.quaternary)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 4, style: .continuous))
                 }
-                .buttonStyle(.plain)
-                .transition(.scale.combined(with: .opacity))
             }
-
-            if input.isEmpty && !agent.isProcessing {
-                Text("⌘A")
-                    .font(.system(size: 10, weight: .medium, design: .rounded))
-                    .foregroundStyle(.quaternary)
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 2)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 4, style: .continuous))
-            }
+            .frame(width: 28, height: 22)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
@@ -142,8 +143,10 @@ struct AgentOverlay: View {
                                 .padding(.horizontal, 20)
                                 .padding(.vertical, 6)
                         }
-                        resultView(result)
-                            .id(result.id)
+                        RevealView {
+                            resultView(result)
+                        }
+                        .id(result.id)
                     }
 
                     if agent.isProcessing {
@@ -191,12 +194,20 @@ struct AgentOverlay: View {
             .padding(.top, 10)
             .padding(.bottom, 6)
 
+            // Thinking disclosure
+            if let thinking = result.thinking, !thinking.isEmpty {
+                thinkingDisclosure(thinking, resultID: result.id)
+                    .padding(.horizontal, 14)
+                    .padding(.bottom, 4)
+            }
+
             if result.isPlanDay {
                 DailyPlanCard(
                     message: result.text,
                     taskCards: result.taskCards,
                     eventCards: result.eventCards,
-                    weatherSummary: weatherService.summary
+                    weatherSummary: weatherService.summary,
+                    onSelectTask: { taskID in onSelectTask?(taskID) }
                 )
                 .padding(.horizontal, 12)
                 .padding(.bottom, 4)
@@ -389,10 +400,60 @@ struct AgentOverlay: View {
     // MARK: - Thinking
 
     private var thinkingView: some View {
-        ThinkingShimmer()
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 18)
-            .padding(.vertical, 12)
+        VStack(alignment: .leading, spacing: 6) {
+            ThinkingShimmer()
+
+            if !agent.liveThinking.isEmpty {
+                Text(agent.liveThinking)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.tertiary)
+                    .lineSpacing(2)
+                    .lineLimit(6)
+                    .transition(.opacity)
+                    .animation(.easeOut(duration: 0.15), value: agent.liveThinking)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 12)
+    }
+
+    private func thinkingDisclosure(_ thinking: String, resultID: UUID) -> some View {
+        let isExpanded = expandedThinking.contains(resultID)
+        return VStack(alignment: .leading, spacing: 0) {
+            Button {
+                withAnimation(.easeOut(duration: 0.2)) {
+                    if isExpanded {
+                        expandedThinking.remove(resultID)
+                    } else {
+                        expandedThinking.insert(resultID)
+                    }
+                }
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 7, weight: .bold))
+                        .foregroundStyle(.quaternary)
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+
+                    Text("Thought for a moment")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(.quaternary)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if isExpanded {
+                Text(thinking)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.tertiary)
+                    .lineSpacing(2)
+                    .padding(.top, 6)
+                    .padding(.leading, 12)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
     }
 
     // MARK: - Helpers
@@ -497,7 +558,8 @@ struct AgentOverlay: View {
                     eventCards: response.eventCards,
                     subtasks: response.subtasks,
                     isPlanDay: response.isPlanDay,
-                    proposal: response.proposal
+                    proposal: response.proposal,
+                    thinking: response.thinking
                 ))
             }
         }
@@ -528,7 +590,8 @@ struct AgentOverlay: View {
                         eventCards: [card],
                         subtasks: nil,
                         isPlanDay: false,
-                        proposal: nil
+                        proposal: nil,
+                        thinking: nil
                     ))
                 }
             } catch {
@@ -537,7 +600,8 @@ struct AgentOverlay: View {
                         query: "Schedule: \(proposal.eventTitle)",
                         text: "Failed to create event: \(error.localizedDescription)",
                         taskCards: nil, eventCards: nil, subtasks: nil,
-                        isPlanDay: false, proposal: nil
+                        isPlanDay: false, proposal: nil,
+                        thinking: nil
                     ))
                 }
             }
@@ -551,5 +615,38 @@ struct AgentOverlay: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             onDismiss()
         }
+    }
+}
+
+// MARK: - Reveal Animation
+
+/// Wraps content in a top-to-bottom gradient mask reveal.
+private struct RevealView<Content: View>: View {
+    @ViewBuilder let content: Content
+    @State private var reveal: CGFloat = 0
+
+    var body: some View {
+        content
+            .opacity(reveal)
+            .mask(
+                GeometryReader { geo in
+                    LinearGradient(
+                        stops: [
+                            .init(color: .black, location: 0),
+                            .init(color: .black, location: min(reveal * 1.2, 1.0)),
+                            .init(color: .clear, location: min(reveal * 1.2 + 0.15, 1.0)),
+                            .init(color: .clear, location: 1),
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: geo.size.height)
+                }
+            )
+            .onAppear {
+                withAnimation(.easeOut(duration: 0.4)) {
+                    reveal = 1
+                }
+            }
     }
 }

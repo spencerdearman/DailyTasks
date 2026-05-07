@@ -184,27 +184,54 @@ struct ContentView: View {
     
     private var sidebar: some View {
         List(selection: $selection) {
-            // Quick Find button
-            Button {
-                showQuickFind = true
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(.secondary)
-                    Text("Find")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text("⌘F")
-                        .font(.caption)
-                        .foregroundStyle(.quaternary)
+            // Find + Agent buttons
+            HStack(spacing: 0) {
+                Button {
+                    showQuickFind = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 12, weight: .medium))
+                        Text("Find")
+                            .font(.system(size: 13, weight: .medium))
+                        Spacer()
+                        Text("⌘F")
+                            .font(.system(size: 9, weight: .medium, design: .rounded))
+                            .foregroundStyle(.quaternary)
+                    }
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 9)
+                    .contentShape(Rectangle())
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .glassEffect(.regular, in: .rect(cornerRadius: 16))
+                .buttonStyle(.plain)
+
+                Divider()
+                    .frame(height: 18)
+                    .opacity(0.3)
+
+                Button {
+                    withAnimation(.easeOut(duration: 0.25)) { showAgent.toggle() }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 12, weight: .medium))
+                        Text("Agent")
+                            .font(.system(size: 13, weight: .medium))
+                        Spacer()
+                        Text("⌘A")
+                            .font(.system(size: 9, weight: .medium, design: .rounded))
+                            .foregroundStyle(.quaternary)
+                    }
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 9)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
+            .background(Color.primary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .glassEffect(.regular, in: .rect(cornerRadius: 14))
             .listRowInsets(EdgeInsets(top: 4, leading: 10, bottom: 4, trailing: 10))
             .listRowSeparator(.hidden)
             
@@ -574,14 +601,14 @@ struct ContentView: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
                 if let coord = locationService.currentLocation {
                     Task {
-                        await weatherService.fetch(for: CLLocation(latitude: coord.latitude, longitude: coord.longitude))
+                        await weatherService.fetch(for: CLLocation(latitude: coord.latitude, longitude: coord.longitude), cityName: locationService.currentCity)
                     }
                 }
             }
             return
         }
         Task {
-            await weatherService.fetch(for: CLLocation(latitude: coord.latitude, longitude: coord.longitude))
+            await weatherService.fetch(for: CLLocation(latitude: coord.latitude, longitude: coord.longitude), cityName: locationService.currentCity)
         }
     }
 

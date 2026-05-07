@@ -17,6 +17,7 @@ struct AgentResponse {
     let taskCards: [AgentTaskCard]?
     let eventCards: [AgentEventCard]?
     let isPlanDay: Bool
+    let thinking: String?
 
     init(
         message: String,
@@ -24,7 +25,8 @@ struct AgentResponse {
         subtasks: [String]? = nil,
         taskCards: [AgentTaskCard]? = nil,
         eventCards: [AgentEventCard]? = nil,
-        isPlanDay: Bool = false
+        isPlanDay: Bool = false,
+        thinking: String? = nil
     ) {
         self.message = message
         self.affectedTaskIDs = affectedTaskIDs
@@ -32,6 +34,7 @@ struct AgentResponse {
         self.taskCards = taskCards
         self.eventCards = eventCards
         self.isPlanDay = isPlanDay
+        self.thinking = thinking
     }
 }
 
@@ -81,6 +84,12 @@ final class TaskAgent {
         return f
     }()
 
+    /// Actions that mutate tasks (vs read-only actions like list/query/chat).
+    private static let mutatingActions: Set<String> = [
+        "create_task", "complete_task", "move_task", "schedule_task",
+        "defer_task", "create_event", "decompose_task"
+    ]
+
     func process(_ input: String, apiKey: String, context: AgentContext) async -> AgentResponse {
         isProcessing = true
         defer { isProcessing = false }
@@ -94,18 +103,86 @@ final class TaskAgent {
         let systemPrompt = buildSystemPrompt(ctx: context)
 
         do {
-            let geminiResponse = try await gemini.send(input, apiKey: apiKey, systemPrompt: systemPrompt)
+            let geminiResult = try await gemini.send(input, apiKey: apiKey, systemPrompt: systemPrompt)
+            let geminiResponse = geminiResult.response
+            let thinkingText = geminiResult.thinking
             print("[TaskAgent] Gemini action: \(geminiResponse.action), filter: \(geminiResponse.filter ?? "nil"), message: \(geminiResponse.message ?? "nil")")
-            let response = await execute(geminiResponse, ctx: context)
+            var response = await execute(geminiResponse, ctx: context)
+            // Attach thinking text
+            response = AgentResponse(
+                message: response.message,
+                affectedTaskIDs: response.affectedTaskIDs,
+                subtasks: response.subtasks,
+                taskCards: response.taskCards,
+                eventCards: response.eventCards,
+                isPlanDay: response.isPlanDay,
+                thinking: thinkingText
+            )
             print("[TaskAgent] Response taskCards: \(response.taskCards?.count ?? 0), eventCards: \(response.eventCards?.count ?? 0), isPlanDay: \(response.isPlanDay)")
+
+            // Follow-up loop: if the input looks like multiple commands and Gemini
+            // only returned one mutating action, ask it to continue.
+            if Self.mutatingActions.contains(geminiResponse.action),
+               (geminiResponse.additionalActions ?? []).isEmpty,
+               looksLikeMultipleCommands(input) {
+                print("[TaskAgent] Multi-command detected, sending follow-up...")
+                var allIDs = response.affectedTaskIDs
+                var allTaskCards = response.taskCards ?? []
+                var allEventCards = response.eventCards ?? []
+                let combinedMessage = response.message
+
+                for i in 1...4 {
+                    let followUpResult = try await gemini.send(
+                        "Continue with the next action from my original request that hasn't been done yet. If everything is complete, use action 'chat'.",
+                        apiKey: apiKey,
+                        systemPrompt: systemPrompt
+                    )
+                    let followUp = followUpResult.response
+                    print("[TaskAgent] Follow-up \(i): action=\(followUp.action)")
+
+                    guard Self.mutatingActions.contains(followUp.action) else {
+                        break
+                    }
+
+                    let extra = await executeSingle(followUp, ctx: context)
+                    allIDs.append(contentsOf: extra.affectedTaskIDs)
+                    if let cards = extra.taskCards { allTaskCards.append(contentsOf: cards) }
+                    if let events = extra.eventCards { allEventCards.append(contentsOf: events) }
+                }
+
+                response = AgentResponse(
+                    message: combinedMessage,
+                    affectedTaskIDs: allIDs,
+                    taskCards: allTaskCards.isEmpty ? nil : allTaskCards,
+                    eventCards: allEventCards.isEmpty ? nil : allEventCards,
+                    isPlanDay: response.isPlanDay
+                )
+            }
+
             lastResponse = response
             return response
         } catch {
             print("[TaskAgent] Gemini error: \(error)")
-            let fallbackResponse = keywordFallback(input: input, ctx: context)
-            lastResponse = fallbackResponse
-            return fallbackResponse
+            let errorMessage: String
+            if (error as NSError).code == -1001 {
+                errorMessage = "The request timed out. Please try again — shorter, more specific commands work best."
+            } else {
+                errorMessage = "Something went wrong connecting to the AI service. Please try again."
+            }
+            let response = AgentResponse(message: errorMessage)
+            lastResponse = response
+            return response
         }
+    }
+
+    /// Heuristic: does the input contain multiple comma/and-separated commands?
+    private func looksLikeMultipleCommands(_ input: String) -> Bool {
+        let lower = input.lowercased()
+        let actionPatterns = ["move ", "schedule ", "complete ", "add ", "create ", "delete ", "defer ", "get rid", "mark ", "reschedule "]
+        let actionCount = actionPatterns.reduce(0) { count, pattern in
+            count + lower.components(separatedBy: pattern).count - 1
+        }
+        return actionCount >= 2
     }
 
     func clearConversation() async {
@@ -115,6 +192,34 @@ final class TaskAgent {
     // MARK: - Execute Gemini Response
 
     private func execute(_ response: GeminiActionResponse, ctx: AgentContext) async -> AgentResponse {
+        let primary = await executeSingle(response, ctx: ctx)
+
+        // Execute any additional actions
+        guard let additional = response.additionalActions, !additional.isEmpty else {
+            return primary
+        }
+
+        var allIDs = primary.affectedTaskIDs
+        var allTaskCards = primary.taskCards ?? []
+        var allEventCards = primary.eventCards ?? []
+
+        for extra in additional {
+            let result = await executeSingle(extra, ctx: ctx)
+            allIDs.append(contentsOf: result.affectedTaskIDs)
+            if let cards = result.taskCards { allTaskCards.append(contentsOf: cards) }
+            if let events = result.eventCards { allEventCards.append(contentsOf: events) }
+        }
+
+        return AgentResponse(
+            message: primary.message,
+            affectedTaskIDs: allIDs,
+            taskCards: allTaskCards.isEmpty ? nil : allTaskCards,
+            eventCards: allEventCards.isEmpty ? nil : allEventCards,
+            isPlanDay: primary.isPlanDay
+        )
+    }
+
+    private func executeSingle(_ response: GeminiActionResponse, ctx: AgentContext) async -> AgentResponse {
         let message = response.message ?? "Done"
 
         switch response.action {
@@ -229,7 +334,16 @@ final class TaskAgent {
         guard let match = bestMatch(for: searchText, in: active) else {
             return AgentResponse(message: "Couldn't find a task matching \"\(searchText)\"")
         }
-        guard let whenDate = parseDate(date) else {
+        // Try the explicit date field first, then fall back to extracting from the message
+        let whenDate: Date?
+        if let parsed = parseDate(date) {
+            whenDate = parsed
+        } else if let extracted = extractDateFromMessage(message) {
+            whenDate = extracted
+        } else {
+            whenDate = nil
+        }
+        guard let whenDate else {
             return AgentResponse(message: "Couldn't understand the date \"\(date)\"")
         }
         match.whenDate = whenDate
@@ -450,8 +564,53 @@ final class TaskAgent {
                 let offset = daysAhead == 0 ? 7 : daysAhead
                 return calendar.date(byAdding: .day, value: offset, to: today)
             }
+            // Try "May 11", "May 11th", "March 3rd" etc.
+            let monthDayFmt = DateFormatter()
+            monthDayFmt.locale = Locale(identifier: "en_US")
+            let cleaned = lowered
+                .replacingOccurrences(of: "\\b(\\d+)(st|nd|rd|th)\\b", with: "$1", options: .regularExpression)
+            for fmt in ["MMMM d", "MMM d", "MMMM d, yyyy", "MMM d, yyyy"] {
+                monthDayFmt.dateFormat = fmt
+                if let date = monthDayFmt.date(from: cleaned) {
+                    let year = calendar.component(.year, from: today)
+                    var components = calendar.dateComponents([.month, .day], from: date)
+                    components.year = year
+                    if let result = calendar.date(from: components), result >= today {
+                        return result
+                    }
+                    components.year = year + 1
+                    return calendar.date(from: components)
+                }
+            }
             return dateFormatter.date(from: lowered)
         }
+    }
+
+    /// Tries to extract a date from natural language in the message (e.g. "scheduled for *Monday, May 11th*").
+    private func extractDateFromMessage(_ message: String) -> Date? {
+        let stripped = message.replacingOccurrences(of: "*", with: "")
+
+        // Try weekday names first
+        let weekdays = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
+        for day in weekdays {
+            if stripped.localizedCaseInsensitiveContains(day) {
+                return parseDate(day)
+            }
+        }
+
+        // Try "May 11", "May 11th" etc.
+        let monthPattern = #"(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2}(?:st|nd|rd|th)?"#
+        if let regex = try? NSRegularExpression(pattern: monthPattern, options: .caseInsensitive),
+           let match = regex.firstMatch(in: stripped, range: NSRange(stripped.startIndex..., in: stripped)),
+           let range = Range(match.range, in: stripped) {
+            return parseDate(String(stripped[range]))
+        }
+
+        // Try "tomorrow", "next week"
+        if stripped.localizedCaseInsensitiveContains("tomorrow") { return parseDate("tomorrow") }
+        if stripped.localizedCaseInsensitiveContains("next week") { return parseDate("next week") }
+
+        return nil
     }
 
     // MARK: - System Prompt

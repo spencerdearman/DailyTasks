@@ -31,6 +31,7 @@ struct DailyPlanCard: View {
     let taskCards: [TaskCard]?
     let eventCards: [EventCard]?
     var weatherSummary: String? = nil
+    var onSelectTask: ((UUID) -> Void)? = nil
 
     private var parsed: ParsedPlan {
         parsePlan(from: message)
@@ -242,33 +243,43 @@ struct DailyPlanCard: View {
             .padding(.bottom, 4)
 
             ForEach(tasks) { task in
-                HStack(spacing: 8) {
-                    Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 13))
-                        .foregroundColor(task.isCompleted ? .green : Color.primary.opacity(0.2))
+                Button {
+                    onSelectTask?(task.id)
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: 13))
+                            .foregroundColor(task.isCompleted ? .green : Color.primary.opacity(0.2))
 
-                    Text(task.title)
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(task.isCompleted ? .secondary : .primary)
-                        .lineLimit(1)
-
-                    Spacer()
-
-                    if let project = task.project {
-                        Text(project)
-                            .font(.system(size: 10))
-                            .foregroundStyle(.tertiary)
+                        Text(task.title)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(task.isCompleted ? .secondary : .primary)
                             .lineLimit(1)
-                    }
 
-                    if let date = task.whenDate ?? task.deadline {
-                        Text(shortDate(date))
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(isOverdue(date) ? .red : .secondary)
+                        Spacer()
+
+                        if let project = task.project {
+                            Text(project)
+                                .font(.system(size: 10))
+                                .foregroundStyle(.tertiary)
+                                .lineLimit(1)
+                        }
+
+                        if let date = task.whenDate ?? task.deadline {
+                            Text(shortDate(date))
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundColor(isOverdue(date) ? .red : .secondary)
+                        }
+
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 8, weight: .semibold))
+                            .foregroundStyle(.quaternary)
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 5)
+                    .contentShape(Rectangle())
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 5)
+                .buttonStyle(.plain)
             }
         }
     }

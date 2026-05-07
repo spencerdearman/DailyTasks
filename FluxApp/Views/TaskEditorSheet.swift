@@ -53,7 +53,6 @@ struct TaskEditorSheet: View {
                 .padding(.top, 8)
             }
             .background(Color(.systemGroupedBackground))
-            .navigationTitle(task.title.isEmpty ? "Task" : task.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -191,18 +190,22 @@ struct TaskEditorSheet: View {
             HStack(spacing: 12) {
                 scheduleQuickButton(icon: "star.fill", iconColor: .yellow, label: "Today",
                     isSelected: task.whenDate != nil && Calendar.current.isDateInToday(task.whenDate!) && !task.isEvening) {
-                    task.whenDate = Calendar.current.startOfDay(for: .now)
-                    task.isEvening = false
-                    task.status = .active
-                    task.updatedAt = .now
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                        task.whenDate = Calendar.current.startOfDay(for: .now)
+                        task.isEvening = false
+                        task.status = .active
+                        task.updatedAt = .now
+                    }
                 }
 
                 scheduleQuickButton(icon: "moon.fill", iconColor: .indigo, label: "Evening",
                     isSelected: task.isEvening) {
-                    task.whenDate = Calendar.current.startOfDay(for: .now)
-                    task.isEvening = true
-                    task.status = .active
-                    task.updatedAt = .now
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                        task.whenDate = Calendar.current.startOfDay(for: .now)
+                        task.isEvening = true
+                        task.status = .active
+                        task.updatedAt = .now
+                    }
                 }
 
                 scheduleQuickButton(icon: "clock", iconColor: .teal, label: "Later",
@@ -210,20 +213,27 @@ struct TaskEditorSheet: View {
                         guard let w = task.whenDate else { return false }
                         return !Calendar.current.isDateInToday(w) && !task.isEvening
                     }()) {
-                    task.whenDate = Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: .now))
-                    task.isEvening = false
-                    task.status = .active
-                    task.updatedAt = .now
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                        task.whenDate = Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: .now))
+                        task.isEvening = false
+                        task.status = .active
+                        task.updatedAt = .now
+                    }
                 }
 
                 if task.whenDate != nil || task.isEvening {
                     scheduleQuickButton(icon: "xmark", iconColor: .secondary, label: "Clear", isSelected: false) {
-                        task.whenDate = nil
-                        task.isEvening = false
-                        task.updatedAt = .now
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                            task.whenDate = nil
+                            task.isEvening = false
+                            task.updatedAt = .now
+                        }
                     }
+                    .transition(.scale.combined(with: .opacity))
                 }
             }
+            .animation(.spring(response: 0.35, dampingFraction: 0.7), value: task.whenDate)
+            .animation(.spring(response: 0.35, dampingFraction: 0.7), value: task.isEvening)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
         }
@@ -455,6 +465,7 @@ struct TaskEditorSheet: View {
                 Image(systemName: icon)
                     .font(.system(size: 16, weight: .medium))
                     .foregroundStyle(isSelected ? .white : iconColor)
+                    .symbolEffect(.bounce, value: isSelected)
                 Text(label)
                     .font(.caption2.weight(.medium))
                     .foregroundStyle(isSelected ? .white : .secondary)
@@ -465,6 +476,7 @@ struct TaskEditorSheet: View {
                 isSelected ? AnyShapeStyle(iconColor) : AnyShapeStyle(Color.clear),
                 in: RoundedRectangle(cornerRadius: 10, style: .continuous)
             )
+            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
         .buttonStyle(.plain)
     }

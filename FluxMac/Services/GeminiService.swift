@@ -27,6 +27,7 @@ struct GeminiActionResponse: Codable, Sendable {
     let addToCalendar: Bool?
     let locationName: String?
     let suggestions: [TimeSuggestion]?
+    let additionalActions: [GeminiActionResponse]?
 
     enum CodingKeys: String, CodingKey {
         case action
@@ -46,6 +47,7 @@ struct GeminiActionResponse: Codable, Sendable {
         case addToCalendar = "add_to_calendar"
         case locationName = "location_name"
         case suggestions
+        case additionalActions = "additional_actions"
     }
 }
 
@@ -55,6 +57,13 @@ struct TimeSuggestion: Codable, Sendable, Identifiable {
     let start: String
     let end: String
     let reason: String
+}
+
+// MARK: - Gemini Result (includes thinking)
+
+struct GeminiResult {
+    let response: GeminiActionResponse
+    let thinking: String?
 }
 
 // MARK: - Conversation Message
@@ -115,16 +124,49 @@ actor GeminiService {
                     "required": ["label", "start", "end", "reason"],
                 ],
                 "description": "For propose_reschedule: 2-4 alternative time slots when the requested time has a conflict"
+            ],
+            "additional_actions": [
+                "type": "ARRAY",
+                "items": [
+                    "type": "OBJECT",
+                    "properties": [
+                        "action": [
+                            "type": "STRING",
+                            "enum": [
+                                "create_task", "complete_task", "move_task", "schedule_task",
+                                "defer_task", "list_tasks", "decompose_task", "plan_day",
+                                "reschedule_overdue", "create_event", "propose_reschedule",
+                                "query", "chat"
+                            ]
+                        ],
+                        "title": ["type": "STRING"],
+                        "notes": ["type": "STRING"],
+                        "search_text": ["type": "STRING"],
+                        "target_project": ["type": "STRING"],
+                        "target_area": ["type": "STRING"],
+                        "date": ["type": "STRING"],
+                        "filter": ["type": "STRING"],
+                        "message": ["type": "STRING"],
+                        "event_title": ["type": "STRING"],
+                        "event_start": ["type": "STRING"],
+                        "event_end": ["type": "STRING"],
+                        "event_location": ["type": "STRING"],
+                        "location_name": ["type": "STRING"],
+                    ],
+                    "required": ["action", "message"],
+                ],
+                "description": "Additional actions when the user gives multiple commands in one message"
             ]
         ],
         "required": ["action", "message"]
     ]
 
-    func send(_ input: String, apiKey: String, systemPrompt: String) async throws -> GeminiActionResponse {
+    func send(_ input: String, apiKey: String, systemPrompt: String, onThinking: (@Sendable (String) -> Void)? = nil) async throws -> GeminiResult {
         print("[GeminiService] send() called with input: \"\(input)\"")
         conversationHistory.append(GeminiMessage(role: "user", text: input))
 
-        let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent?key=\(apiKey)")!
+        // Use streaming endpoint to get live thinking updates
+        let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/\(model):streamGenerateContent?alt=sse&key=\(apiKey)")!
 
         // Build contents array from conversation history
         var contents: [[String: Any]] = []
@@ -148,16 +190,15 @@ actor GeminiService {
         ]
 
         let jsonData = try JSONSerialization.data(withJSONObject: requestBody)
-        print("[GeminiService] Request body size: \(jsonData.count) bytes, sending POST...")
+        print("[GeminiService] Request body size: \(jsonData.count) bytes, sending streaming POST...")
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = jsonData
-        request.timeoutInterval = 60
+        request.timeoutInterval = 120
 
-        let (data, response) = try await URLSession.shared.data(for: request)
-        print("[GeminiService] Response received, data size: \(data.count) bytes")
+        let (bytes, response) = try await URLSession.shared.bytes(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             print("[GeminiService] ERROR: Not an HTTP response")
@@ -167,29 +208,69 @@ actor GeminiService {
         print("[GeminiService] HTTP status: \(httpResponse.statusCode)")
 
         guard httpResponse.statusCode == 200 else {
-            let body = String(data: data, encoding: .utf8) ?? "unknown"
+            // Read the full error body
+            var errorData = Data()
+            for try await byte in bytes { errorData.append(byte) }
+            let body = String(data: errorData, encoding: .utf8) ?? "unknown"
             print("[GeminiService] ERROR response body: \(body.prefix(500))")
             throw GeminiError.apiError(statusCode: httpResponse.statusCode, message: body)
         }
 
-        // Parse Gemini response structure
-        let geminiResponse = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        // Parse SSE stream
+        var thinkingParts: [String] = []
+        var responseParts: [String] = []
+        var lineCount = 0
 
-        guard let candidates = geminiResponse?["candidates"] as? [[String: Any]],
-              let firstCandidate = candidates.first,
-              let content = firstCandidate["content"] as? [String: Any],
-              let parts = content["parts"] as? [[String: Any]],
-              let text = parts.first?["text"] as? String else {
-            print("[GeminiService] ERROR: Could not parse candidates/content/parts")
-            let rawBody = String(data: data, encoding: .utf8) ?? "unparseable"
-            print("[GeminiService] Raw response: \(rawBody.prefix(1000))")
+        for try await line in bytes.lines {
+            lineCount += 1
+            // SSE lines start with "data: "
+            guard line.hasPrefix("data: ") else { continue }
+            let jsonString = String(line.dropFirst(6))
+            guard let chunkData = jsonString.data(using: .utf8),
+                  let chunk = try? JSONSerialization.jsonObject(with: chunkData) as? [String: Any],
+                  let candidates = chunk["candidates"] as? [[String: Any]],
+                  let firstCandidate = candidates.first,
+                  let content = firstCandidate["content"] as? [String: Any],
+                  let parts = content["parts"] as? [[String: Any]] else {
+                // Log unparseable chunks to debug
+                if jsonString.count > 5 {
+                    print("[GeminiService] SSE chunk could not be parsed: \(jsonString.prefix(200))")
+                }
+                continue
+            }
+
+            for part in parts {
+                guard let text = part["text"] as? String else { continue }
+                let isThought = part["thought"] as? Bool == true
+                print("[GeminiService] SSE part — thought: \(isThought), text: \(text.prefix(80))...")
+                if isThought {
+                    thinkingParts.append(text)
+                    // Send live thinking update
+                    let accumulated = thinkingParts.joined()
+                    onThinking?(accumulated)
+                } else {
+                    responseParts.append(text)
+                }
+            }
+        }
+
+        print("[GeminiService] Stream complete — \(lineCount) lines, \(thinkingParts.count) thinking parts, \(responseParts.count) response parts")
+
+        let fullResponse = responseParts.joined()
+        let thinkingText = thinkingParts.isEmpty ? nil : thinkingParts.joined()
+
+        guard !fullResponse.isEmpty else {
+            print("[GeminiService] ERROR: No response text found in stream")
             throw GeminiError.noContent
         }
 
-        print("[GeminiService] Parsed text from Gemini: \(text.prefix(300))")
+        if let thinking = thinkingText {
+            print("[GeminiService] Thinking: \(thinking.prefix(200))...")
+        }
+        print("[GeminiService] Parsed text from Gemini: \(fullResponse.prefix(300))")
 
         // Parse the structured JSON from the text
-        guard let textData = text.data(using: .utf8) else {
+        guard let textData = fullResponse.data(using: .utf8) else {
             throw GeminiError.noContent
         }
 
@@ -197,14 +278,14 @@ actor GeminiService {
         print("[GeminiService] Decoded action: \(actionResponse.action), message: \(actionResponse.message ?? "nil")")
 
         // Add model response to history
-        conversationHistory.append(GeminiMessage(role: "model", text: text))
+        conversationHistory.append(GeminiMessage(role: "model", text: fullResponse))
 
         // Keep history manageable (last 10 messages to avoid timeout)
         if conversationHistory.count > 10 {
             conversationHistory = Array(conversationHistory.suffix(10))
         }
 
-        return actionResponse
+        return GeminiResult(response: actionResponse, thinking: thinkingText)
     }
 
     func clearHistory() {
@@ -255,7 +336,8 @@ enum GeminiPromptBuilder {
         If a location is mentioned, set location_name.
         - complete_task: Mark a task as done. Set search_text to match the task title.
         - move_task: Move a task to a different project or area. Set search_text + target_project/target_area.
-        - schedule_task: Set or change a task's date. Set search_text + date.
+        - schedule_task: Set or change a task's date. MUST set search_text AND date (YYYY-MM-DD or weekday name). \
+        The date field is REQUIRED — without it the task won't actually move.
         - defer_task: Move a task to "Later" (someday/maybe). Set search_text.
         - list_tasks: Show tasks. Set filter to: inbox, today, tomorrow, upcoming, open, later, done, \
         or a project/area name, or a search query.
@@ -293,6 +375,10 @@ enum GeminiPromptBuilder {
         - Keep messages brief — 1-2 sentences for actions, more detail for queries/planning.
         - If the user's intent is ambiguous, prefer the most helpful interpretation.
         - If the user asks about tasks and there are none matching, say so explicitly (e.g. "You have no tasks scheduled for tomorrow.").
+        - IMPORTANT: If the user gives MULTIPLE commands in one message (e.g. "move X to Y, move Z to tomorrow"), \
+        use the primary action fields for the FIRST command, then put each additional command as a separate object \
+        in the "additional_actions" array. Each additional action needs its own action, search_text, date, etc. \
+        The "message" field should describe ALL actions taken.
 
         """
 

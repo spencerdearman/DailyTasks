@@ -24,6 +24,7 @@ final class FluxWeatherService: NSObject, ObservableObject, CLLocationManagerDel
     @Published private(set) var todayLow: String?
     @Published private(set) var precipitationChance: Int?
     @Published private(set) var summary: String?
+    @Published private(set) var cityName: String?
     @Published private(set) var lastLocation: CLLocation?
 
     // MARK: Private Properties
@@ -68,6 +69,14 @@ final class FluxWeatherService: NSObject, ObservableObject, CLLocationManagerDel
                 todayHigh = formatTemp(today.highTemperature.value)
                 todayLow = formatTemp(today.lowTemperature.value)
                 precipitationChance = Int(today.precipitationChance * 100)
+            }
+
+            // Reverse geocode for city name
+            if cityName == nil {
+                let geocoder = CLGeocoder()
+                if let placemark = try? await geocoder.reverseGeocodeLocation(location).first {
+                    cityName = placemark.locality
+                }
             }
 
             buildSummary()
@@ -137,12 +146,15 @@ final class FluxWeatherService: NSObject, ObservableObject, CLLocationManagerDel
             return
         }
 
-        var parts = ["\(temp), \(condition.lowercased())"]
+        var parts = ["\(temp), \(condition.capitalized)"]
         if let high = todayHigh, let low = todayLow {
             parts.append("H: \(high) L: \(low)")
         }
         if let precip = precipitationChance, precip > 20 {
             parts.append("\(precip)% rain")
+        }
+        if let city = cityName {
+            parts.append(city)
         }
         summary = parts.joined(separator: " · ")
     }
