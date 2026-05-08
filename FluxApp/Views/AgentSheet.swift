@@ -18,6 +18,7 @@ struct AgentSheet: View {
     @Query(sort: \Area.sortOrder) private var areas: [Area]
     @Query(sort: \Project.sortOrder) private var projects: [Project]
     @Query(sort: \TaskItem.createdAt, order: .reverse) private var tasks: [TaskItem]
+    @Query(sort: \AgentConversation.updatedAt, order: .reverse) private var recentConversations: [AgentConversation]
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @AppStorage("geminiAPIKey") private var apiKey = ""
@@ -31,6 +32,8 @@ struct AgentSheet: View {
     @State private var responses: [AgentResult] = []
     @State private var isSynthesizing = false
     @State private var selectedTaskID: UUID?
+    @State private var currentConversation: AgentConversation?
+    @State private var selectedPipIndex: Int?
     @FocusState private var isFocused: Bool
 
     // MARK: Result Model
@@ -93,6 +96,7 @@ struct AgentSheet: View {
             }
         }
         .onAppear {
+            pruneOldConversations()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 isFocused = true
             }
@@ -659,32 +663,46 @@ struct AgentSheet: View {
     // MARK: - Input Bar
 
     private var inputBar: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "sparkles")
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(.tertiary)
-                .symbolEffect(.pulse, isActive: agent.isProcessing || isSynthesizing)
-
-            TextField("Ask Flux anything...", text: $input)
-                .font(.body)
-                .focused($isFocused)
-                .onSubmit { submit() }
-                .textFieldStyle(.plain)
-
-            if agent.isProcessing || isSynthesizing {
-                ProgressView()
-                    .controlSize(.small)
-            } else if !input.isEmpty {
-                Button { submit() } label: {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.system(size: 28))
-                        .foregroundStyle(.primary)
-                }
-                .buttonStyle(.plain)
+        VStack(spacing: 0) {
+            if !historyPips.isEmpty {
+                scrubberPips
+                    .opacity(hasActiveContent ? 0.3 : 1)
+                    .animation(.easeOut(duration: 0.2), value: hasActiveContent)
+                    .padding(.top, 6)
+                    .padding(.bottom, 2)
             }
+
+            HStack(spacing: 10) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(.tertiary)
+                    .symbolEffect(.pulse, isActive: agent.isProcessing || isSynthesizing)
+
+                TextField("Ask Flux anything...", text: $input)
+                    .font(.body)
+                    .focused($isFocused)
+                    .onSubmit { submit() }
+                    .textFieldStyle(.plain)
+
+                if agent.isProcessing || isSynthesizing {
+                    ProgressView()
+                        .controlSize(.small)
+                } else if !input.isEmpty {
+                    Button { submit() } label: {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .font(.system(size: 28))
+                            .foregroundStyle(.primary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+    }
+
+    private var hasActiveContent: Bool {
+        !responses.isEmpty || agent.isProcessing || isSynthesizing
     }
 
     // MARK: - Actions
@@ -695,6 +713,12 @@ struct AgentSheet: View {
 
         let query = trimmed
         input = ""
+
+        if selectedPipIndex != nil && currentConversation == nil {
+            selectedPipIndex = nil
+        }
+
+        saveUserMessage(query)
 
         // Detect if this is a "plan day" type query to trigger synthesis
         let isPlanQuery = detectPlanQuery(query)
@@ -724,17 +748,21 @@ struct AgentSheet: View {
             } else {
                 let response = await agent.process(query, apiKey: apiKey, context: ctx)
 
+                let result = AgentResult(
+                    query: query,
+                    text: response.message,
+                    taskCards: response.taskCards,
+                    eventCards: response.eventCards,
+                    subtasks: response.subtasks,
+                    isPlanDay: response.isPlanDay,
+                    pendingDeletion: response.pendingDeletion
+                )
+
                 withAnimation(.easeOut(duration: 0.25)) {
-                    responses.append(AgentResult(
-                        query: query,
-                        text: response.message,
-                        taskCards: response.taskCards,
-                        eventCards: response.eventCards,
-                        subtasks: response.subtasks,
-                        isPlanDay: response.isPlanDay,
-                        pendingDeletion: response.pendingDeletion
-                    ))
+                    responses.append(result)
                 }
+
+                saveAssistantMessage(result)
             }
         }
     }
@@ -804,36 +832,40 @@ struct AgentSheet: View {
                 AgentTaskCard(id: task.id, title: task.title, project: task.project?.title, area: task.area?.title, whenDate: task.whenDate, deadline: task.deadline, isCompleted: task.isCompleted)
             }
 
+            let synthResult = AgentResult(
+                query: query,
+                text: result.suggestedPlan,
+                taskCards: taskCards.isEmpty ? nil : Array(taskCards),
+                eventCards: nil,
+                subtasks: nil,
+                isPlanDay: true,
+                synthesis: SynthesisData(
+                    greeting: result.greeting,
+                    conflicts: result.conflicts,
+                    suggestedPlan: result.suggestedPlan,
+                    weatherSummary: weatherService.summary
+                )
+            )
             withAnimation(.easeOut(duration: 0.25)) {
-                responses.append(AgentResult(
-                    query: query,
-                    text: result.suggestedPlan,
-                    taskCards: taskCards.isEmpty ? nil : Array(taskCards),
-                    eventCards: nil,
-                    subtasks: nil,
-                    isPlanDay: true,
-                    synthesis: SynthesisData(
-                        greeting: result.greeting,
-                        conflicts: result.conflicts,
-                        suggestedPlan: result.suggestedPlan,
-                        weatherSummary: weatherService.summary
-                    )
-                ))
+                responses.append(synthResult)
             }
+            saveAssistantMessage(synthResult)
         } catch {
             print("[Synthesis] Error: \(error)")
             // Fallback to regular agent
             let response = await agent.process(query, apiKey: apiKey, context: ctx)
+            let fallbackResult = AgentResult(
+                query: query,
+                text: response.message,
+                taskCards: response.taskCards,
+                eventCards: response.eventCards,
+                subtasks: response.subtasks,
+                isPlanDay: response.isPlanDay
+            )
             withAnimation(.easeOut(duration: 0.25)) {
-                responses.append(AgentResult(
-                    query: query,
-                    text: response.message,
-                    taskCards: response.taskCards,
-                    eventCards: response.eventCards,
-                    subtasks: response.subtasks,
-                    isPlanDay: response.isPlanDay
-                ))
+                responses.append(fallbackResult)
             }
+            saveAssistantMessage(fallbackResult)
         }
     }
 
@@ -1101,6 +1133,162 @@ struct AgentSheet: View {
                 }
             }
         }
+    }
+
+    // MARK: - Temporal Scrubber
+
+    private var historyPips: [AgentConversation] {
+        Array(recentConversations.prefix(5).reversed())
+    }
+
+    private var scrubberPips: some View {
+        HStack(spacing: 6) {
+            ForEach(Array(historyPips.enumerated()), id: \.element.id) { index, _ in
+                Circle()
+                    .fill(selectedPipIndex == index ? Color.primary.opacity(0.5) : Color.primary.opacity(0.12))
+                    .frame(width: selectedPipIndex == index ? 5 : 4, height: selectedPipIndex == index ? 5 : 4)
+                    .onTapGesture {
+                        loadConversation(at: index)
+                    }
+            }
+
+            Circle()
+                .fill(selectedPipIndex == nil ? Color.primary.opacity(0.5) : Color.primary.opacity(0.12))
+                .frame(width: selectedPipIndex == nil ? 5 : 4, height: selectedPipIndex == nil ? 5 : 4)
+                .onTapGesture {
+                    startNewConversation()
+                }
+        }
+        .animation(.easeOut(duration: 0.15), value: selectedPipIndex)
+    }
+
+    private func loadConversation(at index: Int) {
+        guard index < historyPips.count else { return }
+        let conversation = historyPips[index]
+        let messages = conversation.decodeMessages()
+
+        var results: [AgentResult] = []
+        var i = 0
+        while i < messages.count {
+            let msg = messages[i]
+            if msg.role == .user {
+                let assistantMsg = (i + 1 < messages.count && messages[i + 1].role == .assistant) ? messages[i + 1] : nil
+                let text = assistantMsg?.text ?? ""
+                let taskCards = assistantMsg?.taskCardsJSON.flatMap { decodeTaskCards($0) }
+                let eventCards = assistantMsg?.eventCardsJSON.flatMap { decodeEventCards($0) }
+                let subtasks = assistantMsg?.subtasksJSON.flatMap { decodeSubtasks($0) }
+                let isPlanDay = assistantMsg?.isPlanDay ?? false
+                results.append(AgentResult(
+                    query: msg.text,
+                    text: text,
+                    taskCards: taskCards,
+                    eventCards: eventCards,
+                    subtasks: subtasks,
+                    isPlanDay: isPlanDay
+                ))
+                i += assistantMsg != nil ? 2 : 1
+            } else {
+                i += 1
+            }
+        }
+
+        withAnimation(.easeInOut(duration: 0.3)) {
+            responses = results
+            selectedPipIndex = index
+            currentConversation = conversation
+        }
+        input = ""
+    }
+
+    private func startNewConversation() {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            responses = []
+            selectedPipIndex = nil
+            currentConversation = nil
+        }
+        input = ""
+    }
+
+    private func saveUserMessage(_ query: String) {
+        if currentConversation == nil {
+            let conversation = AgentConversation(firstQuery: query)
+            modelContext.insert(conversation)
+            currentConversation = conversation
+        }
+        currentConversation?.appendMessage(ConversationMessage(
+            role: .user, text: query,
+            taskCardsJSON: nil, eventCardsJSON: nil, subtasksJSON: nil,
+            isPlanDay: false, timestamp: Date()
+        ))
+        try? modelContext.save()
+    }
+
+    private func saveAssistantMessage(_ result: AgentResult) {
+        let taskCardsJSON = result.taskCards.flatMap { encodeTaskCards($0) }
+        let eventCardsJSON = result.eventCards.flatMap { encodeEventCards($0) }
+        let subtasksJSON = result.subtasks.flatMap { try? String(data: JSONEncoder().encode($0), encoding: .utf8) }
+        currentConversation?.appendMessage(ConversationMessage(
+            role: .assistant, text: result.text,
+            taskCardsJSON: taskCardsJSON, eventCardsJSON: eventCardsJSON,
+            subtasksJSON: subtasksJSON,
+            isPlanDay: result.isPlanDay, timestamp: Date()
+        ))
+        try? modelContext.save()
+    }
+
+    private func pruneOldConversations() {
+        guard let cutoff = Calendar.current.date(byAdding: .hour, value: -48, to: .now) else { return }
+        let old = recentConversations.filter { $0.updatedAt < cutoff }
+        old.forEach { modelContext.delete($0) }
+        if !old.isEmpty { try? modelContext.save() }
+    }
+
+    // MARK: Conversation Serialization
+
+    private func encodeTaskCards(_ cards: [AgentTaskCard]) -> String? {
+        struct CodableCard: Codable {
+            let id: String; let title: String; let project: String?; let area: String?
+            let whenDate: Date?; let deadline: Date?; let isCompleted: Bool
+        }
+        let codable = cards.map { CodableCard(id: $0.id.uuidString, title: $0.title, project: $0.project, area: $0.area, whenDate: $0.whenDate, deadline: $0.deadline, isCompleted: $0.isCompleted) }
+        return (try? String(data: JSONEncoder().encode(codable), encoding: .utf8))
+    }
+
+    private func decodeTaskCards(_ json: String) -> [AgentTaskCard]? {
+        struct CodableCard: Codable {
+            let id: String; let title: String; let project: String?; let area: String?
+            let whenDate: Date?; let deadline: Date?; let isCompleted: Bool
+        }
+        guard let data = json.data(using: .utf8),
+              let codable = try? JSONDecoder().decode([CodableCard].self, from: data) else { return nil }
+        let cards = codable.map { AgentTaskCard(id: UUID(uuidString: $0.id) ?? UUID(), title: $0.title, project: $0.project, area: $0.area, whenDate: $0.whenDate, deadline: $0.deadline, isCompleted: $0.isCompleted) }
+        return cards.isEmpty ? nil : cards
+    }
+
+    private func encodeEventCards(_ cards: [AgentEventCard]) -> String? {
+        struct CodableCard: Codable {
+            let id: String; let title: String; let startDate: Date; let endDate: Date
+            let location: String?; let isAllDay: Bool
+        }
+        let codable = cards.map { CodableCard(id: $0.id, title: $0.title, startDate: $0.startDate, endDate: $0.endDate, location: $0.location, isAllDay: $0.isAllDay) }
+        return (try? String(data: JSONEncoder().encode(codable), encoding: .utf8))
+    }
+
+    private func decodeEventCards(_ json: String) -> [AgentEventCard]? {
+        struct CodableCard: Codable {
+            let id: String; let title: String; let startDate: Date; let endDate: Date
+            let location: String?; let isAllDay: Bool
+        }
+        guard let data = json.data(using: .utf8),
+              let codable = try? JSONDecoder().decode([CodableCard].self, from: data) else { return nil }
+        let cards = codable.map { AgentEventCard(id: $0.id, title: $0.title, startDate: $0.startDate, endDate: $0.endDate, location: $0.location, isAllDay: $0.isAllDay) }
+        return cards.isEmpty ? nil : cards
+    }
+
+    private func decodeSubtasks(_ json: String) -> [String]? {
+        guard let data = json.data(using: .utf8),
+              let arr = try? JSONDecoder().decode([String].self, from: data) else { return nil }
+        return arr.isEmpty ? nil : arr
     }
 
     // MARK: - Helpers

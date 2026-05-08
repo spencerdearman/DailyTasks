@@ -26,7 +26,8 @@ struct FluxApp: App {
             TaskItem.self,
             ChecklistItem.self,
             Tag.self,
-            TaskTagAssignment.self
+            TaskTagAssignment.self,
+            AgentConversation.self
         ])
         let modelConfiguration = ModelConfiguration(
             "Flux",

@@ -28,7 +28,8 @@ struct FluxMacApp: App {
             ChecklistItem.self,
             Tag.self,
             TaskTagAssignment.self,
-            DailySynthesis.self
+            DailySynthesis.self,
+            AgentConversation.self
         ])
         let modelConfiguration = ModelConfiguration(
             "Flux",

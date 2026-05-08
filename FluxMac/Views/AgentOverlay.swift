@@ -21,10 +21,16 @@ struct AgentOverlay: View {
     let onDismiss: () -> Void
     var onSelectTask: ((UUID) -> Void)?
 
+    @Query(sort: \AgentConversation.updatedAt, order: .reverse) private var recentConversations: [AgentConversation]
+
     @State private var agent = TaskAgent()
     @State private var input = ""
     @State private var responses: [AgentResult] = []
     @State private var showPanel = false
+    @State private var currentConversation: AgentConversation?
+    @State private var hoveredPipIndex: Int?
+    @State private var selectedPipIndex: Int?
+    @State private var showPips = false
     @FocusState private var isFocused: Bool
 
     // MARK: - Result Model
@@ -63,6 +69,8 @@ struct AgentOverlay: View {
                 VStack(spacing: 0) {
                     searchBar
 
+                    ghostPreview
+
                     if !responses.isEmpty || agent.isProcessing {
                         resultArea
                             .transition(.identity)
@@ -79,11 +87,17 @@ struct AgentOverlay: View {
             }
         }
         .onAppear {
+            pruneOldConversations()
             withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
                 showPanel = true
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 isFocused = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                withAnimation(.easeOut(duration: 0.3)) {
+                    showPips = true
+                }
             }
         }
         .onKeyPress(.escape) {
@@ -110,6 +124,12 @@ struct AgentOverlay: View {
                 .font(.system(size: 17, weight: .light))
                 .focused($isFocused)
                 .onSubmit { submit() }
+
+            if showPips && !historyPips.isEmpty {
+                scrubberPips
+                    .opacity(hasContent ? 0.3 : 1)
+                    .animation(.easeOut(duration: 0.2), value: hasContent)
+            }
 
             ZStack {
                 if agent.isProcessing {
@@ -489,6 +509,200 @@ struct AgentOverlay: View {
         date < Calendar.current.startOfDay(for: .now)
     }
 
+    // MARK: - Temporal Scrubber
+
+    /// The conversations to show as pips (max 5, most recent last).
+    private var historyPips: [AgentConversation] {
+        Array(recentConversations.prefix(5).reversed())
+    }
+
+    private var scrubberPips: some View {
+        HStack(spacing: 6) {
+            ForEach(Array(historyPips.enumerated()), id: \.element.id) { index, conversation in
+                Circle()
+                    .fill(selectedPipIndex == index ? Color.primary.opacity(0.5) : Color.primary.opacity(hoveredPipIndex == index ? 0.3 : 0.15))
+                    .frame(width: selectedPipIndex == index ? 6.5 : 5.5, height: selectedPipIndex == index ? 6.5 : 5.5)
+                    .onHover { hovering in
+                        withAnimation(.easeOut(duration: 0.15)) {
+                            hoveredPipIndex = hovering ? index : nil
+                        }
+                    }
+                    .onTapGesture {
+                        loadConversation(at: index)
+                    }
+            }
+
+            // "Now" pip — always filled
+            Circle()
+                .fill(selectedPipIndex == nil ? Color.primary.opacity(0.5) : Color.primary.opacity(0.12))
+                .frame(width: selectedPipIndex == nil ? 5 : 4, height: selectedPipIndex == nil ? 5 : 4)
+                .onTapGesture {
+                    startNewConversation()
+                }
+        }
+        .animation(.easeOut(duration: 0.15), value: selectedPipIndex)
+        .animation(.easeOut(duration: 0.15), value: hoveredPipIndex)
+    }
+
+    @ViewBuilder
+    private var ghostPreview: some View {
+        if let idx = hoveredPipIndex, idx < historyPips.count {
+            let conversation = historyPips[idx]
+            HStack(spacing: 6) {
+                Text(conversation.firstQuery)
+                    .lineLimit(1)
+                Text("·")
+                Text(relativeTime(conversation.updatedAt))
+            }
+            .font(.system(size: 11, weight: .medium))
+            .foregroundStyle(.tertiary)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 4)
+            .transition(.opacity)
+            .animation(.easeOut(duration: 0.2), value: hoveredPipIndex)
+        }
+    }
+
+    private func loadConversation(at index: Int) {
+        guard index < historyPips.count else { return }
+        let conversation = historyPips[index]
+        let messages = conversation.decodeMessages()
+
+        var results: [AgentResult] = []
+        var i = 0
+        while i < messages.count {
+            let msg = messages[i]
+            if msg.role == .user {
+                // Look for the next assistant message
+                let assistantMsg = (i + 1 < messages.count && messages[i + 1].role == .assistant) ? messages[i + 1] : nil
+                let text = assistantMsg?.text ?? ""
+                let taskCards = assistantMsg?.taskCardsJSON.flatMap { decodeTaskCards($0) }
+                let eventCards = assistantMsg?.eventCardsJSON.flatMap { decodeEventCards($0) }
+                let subtasks = assistantMsg?.subtasksJSON.flatMap { decodeSubtasks($0) }
+                let isPlanDay = assistantMsg?.isPlanDay ?? false
+                results.append(AgentResult(
+                    query: msg.text,
+                    text: text,
+                    taskCards: taskCards,
+                    eventCards: eventCards,
+                    subtasks: subtasks,
+                    isPlanDay: isPlanDay
+                ))
+                i += assistantMsg != nil ? 2 : 1
+            } else {
+                i += 1
+            }
+        }
+
+        withAnimation(.easeInOut(duration: 0.3)) {
+            responses = results
+            selectedPipIndex = index
+            currentConversation = conversation
+        }
+        input = ""
+    }
+
+    private func startNewConversation() {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            responses = []
+            selectedPipIndex = nil
+            currentConversation = nil
+        }
+        input = ""
+    }
+
+    private func saveUserMessage(_ query: String) {
+        if currentConversation == nil {
+            let conversation = AgentConversation(firstQuery: query)
+            modelContext.insert(conversation)
+            currentConversation = conversation
+        }
+        currentConversation?.appendMessage(ConversationMessage(
+            role: .user, text: query,
+            taskCardsJSON: nil, eventCardsJSON: nil, subtasksJSON: nil,
+            isPlanDay: false, timestamp: Date()
+        ))
+        try? modelContext.save()
+    }
+
+    private func saveAssistantMessage(_ result: AgentResult) {
+        let taskCardsJSON = result.taskCards.flatMap { encodeTaskCards($0) }
+        let eventCardsJSON = result.eventCards.flatMap { encodeEventCards($0) }
+        let subtasksJSON = result.subtasks.flatMap { try? String(data: JSONEncoder().encode($0), encoding: .utf8) }
+        currentConversation?.appendMessage(ConversationMessage(
+            role: .assistant, text: result.text,
+            taskCardsJSON: taskCardsJSON, eventCardsJSON: eventCardsJSON,
+            subtasksJSON: subtasksJSON,
+            isPlanDay: result.isPlanDay, timestamp: Date()
+        ))
+        try? modelContext.save()
+    }
+
+    private func pruneOldConversations() {
+        guard let cutoff = Calendar.current.date(byAdding: .hour, value: -48, to: .now) else { return }
+        let old = recentConversations.filter { $0.updatedAt < cutoff }
+        old.forEach { modelContext.delete($0) }
+        if !old.isEmpty { try? modelContext.save() }
+    }
+
+    // MARK: Conversation Serialization
+
+    private func encodeTaskCards(_ cards: [TaskCard]) -> String? {
+        struct CodableCard: Codable {
+            let id: String; let title: String; let project: String?; let area: String?
+            let whenDate: Date?; let deadline: Date?; let isCompleted: Bool
+        }
+        let codable = cards.map { CodableCard(id: $0.id.uuidString, title: $0.title, project: $0.project, area: $0.area, whenDate: $0.whenDate, deadline: $0.deadline, isCompleted: $0.isCompleted) }
+        return (try? String(data: JSONEncoder().encode(codable), encoding: .utf8))
+    }
+
+    private func decodeTaskCards(_ json: String) -> [TaskCard]? {
+        struct CodableCard: Codable {
+            let id: String; let title: String; let project: String?; let area: String?
+            let whenDate: Date?; let deadline: Date?; let isCompleted: Bool
+        }
+        guard let data = json.data(using: .utf8),
+              let codable = try? JSONDecoder().decode([CodableCard].self, from: data) else { return nil }
+        let cards = codable.map { TaskCard(id: UUID(uuidString: $0.id) ?? UUID(), title: $0.title, project: $0.project, area: $0.area, whenDate: $0.whenDate, deadline: $0.deadline, isCompleted: $0.isCompleted) }
+        return cards.isEmpty ? nil : cards
+    }
+
+    private func encodeEventCards(_ cards: [EventCard]) -> String? {
+        struct CodableCard: Codable {
+            let id: String; let title: String; let startDate: Date; let endDate: Date
+            let location: String?; let isAllDay: Bool
+        }
+        let codable = cards.map { CodableCard(id: $0.id, title: $0.title, startDate: $0.startDate, endDate: $0.endDate, location: $0.location, isAllDay: $0.isAllDay) }
+        return (try? String(data: JSONEncoder().encode(codable), encoding: .utf8))
+    }
+
+    private func decodeEventCards(_ json: String) -> [EventCard]? {
+        struct CodableCard: Codable {
+            let id: String; let title: String; let startDate: Date; let endDate: Date
+            let location: String?; let isAllDay: Bool
+        }
+        guard let data = json.data(using: .utf8),
+              let codable = try? JSONDecoder().decode([CodableCard].self, from: data) else { return nil }
+        let cards = codable.map { EventCard(id: $0.id, title: $0.title, startDate: $0.startDate, endDate: $0.endDate, location: $0.location, isAllDay: $0.isAllDay) }
+        return cards.isEmpty ? nil : cards
+    }
+
+    private func decodeSubtasks(_ json: String) -> [String]? {
+        guard let data = json.data(using: .utf8),
+              let arr = try? JSONDecoder().decode([String].self, from: data) else { return nil }
+        return arr.isEmpty ? nil : arr
+    }
+
+    private func relativeTime(_ date: Date) -> String {
+        let seconds = Date().timeIntervalSince(date)
+        let minutes = Int(seconds / 60)
+        if minutes < 1 { return "Just now" }
+        if minutes < 60 { return "\(minutes)m ago" }
+        let hours = minutes / 60
+        if hours < 24 { return "\(hours)h ago" }
+        return "Yesterday"
+    }
+
     // MARK: - Actions
 
     private func submit() {
@@ -497,6 +711,13 @@ struct AgentOverlay: View {
 
         let query = trimmed
         input = ""
+
+        // If starting fresh (no selected pip), clear selection
+        if selectedPipIndex != nil && currentConversation == nil {
+            selectedPipIndex = nil
+        }
+
+        saveUserMessage(query)
 
         Task {
             let ctx = AgentContext(
@@ -515,18 +736,22 @@ struct AgentOverlay: View {
                 context: ctx
             )
 
+            let result = AgentResult(
+                query: query,
+                text: response.message,
+                taskCards: response.taskCards,
+                eventCards: response.eventCards,
+                subtasks: response.subtasks,
+                isPlanDay: response.isPlanDay,
+                proposal: response.proposal,
+                pendingDeletion: response.pendingDeletion
+            )
+
             withAnimation(.easeOut(duration: 0.25)) {
-                responses.append(AgentResult(
-                    query: query,
-                    text: response.message,
-                    taskCards: response.taskCards,
-                    eventCards: response.eventCards,
-                    subtasks: response.subtasks,
-                    isPlanDay: response.isPlanDay,
-                    proposal: response.proposal,
-                    pendingDeletion: response.pendingDeletion
-                ))
+                responses.append(result)
             }
+
+            saveAssistantMessage(result)
         }
     }
 
