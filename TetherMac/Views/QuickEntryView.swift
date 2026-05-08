@@ -5,6 +5,7 @@
 //  Created by Spencer Dearman.
 //
 
+import MapKit
 import SwiftData
 import SwiftUI
 
@@ -38,8 +39,14 @@ struct QuickEntryView: View {
     @State private var showProjectPopover = false
     @State private var showSchedulePopover = false
     @State private var showTagsPopover = false
+    @State private var showLocationPopover = false
     @State private var calendarSyncErrorMessage: String?
     @State private var isSchedulingOnSave = false
+    @State private var locationName: String?
+    @State private var locationLatitude: Double?
+    @State private var locationLongitude: Double?
+    @State private var subtaskTexts: [String] = []
+    @State private var newSubtaskText = ""
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -162,6 +169,34 @@ struct QuickEntryView: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 8)
             
+            // Location badge
+            if let loc = locationName, !loc.isEmpty {
+                HStack(spacing: 4) {
+                    Image(systemName: "location.fill")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.blue)
+                    Text(loc)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.blue)
+                        .lineLimit(1)
+                    Button {
+                        locationName = nil
+                        locationLatitude = nil
+                        locationLongitude = nil
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.tertiary)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .background(Color.blue.opacity(0.08), in: Capsule())
+                .padding(.horizontal, 20)
+                .padding(.bottom, 4)
+            }
+
             // Selected tags
             if !selectedTags.isEmpty {
                 HStack(spacing: 6) {
@@ -188,8 +223,46 @@ struct QuickEntryView: View {
                 .padding(.bottom, 8)
             }
             
+            // Subtasks
+            if !subtaskTexts.isEmpty {
+                VStack(alignment: .leading, spacing: 2) {
+                    ForEach(Array(subtaskTexts.enumerated()), id: \.offset) { index, text in
+                        HStack(spacing: 8) {
+                            Image(systemName: "circle")
+                                .font(.system(size: 12))
+                                .foregroundStyle(.tertiary)
+                            TextField("Subtask", text: Binding(
+                                get: { subtaskTexts[index] },
+                                set: { subtaskTexts[index] = $0 }
+                            ))
+                            .textFieldStyle(.plain)
+                            .font(.subheadline)
+                            .onSubmit {
+                                if subtaskTexts[index].trimmingCharacters(in: .whitespaces).isEmpty {
+                                    subtaskTexts.remove(at: index)
+                                } else {
+                                    subtaskTexts.append("")
+                                }
+                            }
+                            Spacer()
+                            Button {
+                                subtaskTexts.remove(at: index)
+                            } label: {
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundStyle(.tertiary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 4)
+            }
+
             Spacer(minLength: 0)
-            
+
             // Bottom bar: popover action buttons + save
             HStack(spacing: 0) {
                 // Action buttons with popovers
@@ -211,6 +284,22 @@ struct QuickEntryView: View {
                             .padding(4)
                     }
 
+                    // Location popover
+                    Button {
+                        showLocationPopover.toggle()
+                    } label: {
+                        Image(systemName: locationName != nil ? "location.fill" : "location")
+                            .font(.system(size: 14))
+                            .foregroundStyle(showLocationPopover ? .primary : (locationName != nil ? .primary : .tertiary))
+                            .frame(width: 30, height: 28)
+                            .background(showLocationPopover ? Color.primary.opacity(0.08) : Color.clear, in: RoundedRectangle(cornerRadius: 6))
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showLocationPopover, arrowEdge: .top) {
+                        quickEntryLocationPanel
+                            .frame(width: 220)
+                    }
+
                     // Tags popover
                     Button {
                         showTagsPopover.toggle()
@@ -227,6 +316,17 @@ struct QuickEntryView: View {
                             .frame(width: 220)
                             .padding(4)
                     }
+
+                    // Subtasks
+                    Button {
+                        addSubtaskField()
+                    } label: {
+                        Image(systemName: !subtaskTexts.isEmpty ? "checklist.checked" : "checklist")
+                            .font(.system(size: 14))
+                            .foregroundStyle(!subtaskTexts.isEmpty ? .primary : .tertiary)
+                            .frame(width: 30, height: 28)
+                    }
+                    .buttonStyle(.plain)
                 }
                 
                 Spacer()
@@ -449,6 +549,25 @@ struct QuickEntryView: View {
         }
         .frame(width: 304, height: 420, alignment: .top)
         .padding(14)
+    }
+
+    // MARK: - Location Panel (popover content)
+
+    private var quickEntryLocationPanel: some View {
+        QuickEntryLocationPanel(
+            locationName: $locationName,
+            locationLatitude: $locationLatitude,
+            locationLongitude: $locationLongitude,
+            isPresented: $showLocationPopover
+        )
+    }
+
+    private func addSubtaskField() {
+        subtaskTexts.append("")
+        // Focus will be handled by the inline editor
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            // Trigger the subtask input area to show
+        }
     }
 
     // MARK: - Tags Panel (popover content)
@@ -820,10 +939,18 @@ struct QuickEntryView: View {
             area: resolvedArea,
             project: selectedProject
         )
+        task.locationName = locationName
+        task.locationLatitude = locationLatitude
+        task.locationLongitude = locationLongitude
         modelContext.insert(task)
         for tag in selectedTags {
             let assignment = TaskTagAssignment(task: task, tag: tag)
             modelContext.insert(assignment)
+        }
+        let validSubtasks = subtaskTexts.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        for (i, text) in validSubtasks.enumerated() {
+            let item = ChecklistItem(title: text, sortOrder: Double(i), task: task)
+            modelContext.insert(item)
         }
         try? modelContext.save()
         
@@ -914,5 +1041,112 @@ private struct QuickEntryTagPanel: View {
         selectedTags.append(tag)
         try? modelContext.save()
         searchText = ""
+    }
+}
+
+// MARK: - QuickEntryLocationPanel
+
+private struct QuickEntryLocationPanel: View {
+    @Binding var locationName: String?
+    @Binding var locationLatitude: Double?
+    @Binding var locationLongitude: Double?
+    @Binding var isPresented: Bool
+
+    @StateObject private var completer = LocationCompleterModel()
+    @State private var searchText = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Image(systemName: "location")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                TextField("Search location…", text: $searchText)
+                    .textFieldStyle(.plain)
+                    .font(.subheadline)
+                    .onChange(of: searchText) { _, newValue in
+                        completer.search(query: newValue)
+                    }
+            }
+            .padding(8)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            if let name = locationName, !name.isEmpty, searchText.isEmpty {
+                HStack(spacing: 8) {
+                    Image(systemName: "location.fill")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.blue)
+                    Text(name)
+                        .font(.subheadline)
+                        .lineLimit(1)
+                    Spacer()
+                    Button {
+                        locationName = nil
+                        locationLatitude = nil
+                        locationLongitude = nil
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            }
+
+            if !completer.results.isEmpty && !searchText.isEmpty {
+                VStack(alignment: .leading, spacing: 2) {
+                    ForEach(completer.results.prefix(6), id: \.self) { result in
+                        Button {
+                            selectResult(result)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(result.title)
+                                    .font(.subheadline)
+                                    .lineLimit(1)
+                                if !result.subtitle.isEmpty {
+                                    Text(result.subtitle)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 5)
+                            .padding(.horizontal, 8)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(4)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            }
+        }
+        .padding(8)
+    }
+
+    private func selectResult(_ result: MKLocalSearchCompletion) {
+        let request = MKLocalSearch.Request(completion: result)
+        let search = MKLocalSearch(request: request)
+        search.start { response, _ in
+            guard let item = response?.mapItems.first else {
+                Task { @MainActor in
+                    locationName = result.title
+                    locationLatitude = nil
+                    locationLongitude = nil
+                    searchText = ""
+                }
+                return
+            }
+            Task { @MainActor in
+                locationName = item.name ?? result.title
+                locationLatitude = item.placemark.coordinate.latitude
+                locationLongitude = item.placemark.coordinate.longitude
+                searchText = ""
+            }
+        }
     }
 }

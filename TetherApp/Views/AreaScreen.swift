@@ -23,11 +23,12 @@ struct AreaScreen: View {
     @State private var showingNewProject = false
     @State private var showingNewArea = false
     @State private var editingTask: TaskItem?
+    @AppStorage("tetherShowCompletedTasks") private var showCompleted = false
 
     // MARK: - Computed Properties
 
     private var looseTasks: [TaskItem] {
-        tasks.filter { $0.project == nil && !$0.isCompleted }
+        tasks.filter { $0.project == nil && (showCompleted || !$0.isCompleted) }
     }
 
     private var sortedProjects: [Project] {

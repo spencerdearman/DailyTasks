@@ -22,9 +22,10 @@ struct AreaDetailView: View {
     @State private var showRenameAlert = false
     @State private var renameText = ""
     @State private var showDeleteConfirm = false
-    
+    @AppStorage("tetherShowCompletedTasks") private var showCompleted = false
+
     private var looseTasks: [TaskItem] {
-        tasks.filter { $0.project == nil && !$0.isCompleted }
+        tasks.filter { $0.project == nil && (showCompleted || !$0.isCompleted) }
     }
     
     private var sortedProjects: [Project] {
@@ -107,7 +108,7 @@ struct AreaDetailView: View {
                 
                 // Show tasks in each project
                 ForEach(sortedProjects) { project in
-                    let projectTasks = tasks.filter { $0.project?.id == project.id && !$0.isCompleted }
+                    let projectTasks = tasks.filter { $0.project?.id == project.id && (showCompleted || !$0.isCompleted) }
                     if !projectTasks.isEmpty {
                         TaskSection(
                             title: project.title,

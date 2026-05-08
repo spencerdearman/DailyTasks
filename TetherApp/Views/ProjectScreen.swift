@@ -22,11 +22,12 @@ struct ProjectScreen: View {
     @State private var showingNewProject = false
     @State private var showingNewArea = false
     @State private var editingTask: TaskItem?
+    @AppStorage("tetherShowCompletedTasks") private var showCompleted = false
 
     // MARK: - Computed Properties
 
     private var ungroupedTasks: [TaskItem] {
-        project.sortedTasks.filter { $0.heading == nil && !$0.isCompleted }
+        project.sortedTasks.filter { $0.heading == nil && (showCompleted || !$0.isCompleted) }
     }
 
     // MARK: - Body
@@ -54,7 +55,7 @@ struct ProjectScreen: View {
                 }
 
                 ForEach(project.sortedHeadings) { heading in
-                    let headingTasks = project.sortedTasks.filter { $0.heading?.id == heading.id && !$0.isCompleted }
+                    let headingTasks = project.sortedTasks.filter { $0.heading?.id == heading.id && (showCompleted || !$0.isCompleted) }
                     if !headingTasks.isEmpty {
                         SectionCard(title: heading.title, count: headingTasks.count) {
                             ForEach(headingTasks) { task in

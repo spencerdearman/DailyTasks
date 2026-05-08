@@ -92,10 +92,7 @@ struct AgentOverlay: View {
                     }
                     .animation(nil, value: showHistoryList)
                 }
-                .animation(.spring(response: 0.4, dampingFraction: 0.85), value: responses.count)
-                .animation(.spring(response: 0.4, dampingFraction: 0.85), value: agent.isProcessing)
                 .frame(width: 580)
-                .background(Color(white: 0.08).opacity(0.6), in: .rect(cornerRadius: 22))
                 .glassEffect(.regular, in: .rect(cornerRadius: 22))
                 .shadow(color: .black.opacity(0.35), radius: 40, y: 12)
                 .scaleEffect(showPanel ? 1 : 0.97)
@@ -177,7 +174,7 @@ struct AgentOverlay: View {
 
     private var resultArea: some View {
         ScrollViewReader { proxy in
-            ScrollView(showsIndicators: false) {
+            ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(Array(responses.enumerated()), id: \.element.id) { index, result in
                         if index > 0 {
@@ -204,7 +201,10 @@ struct AgentOverlay: View {
             .onPreferenceChange(ResultContentHeightKey.self) { height in
                 resultContentHeight = height
             }
+            .scrollIndicatorsFlash(onAppear: false)
+            .scrollContentBackground(.hidden)
             .frame(height: min(resultContentHeight, 400))
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .mask(
                 VStack(spacing: 0) {
                     LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)

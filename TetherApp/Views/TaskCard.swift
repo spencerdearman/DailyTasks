@@ -67,7 +67,8 @@ struct TaskCard: View {
             }
             .buttonStyle(.plain)
         }
-        .padding(18)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .opacity(isCompleting ? 0.5 : 1.0)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))

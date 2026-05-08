@@ -158,7 +158,8 @@ struct CommandPaletteOverlay: View {
             } label: {
                 Image(systemName: mode == .find ? "magnifyingglass" : "sparkles")
                     .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(mode == .find ? Color.secondary : Color.purple.opacity(0.7))
+                    .foregroundStyle(Color.secondary)
+                    .symbolEffect(.pulse, isActive: mode == .agent && (agent.isProcessing || isSynthesizing))
                     .contentTransition(.symbolEffect(.replace))
             }
             .buttonStyle(.plain)
@@ -167,38 +168,43 @@ struct CommandPaletteOverlay: View {
             if mode == .find {
                 TextField("Find", text: $findQuery)
                     .textFieldStyle(.plain)
-                    .font(.system(size: 16, weight: .light))
+                    .font(.system(size: 17, weight: .light))
                     .focused($isFindFocused)
             } else {
-                TextField("Agent", text: $agentInput)
+                TextField("", text: $agentInput, prompt: Text("Agent").foregroundColor(Color.secondary))
                     .textFieldStyle(.plain)
-                    .font(.system(size: 16, weight: .light))
+                    .font(.system(size: 17, weight: .light))
                     .focused($isAgentFocused)
                     .onSubmit { submitAgent() }
             }
 
-            // Trailing accessory (clear / send / spinner)
-            if mode == .find && !findQuery.isEmpty {
-                Button { findQuery = "" } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 14))
-                        .foregroundStyle(.quaternary)
-                }
-                .buttonStyle(.plain)
-            } else if mode == .agent {
-                if agent.isProcessing || isSynthesizing {
+            // Trailing accessory — fixed frame to prevent layout shift
+            ZStack {
+                if mode == .find && !findQuery.isEmpty {
+                    Button { findQuery = "" } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 14))
+                            .foregroundStyle(.quaternary)
+                    }
+                    .buttonStyle(.plain)
+                    .transition(.opacity)
+                } else if mode == .agent && (agent.isProcessing || isSynthesizing) {
                     ProgressView()
                         .controlSize(.small)
-                } else if !agentInput.isEmpty {
+                        .transition(.opacity)
+                } else if mode == .agent && !agentInput.isEmpty {
                     Button { submitAgent() } label: {
                         Image(systemName: "arrow.up.circle.fill")
                             .font(.system(size: 20))
                             .foregroundStyle(.primary.opacity(0.5))
-                            .frame(width: 20, height: 20)
                     }
                     .buttonStyle(.plain)
+                    .transition(.scale.combined(with: .opacity))
                 }
             }
+            .frame(width: 28, height: 22)
+            .animation(.easeOut(duration: 0.12), value: agentInput.isEmpty)
+            .animation(.easeOut(duration: 0.12), value: agent.isProcessing)
         }
         .frame(height: 44)
         .padding(.horizontal, 16)
@@ -256,10 +262,12 @@ struct CommandPaletteOverlay: View {
         }
     }
 
+    @State private var agentContentHeight: CGFloat = 0
+
     private var agentResultsList: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 0) {
+                VStack(alignment: .leading, spacing: 0) {
                     ForEach(Array(agentResponses.enumerated()), id: \.element.id) { index, result in
                         if index > 0 {
                             Divider()
@@ -282,9 +290,15 @@ struct CommandPaletteOverlay: View {
                     }
                 }
                 .padding(.vertical, 6)
+                .background(GeometryReader { geo in
+                    Color.clear.preference(key: AgentContentHeightKey.self, value: geo.size.height)
+                })
+            }
+            .onPreferenceChange(AgentContentHeightKey.self) { height in
+                agentContentHeight = height
             }
             .scrollIndicators(.hidden)
-            .frame(maxHeight: 420)
+            .frame(height: min(agentContentHeight, 420))
             .clipped()
             .onChange(of: agentResponses.count) {
                 if let last = agentResponses.last {
@@ -663,6 +677,13 @@ struct CommandPaletteOverlay: View {
     }
 
     // MARK: - Find Data
+
+    private struct AgentContentHeightKey: PreferenceKey {
+        static var defaultValue: CGFloat = 0
+        static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+            value = max(value, nextValue())
+        }
+    }
 
     private struct FindItem: Identifiable {
         let id: String

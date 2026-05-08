@@ -28,6 +28,7 @@ struct ContentView: View {
     @State private var overlayMode: OverlayMode = .none
     @State private var showSettings = false
     @AppStorage("tetherShowTaskCounts") private var showTaskCounts = true
+    @AppStorage("tetherShowCompletedTasks") private var showCompleted = false
     @State private var quickFindPath: [SidebarSelection] = []
 
     // MARK: - Body
@@ -218,42 +219,74 @@ struct ContentView: View {
 
     // MARK: - Task Filters
 
-    private var inboxTasks: [TaskItem] { activeTasks.filter(\.isInInbox) }
+    private var inboxTasks: [TaskItem] {
+        let active = activeTasks.filter(\.isInInbox)
+        guard showCompleted else { return active }
+        let completed = completedTasks.filter(\.isInInbox)
+        return active + completed
+    }
 
     private var todayTasks: [TaskItem] {
         let start = Calendar.current.startOfDay(for: .now)
-        return activeTasks.filter {
+        let active = activeTasks.filter {
             guard let date = $0.whenDate else { return false }
             return Calendar.current.isDate(date, inSameDayAs: start) && !$0.isEvening
         }
+        guard showCompleted else { return active }
+        let completed = completedTasks.filter {
+            guard let date = $0.whenDate else { return false }
+            return Calendar.current.isDate(date, inSameDayAs: start) && !$0.isEvening
+        }
+        return active + completed
     }
 
     private var eveningTasks: [TaskItem] {
         let start = Calendar.current.startOfDay(for: .now)
-        return activeTasks.filter {
+        let active = activeTasks.filter {
             guard let date = $0.whenDate else { return false }
             return Calendar.current.isDate(date, inSameDayAs: start) && $0.isEvening
         }
+        guard showCompleted else { return active }
+        let completed = completedTasks.filter {
+            guard let date = $0.whenDate else { return false }
+            return Calendar.current.isDate(date, inSameDayAs: start) && $0.isEvening
+        }
+        return active + completed
     }
 
     private var upcomingTasks: [TaskItem] {
         let calendar = Calendar.current
         let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: .now)) ?? .now
-        return activeTasks.filter {
+        let active = activeTasks.filter {
             guard let date = $0.effectiveDate else { return false }
             return date >= tomorrow
         }
+        guard showCompleted else { return active }
+        let completed = completedTasks.filter {
+            guard let date = $0.effectiveDate else { return false }
+            return date >= tomorrow
+        }
+        return active + completed
     }
 
-    private var anytimeTasks: [TaskItem] { activeTasks.filter { !$0.isInInbox && $0.whenDate == nil } }
+    private var anytimeTasks: [TaskItem] {
+        let active = activeTasks.filter { !$0.isInInbox && $0.whenDate == nil }
+        guard showCompleted else { return active }
+        let completed = completedTasks.filter { !$0.isInInbox && $0.whenDate == nil }
+        return active + completed
+    }
     private var somedayTasks: [TaskItem] { tasks.filter { $0.status == .someday } }
     private var logbookTasks: [TaskItem] {
         tasks.filter(\.isCompleted).sorted { ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast) }
     }
     private var activeTasks: [TaskItem] { tasks.filter { $0.status == .active } }
+    private var completedTasks: [TaskItem] {
+        tasks.filter(\.isCompleted).sorted { ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast) }
+    }
 
     private func tasksForArea(_ area: Area) -> [TaskItem] {
-        tasks.filter { $0.area?.id == area.id || $0.project?.area?.id == area.id }
+        let base = showCompleted ? tasks : tasks.filter { !$0.isCompleted }
+        return base.filter { $0.area?.id == area.id || $0.project?.area?.id == area.id }
             .sorted { ($0.effectiveDate ?? .distantFuture) < ($1.effectiveDate ?? .distantFuture) }
     }
 }
@@ -331,13 +364,13 @@ struct PullToAgent: ViewModifier {
         VStack(spacing: 4) {
             Image(systemName: "sparkles")
                 .font(.system(size: 18, weight: .medium))
-                .foregroundStyle(progress >= 1 ? Color.purple.opacity(0.8) : Color.secondary)
+                .foregroundStyle(Color.secondary)
                 .scaleEffect(0.6 + progress * 0.4)
 
             if progress > 0.5 {
                 Text(progress >= 1 ? "Release for Agent" : "Pull for Agent")
                     .font(.caption2.weight(.medium))
-                    .foregroundStyle(progress >= 1 ? Color.purple.opacity(0.8) : Color.secondary)
+                    .foregroundStyle(Color.secondary)
             }
         }
     }
