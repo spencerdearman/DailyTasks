@@ -251,11 +251,19 @@ final class TaskAgent {
         let whenDate = isLater ? nil : response.date.flatMap { parseDate($0) }
         let taskStatus: TaskStatus = isLater ? .someday : .active
 
-        // Parse deadline — set to 11:59 PM of that day if no time specified
+        // Parse deadline — try ISO datetime first, then date-only with 11:59 PM default
         var deadlineDate: Date? = nil
-        if let deadlineStr = response.deadline, let parsed = parseDate(deadlineStr) {
-            let cal = Calendar.current
-            deadlineDate = cal.date(bySettingHour: 23, minute: 59, second: 0, of: parsed)
+        if let deadlineStr = response.deadline {
+            // Try ISO 8601 datetime (e.g. "2026-05-09T18:32:00")
+            let isoFmt = DateFormatter()
+            isoFmt.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+            isoFmt.timeZone = .current
+            if let fullDatetime = isoFmt.date(from: deadlineStr) {
+                deadlineDate = fullDatetime
+            } else if let dateOnly = parseDate(deadlineStr) {
+                let cal = Calendar.current
+                deadlineDate = cal.date(bySettingHour: 23, minute: 59, second: 0, of: dateOnly)
+            }
         }
 
         // Fallback: detect "by <day>" in the title when Gemini forgot the deadline field

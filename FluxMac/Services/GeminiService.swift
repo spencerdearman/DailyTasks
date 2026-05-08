@@ -193,20 +193,39 @@ actor GeminiService {
         request.httpBody = jsonData
         request.timeoutInterval = 60
 
-        let (data, response) = try await URLSession.shared.data(for: request)
-        print("[GeminiService] Response received, data size: \(data.count) bytes")
+        // Retry loop for transient errors (503, 429)
+        let maxRetries = 2
+        var lastData: Data?
+        var lastStatus: Int = 0
 
-        guard let httpResponse = response as? HTTPURLResponse else {
-            print("[GeminiService] ERROR: Not an HTTP response")
-            throw GeminiError.invalidResponse
+        for attempt in 0...maxRetries {
+            let (respData, resp) = try await URLSession.shared.data(for: request)
+            print("[GeminiService] Response received, data size: \(respData.count) bytes")
+
+            guard let http = resp as? HTTPURLResponse else {
+                print("[GeminiService] ERROR: Not an HTTP response")
+                throw GeminiError.invalidResponse
+            }
+
+            print("[GeminiService] HTTP status: \(http.statusCode)")
+            lastData = respData
+            lastStatus = http.statusCode
+
+            if (http.statusCode == 503 || http.statusCode == 429), attempt < maxRetries {
+                let delay = Double(attempt + 1) * 2.0
+                print("[GeminiService] Retrying in \(delay)s (attempt \(attempt + 1)/\(maxRetries))...")
+                try await Task.sleep(for: .seconds(delay))
+                continue
+            }
+            break
         }
 
-        print("[GeminiService] HTTP status: \(httpResponse.statusCode)")
+        let data = lastData!
 
-        guard httpResponse.statusCode == 200 else {
+        guard lastStatus == 200 else {
             let body = String(data: data, encoding: .utf8) ?? "unknown"
             print("[GeminiService] ERROR response body: \(body.prefix(500))")
-            throw GeminiError.apiError(statusCode: httpResponse.statusCode, message: body)
+            throw GeminiError.apiError(statusCode: lastStatus, message: body)
         }
 
         // Parse Gemini response structure

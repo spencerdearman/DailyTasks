@@ -16,6 +16,7 @@ enum EventKitSyncError: LocalizedError {
     case missingDefaultCalendar
     case missingDefaultReminderList
     case systemPermissionBridgeUnavailable
+    case eventNotFound
 
     var errorDescription: String? {
         switch self {
@@ -27,6 +28,8 @@ enum EventKitSyncError: LocalizedError {
             return "No default reminders list is available."
         case .systemPermissionBridgeUnavailable:
             return "Flux could not talk to macOS Calendar permissions. Check System Settings > Privacy & Security > Calendars and Reminders, then relaunch Flux."
+        case .eventNotFound:
+            return "The calendar event could not be found."
         }
     }
 }
@@ -211,6 +214,19 @@ final class EventKitSyncService {
         task.calendarEventID = nil
         task.calendarStartAt = nil
         task.updatedAt = Date()
+    }
+
+    /// Deletes a calendar event by its identifier.
+    func deleteCalendarEvent(withID eventID: String) async throws {
+        guard try await requestCalendarAccess() else {
+            throw EventKitSyncError.accessDenied
+        }
+
+        guard let event = eventStore.event(withIdentifier: eventID) else {
+            throw EventKitSyncError.eventNotFound
+        }
+
+        try eventStore.remove(event, span: .thisEvent)
     }
 
     // MARK: Reminder Operations

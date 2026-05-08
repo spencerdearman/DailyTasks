@@ -319,6 +319,12 @@ final class TaskAgent {
                 message: message, ctx: ctx
             )
 
+        case "delete_event":
+            return doDeleteEvent(
+                searchText: response.searchText ?? response.eventTitle ?? response.title ?? "",
+                message: message, ctx: ctx
+            )
+
         case "decompose_task":
             return AgentResponse(message: message, subtasks: response.subtasks)
 
@@ -367,11 +373,16 @@ final class TaskAgent {
         let whenDate = isLater ? nil : response.date.flatMap { parseDate($0) }
         let taskStatus: TaskStatus = isLater ? .someday : .active
 
-        // Parse deadline — set to 11:59 PM of that day if no time specified
+        // Parse deadline — try full datetime first, then date-only with 11:59 PM default
         var deadlineDate: Date? = nil
-        if let deadlineStr = response.deadline, let parsed = parseDate(deadlineStr) {
-            let cal = Calendar.current
-            deadlineDate = cal.date(bySettingHour: 23, minute: 59, second: 0, of: parsed)
+        if let deadlineStr = response.deadline {
+            if let fullDatetime = parseDatetime(deadlineStr) {
+                // If Gemini sent a full ISO datetime, use it directly
+                deadlineDate = fullDatetime
+            } else if let dateOnly = parseDate(deadlineStr) {
+                let cal = Calendar.current
+                deadlineDate = cal.date(bySettingHour: 23, minute: 59, second: 0, of: dateOnly)
+            }
         }
 
         // Fallback: detect "by <day>" in the title when Gemini forgot the deadline field
@@ -571,6 +582,38 @@ final class TaskAgent {
             print("[TaskAgent] Failed to create calendar event: \(error)")
             return AgentResponse(message: "Failed to create calendar event: \(error.localizedDescription)")
         }
+    }
+
+    // MARK: - Action: Delete Event
+
+    private func doDeleteEvent(searchText: String, message: String, ctx: AgentContext) -> AgentResponse {
+        // Find matching calendar event
+        let searchLower = searchText.lowercased()
+        let matching = ctx.calendarEvents.filter { event in
+            event.title.lowercased().contains(searchLower) ||
+            searchLower.contains(event.title.lowercased())
+        }
+
+        guard let event = matching.first else {
+            return AgentResponse(message: "Couldn't find a calendar event matching \"\(searchText)\".")
+        }
+
+        let card = EventCard(
+            id: event.id, title: event.title,
+            startDate: event.startDate, endDate: event.endDate,
+            location: event.location, isAllDay: event.isAllDay
+        )
+        let deletion = EventDeletion(
+            eventID: event.id,
+            eventTitle: event.title,
+            eventDate: event.startDate
+        )
+
+        return AgentResponse(
+            message: message,
+            eventCards: [card],
+            pendingDeletion: deletion
+        )
     }
 
     // MARK: - Action: List Tasks

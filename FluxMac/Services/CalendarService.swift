@@ -69,6 +69,13 @@ final class CalendarStore: ObservableObject {
         return event
     }
 
+    func deleteEvent(withID eventID: String) async throws {
+        let granted = try await syncService.requestCalendarAccess()
+        guard granted else { throw EventKitSyncError.accessDenied }
+        try await syncService.deleteCalendarEvent(withID: eventID)
+        fetchEvents()
+    }
+
     /// Imports incomplete reminders from EventKit into the SwiftData store.
     func importReminders(into context: ModelContext, areas: [Area]) {
         Task {

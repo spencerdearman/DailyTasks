@@ -38,6 +38,18 @@ struct AgentOverlay: View {
         let subtasks: [String]?
         let isPlanDay: Bool
         let proposal: ScheduleProposal?
+        let pendingDeletion: EventDeletion?
+
+        init(query: String, text: String, taskCards: [TaskCard]? = nil, eventCards: [EventCard]? = nil, subtasks: [String]? = nil, isPlanDay: Bool = false, proposal: ScheduleProposal? = nil, pendingDeletion: EventDeletion? = nil) {
+            self.query = query
+            self.text = text
+            self.taskCards = taskCards
+            self.eventCards = eventCards
+            self.subtasks = subtasks
+            self.isPlanDay = isPlanDay
+            self.proposal = proposal
+            self.pendingDeletion = pendingDeletion
+        }
     }
 
     var body: some View {
@@ -218,6 +230,8 @@ struct AgentOverlay: View {
                 }
                 .padding(.horizontal, 12)
                 .padding(.bottom, 4)
+            } else if let deletion = result.pendingDeletion {
+                deletionResultContent(result, deletion: deletion)
             } else {
                 standardResultContent(result)
             }
@@ -509,7 +523,8 @@ struct AgentOverlay: View {
                     eventCards: response.eventCards,
                     subtasks: response.subtasks,
                     isPlanDay: response.isPlanDay,
-                    proposal: response.proposal
+                    proposal: response.proposal,
+                    pendingDeletion: response.pendingDeletion
                 ))
             }
         }
@@ -550,6 +565,135 @@ struct AgentOverlay: View {
                         text: "Failed to create event: \(error.localizedDescription)",
                         taskCards: nil, eventCards: nil, subtasks: nil,
                         isPlanDay: false, proposal: nil
+                    ))
+                }
+            }
+        }
+    }
+
+    // MARK: - Delete Confirmation
+
+    private func deletionResultContent(_ result: AgentResult, deletion: EventDeletion) -> some View {
+        let hasCards = result.eventCards != nil
+        let displayText = cleanMessage(result.text, hasCards: hasCards)
+
+        return VStack(alignment: .leading, spacing: 0) {
+            if !displayText.isEmpty {
+                Text(markdownString(displayText))
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundStyle(.primary.opacity(0.8))
+                    .lineSpacing(2.5)
+                    .textSelection(.enabled)
+                    .padding(.horizontal, 18)
+                    .padding(.bottom, 8)
+            }
+
+            // Event card with integrated buttons
+            if let events = result.eventCards, let event = events.first {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(dayLabel(event.startDate))
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.secondary)
+                        .textCase(.uppercase)
+                        .tracking(0.5)
+                        .padding(.horizontal, 10)
+                        .padding(.top, 8)
+                        .padding(.bottom, 3)
+
+                    HStack(spacing: 8) {
+                        Text(event.startDate.formatted(date: .omitted, time: .shortened))
+                            .font(.system(size: 10, weight: .medium, design: .monospaced))
+                            .foregroundStyle(.tertiary)
+                            .frame(width: 52, alignment: .trailing)
+
+                        RoundedRectangle(cornerRadius: 1.5)
+                            .fill(Color.red.opacity(0.5))
+                            .frame(width: 2.5)
+
+                        Text(event.title)
+                            .font(.system(size: 12, weight: .medium))
+                            .lineLimit(1)
+
+                        Spacer()
+
+                        Text(duration(from: event.startDate, to: event.endDate))
+                            .font(.system(size: 9.5, design: .monospaced))
+                            .foregroundStyle(.quaternary)
+                    }
+                    .padding(.vertical, 4)
+                    .padding(.horizontal, 8)
+
+                    Divider()
+                        .opacity(0.3)
+                        .padding(.horizontal, 10)
+                        .padding(.top, 4)
+
+                    // Inline action buttons
+                    deleteConfirmation(for: deletion)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 8)
+                }
+                .background(Color.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .padding(.horizontal, 12)
+                .padding(.bottom, 4)
+            }
+        }
+    }
+
+    private func deleteConfirmation(for deletion: EventDeletion) -> some View {
+        HStack(spacing: 8) {
+            Button {
+                confirmDeletion(deletion)
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: "trash")
+                        .font(.system(size: 10, weight: .medium))
+                    Text("Remove")
+                        .font(.system(size: 11, weight: .semibold))
+                }
+                .foregroundStyle(.red)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(.red.opacity(0.1), in: Capsule())
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                withAnimation(.easeOut(duration: 0.25)) {
+                    responses.append(AgentResult(
+                        query: "Keep: \(deletion.eventTitle)",
+                        text: "Kept **\(deletion.eventTitle)** on your calendar."
+                    ))
+                }
+            } label: {
+                Text("Keep")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(Color.primary.opacity(0.06), in: Capsule())
+            }
+            .buttonStyle(.plain)
+
+            Spacer()
+        }
+    }
+
+    private func confirmDeletion(_ deletion: EventDeletion) {
+        Task {
+            do {
+                try await calendarStore.deleteEvent(withID: deletion.eventID)
+                withAnimation(.easeOut(duration: 0.25)) {
+                    responses.append(AgentResult(
+                        query: "Deleted: \(deletion.eventTitle)",
+                        text: "**\(deletion.eventTitle)** has been removed from your calendar."
+                    ))
+                }
+            } catch {
+                withAnimation(.easeOut(duration: 0.25)) {
+                    responses.append(AgentResult(
+                        query: "Delete: \(deletion.eventTitle)",
+                        text: "Failed to delete event: \(error.localizedDescription)"
                     ))
                 }
             }

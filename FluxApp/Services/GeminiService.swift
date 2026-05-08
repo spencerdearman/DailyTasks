@@ -165,15 +165,34 @@ actor GeminiService {
         request.httpBody = jsonData
         request.timeoutInterval = 60
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        // Retry loop for transient errors (503, 429)
+        let maxRetries = 2
+        var lastData: Data?
+        var lastStatus: Int = 0
 
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw GeminiError.invalidResponse
+        for attempt in 0...maxRetries {
+            let (respData, resp) = try await URLSession.shared.data(for: request)
+
+            guard let http = resp as? HTTPURLResponse else {
+                throw GeminiError.invalidResponse
+            }
+
+            lastData = respData
+            lastStatus = http.statusCode
+
+            if (http.statusCode == 503 || http.statusCode == 429), attempt < maxRetries {
+                let delay = Double(attempt + 1) * 2.0
+                try await Task.sleep(for: .seconds(delay))
+                continue
+            }
+            break
         }
 
-        guard httpResponse.statusCode == 200 else {
+        let data = lastData!
+
+        guard lastStatus == 200 else {
             let body = String(data: data, encoding: .utf8) ?? "unknown"
-            throw GeminiError.apiError(statusCode: httpResponse.statusCode, message: body)
+            throw GeminiError.apiError(statusCode: lastStatus, message: body)
         }
 
         let geminiResponse = try JSONSerialization.jsonObject(with: data) as? [String: Any]
