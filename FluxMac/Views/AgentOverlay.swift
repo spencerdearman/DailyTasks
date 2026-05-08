@@ -534,8 +534,8 @@ struct AgentOverlay: View {
 
             // "Now" pip — always filled
             Circle()
-                .fill(selectedPipIndex == nil ? Color.primary.opacity(0.5) : Color.primary.opacity(0.12))
-                .frame(width: selectedPipIndex == nil ? 5 : 4, height: selectedPipIndex == nil ? 5 : 4)
+                .fill(selectedPipIndex == nil ? Color.primary.opacity(0.5) : Color.primary.opacity(0.15))
+                .frame(width: selectedPipIndex == nil ? 6.5 : 5.5, height: selectedPipIndex == nil ? 6.5 : 5.5)
                 .onTapGesture {
                     startNewConversation()
                 }
@@ -548,16 +548,17 @@ struct AgentOverlay: View {
     private var ghostPreview: some View {
         if let idx = hoveredPipIndex, idx < historyPips.count {
             let conversation = historyPips[idx]
-            HStack(spacing: 6) {
+            HStack {
                 Text(conversation.firstQuery)
                     .lineLimit(1)
-                Text("·")
+                    .foregroundStyle(.secondary)
+                Spacer()
                 Text(relativeTime(conversation.updatedAt))
+                    .foregroundStyle(.quaternary)
             }
-            .font(.system(size: 11, weight: .medium))
-            .foregroundStyle(.tertiary)
+            .font(.system(size: 15, weight: .light))
             .padding(.horizontal, 18)
-            .padding(.vertical, 4)
+            .padding(.vertical, 5)
             .transition(.opacity)
             .animation(.easeOut(duration: 0.2), value: hoveredPipIndex)
         }
