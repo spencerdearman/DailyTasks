@@ -87,17 +87,21 @@ struct CommandPaletteOverlay: View {
 
             // Panel
             VStack(spacing: 0) {
-                // Tab bar + input
                 tabBar
 
                 Divider().opacity(0.4).padding(.horizontal, 12)
 
                 // Content area
                 if mode == .find {
-                    findContent
+                    findResults
                 } else {
-                    agentContent
+                    agentResults
                 }
+
+                Divider().opacity(0.3).padding(.horizontal, 12)
+
+                // Input bar at bottom
+                inputBar
             }
             .contentShape(Rectangle())
             .onTapGesture { /* absorb taps on panel so they don't dismiss */ }
@@ -169,29 +173,66 @@ struct CommandPaletteOverlay: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Find Content
+    // MARK: - Unified Input Bar
 
-    private var findContent: some View {
-        VStack(spacing: 0) {
-            // Search field
-            HStack(spacing: 10) {
+    private var inputBar: some View {
+        HStack(spacing: 10) {
+            Image(systemName: mode == .find ? "magnifyingglass" : "sparkles")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(.tertiary)
+                .symbolEffect(.pulse, isActive: mode == .agent && (agent.isProcessing || isSynthesizing))
+
+            if mode == .find {
                 TextField("Search tasks, projects, areas...", text: $findQuery)
                     .textFieldStyle(.plain)
                     .font(.system(size: 16, weight: .light))
                     .focused($isFindFocused)
+            } else {
+                TextField("Ask Flux anything...", text: $agentInput)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 16, weight: .light))
+                    .focused($isAgentFocused)
+                    .onSubmit { submitAgent() }
+            }
 
-                if !findQuery.isEmpty {
-                    Button { findQuery = "" } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 14))
-                            .foregroundStyle(.quaternary)
+            // Trailing accessory
+            if mode == .find && !findQuery.isEmpty {
+                Button { findQuery = "" } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.quaternary)
+                }
+                .buttonStyle(.plain)
+            } else if mode == .agent {
+                if agent.isProcessing || isSynthesizing {
+                    ProgressView()
+                        .controlSize(.small)
+                } else if !agentInput.isEmpty {
+                    Button { submitAgent() } label: {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .font(.system(size: 24))
+                            .foregroundStyle(.primary.opacity(0.5))
                     }
                     .buttonStyle(.plain)
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if mode == .find {
+                isFindFocused = true
+            } else {
+                isAgentFocused = true
+            }
+        }
+    }
 
+    // MARK: - Find Results
+
+    private var findResults: some View {
+        Group {
             if findHasResults {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
@@ -223,19 +264,15 @@ struct CommandPaletteOverlay: View {
         }
     }
 
-    // MARK: - Agent Content
+    // MARK: - Agent Results
 
-    private var agentContent: some View {
-        VStack(spacing: 0) {
+    private var agentResults: some View {
+        Group {
             if agentResponses.isEmpty && !agent.isProcessing && !isSynthesizing {
                 agentEmptyState
             } else {
                 agentResultsList
             }
-
-            Divider().opacity(0.3).padding(.horizontal, 12)
-
-            agentInputBar
         }
     }
 
@@ -244,7 +281,7 @@ struct CommandPaletteOverlay: View {
             Image(systemName: "sparkles")
                 .font(.system(size: 28))
                 .foregroundStyle(.tertiary)
-                .padding(.top, 24)
+                .padding(.top, 20)
 
             Text("Ask Flux anything")
                 .font(.subheadline.weight(.medium))
@@ -255,7 +292,7 @@ struct CommandPaletteOverlay: View {
                 agentSuggestion("What's on my plate today?")
                 agentSuggestion("Add a task to buy groceries")
             }
-            .padding(.bottom, 16)
+            .padding(.bottom, 14)
         }
         .frame(maxWidth: .infinity)
     }
@@ -311,39 +348,6 @@ struct CommandPaletteOverlay: View {
                     }
                 }
             }
-        }
-    }
-
-    private var agentInputBar: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "sparkles")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(.tertiary)
-                .symbolEffect(.pulse, isActive: agent.isProcessing || isSynthesizing)
-
-            TextField("Ask Flux anything...", text: $agentInput)
-                .font(.system(size: 15))
-                .focused($isAgentFocused)
-                .onSubmit { submitAgent() }
-                .textFieldStyle(.plain)
-
-            if agent.isProcessing || isSynthesizing {
-                ProgressView()
-                    .controlSize(.small)
-            } else if !agentInput.isEmpty {
-                Button { submitAgent() } label: {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.system(size: 24))
-                        .foregroundStyle(.primary.opacity(0.5))
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 14)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            isAgentFocused = true
         }
     }
 

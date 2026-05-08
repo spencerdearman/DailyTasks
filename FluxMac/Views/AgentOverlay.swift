@@ -31,6 +31,7 @@ struct AgentOverlay: View {
     @State private var hoveredPipIndex: Int?
     @State private var selectedPipIndex: Int?
     @State private var showPips = false
+    @State private var showHistoryList = false
     @FocusState private var isFocused: Bool
 
     // MARK: - Result Model
@@ -71,7 +72,10 @@ struct AgentOverlay: View {
 
                     ghostPreview
 
-                    if !responses.isEmpty || agent.isProcessing {
+                    if showHistoryList {
+                        historyListView
+                            .transition(.opacity)
+                    } else if !responses.isEmpty || agent.isProcessing {
                         resultArea
                             .transition(.identity)
                     }
@@ -511,43 +515,84 @@ struct AgentOverlay: View {
 
     // MARK: - Temporal Scrubber
 
-    /// The conversations to show as pips (max 5, most recent last).
-    private var historyPips: [AgentConversation] {
-        Array(recentConversations.prefix(5).reversed())
+    /// The 3 quick-access conversations (middle pips).
+    private var quickAccessConversations: [AgentConversation] {
+        Array(recentConversations.prefix(3))
+    }
+
+    /// Whether there are more conversations beyond the 3 quick-access ones.
+    private var hasMoreHistory: Bool {
+        recentConversations.count > 3
     }
 
     private var scrubberPips: some View {
-        HStack(spacing: 6) {
-            ForEach(Array(historyPips.enumerated()), id: \.element.id) { index, conversation in
+        HStack(spacing: 0) {
+            // Pip 1: "New chat" — leftmost, always highlighted when active
+            Circle()
+                .fill(selectedPipIndex == nil && !showHistoryList ? Color.primary.opacity(0.5) : Color.primary.opacity(0.15))
+                .frame(width: selectedPipIndex == nil && !showHistoryList ? 6.5 : 5.5, height: selectedPipIndex == nil && !showHistoryList ? 6.5 : 5.5)
+                .padding(6)
+                .contentShape(Rectangle())
+                .onHover { hovering in
+                    withAnimation(.easeOut(duration: 0.15)) {
+                        hoveredPipIndex = hovering ? -1 : nil
+                    }
+                }
+                .onTapGesture {
+                    showHistoryList = false
+                    startNewConversation()
+                }
+
+            // Pips 2-4: Quick access (up to 3 recent conversations)
+            ForEach(Array(quickAccessConversations.enumerated()), id: \.element.id) { index, conversation in
                 Circle()
-                    .fill(selectedPipIndex == index ? Color.primary.opacity(0.5) : Color.primary.opacity(hoveredPipIndex == index ? 0.3 : 0.15))
-                    .frame(width: selectedPipIndex == index ? 6.5 : 5.5, height: selectedPipIndex == index ? 6.5 : 5.5)
+                    .fill(selectedPipIndex == index && !showHistoryList ? Color.primary.opacity(0.5) : Color.primary.opacity(hoveredPipIndex == index ? 0.3 : 0.15))
+                    .frame(width: selectedPipIndex == index && !showHistoryList ? 6.5 : 5.5, height: selectedPipIndex == index && !showHistoryList ? 6.5 : 5.5)
+                    .padding(6)
+                    .contentShape(Rectangle())
                     .onHover { hovering in
                         withAnimation(.easeOut(duration: 0.15)) {
                             hoveredPipIndex = hovering ? index : nil
                         }
                     }
                     .onTapGesture {
+                        showHistoryList = false
                         loadConversation(at: index)
                     }
             }
 
-            // "Now" pip — always filled
-            Circle()
-                .fill(selectedPipIndex == nil ? Color.primary.opacity(0.5) : Color.primary.opacity(0.15))
-                .frame(width: selectedPipIndex == nil ? 6.5 : 5.5, height: selectedPipIndex == nil ? 6.5 : 5.5)
-                .onTapGesture {
-                    startNewConversation()
-                }
+            // Pip 5: "History" — rightmost, opens full history list
+            if hasMoreHistory || !recentConversations.isEmpty {
+                Circle()
+                    .fill(showHistoryList ? Color.accentColor.opacity(0.6) : Color.primary.opacity(hoveredPipIndex == -2 ? 0.3 : 0.15))
+                    .frame(width: showHistoryList ? 6.5 : 5.5, height: showHistoryList ? 6.5 : 5.5)
+                    .padding(6)
+                    .contentShape(Rectangle())
+                    .onHover { hovering in
+                        withAnimation(.easeOut(duration: 0.15)) {
+                            hoveredPipIndex = hovering ? -2 : nil
+                        }
+                    }
+                    .onTapGesture {
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            showHistoryList.toggle()
+                            if showHistoryList {
+                                selectedPipIndex = nil
+                                responses = []
+                            }
+                        }
+                    }
+            }
         }
         .animation(.easeOut(duration: 0.15), value: selectedPipIndex)
         .animation(.easeOut(duration: 0.15), value: hoveredPipIndex)
+        .animation(.easeOut(duration: 0.15), value: showHistoryList)
     }
 
     @ViewBuilder
     private var ghostPreview: some View {
-        if let idx = hoveredPipIndex, idx < historyPips.count {
-            let conversation = historyPips[idx]
+        if let idx = hoveredPipIndex, idx >= 0, idx < quickAccessConversations.count {
+            let conversation = quickAccessConversations[idx]
             HStack {
                 Text(conversation.firstQuery)
                     .lineLimit(1)
@@ -558,15 +603,74 @@ struct AgentOverlay: View {
             }
             .font(.system(size: 15, weight: .light))
             .padding(.horizontal, 18)
-            .padding(.vertical, 5)
+            .padding(.top, 5)
+            .padding(.bottom, 8)
             .transition(.opacity)
             .animation(.easeOut(duration: 0.2), value: hoveredPipIndex)
+        } else if hoveredPipIndex == -2 {
+            Text("History")
+                .font(.system(size: 15, weight: .light))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 18)
+                .padding(.top, 5)
+                .padding(.bottom, 8)
+                .transition(.opacity)
+                .animation(.easeOut(duration: 0.2), value: hoveredPipIndex)
         }
     }
 
-    private func loadConversation(at index: Int) {
-        guard index < historyPips.count else { return }
-        let conversation = historyPips[index]
+    // MARK: - History List
+
+    private var historyListView: some View {
+        ScrollView(showsIndicators: false) {
+            LazyVStack(spacing: 0) {
+                ForEach(Array(recentConversations.enumerated()), id: \.element.id) { index, conversation in
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            showHistoryList = false
+                        }
+                        loadConversation(fromAll: conversation)
+                    } label: {
+                        HStack {
+                            Text(conversation.firstQuery)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(.primary.opacity(0.8))
+                                .lineLimit(1)
+
+                            Spacer()
+
+                            Text(relativeTime(conversation.updatedAt))
+                                .font(.system(size: 11))
+                                .foregroundStyle(.quaternary)
+                        }
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 10)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+
+                    if index < recentConversations.count - 1 {
+                        Divider()
+                            .padding(.horizontal, 20)
+                            .opacity(0.3)
+                    }
+                }
+            }
+            .padding(.vertical, 4)
+        }
+        .frame(maxHeight: 400)
+        .mask(
+            VStack(spacing: 0) {
+                LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
+                    .frame(height: 6)
+                Color.black
+                LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
+                    .frame(height: 4)
+            }
+        )
+    }
+
+    private func loadConversation(fromAll conversation: AgentConversation) {
         let messages = conversation.decodeMessages()
 
         var results: [AgentResult] = []
@@ -574,7 +678,6 @@ struct AgentOverlay: View {
         while i < messages.count {
             let msg = messages[i]
             if msg.role == .user {
-                // Look for the next assistant message
                 let assistantMsg = (i + 1 < messages.count && messages[i + 1].role == .assistant) ? messages[i + 1] : nil
                 let text = assistantMsg?.text ?? ""
                 let taskCards = assistantMsg?.taskCardsJSON.flatMap { decodeTaskCards($0) }
@@ -597,10 +700,20 @@ struct AgentOverlay: View {
 
         withAnimation(.easeInOut(duration: 0.3)) {
             responses = results
-            selectedPipIndex = index
             currentConversation = conversation
+            // Find which quick-access index, if any
+            if let qIdx = quickAccessConversations.firstIndex(where: { $0.id == conversation.id }) {
+                selectedPipIndex = qIdx
+            } else {
+                selectedPipIndex = nil
+            }
         }
         input = ""
+    }
+
+    private func loadConversation(at index: Int) {
+        guard index < quickAccessConversations.count else { return }
+        loadConversation(fromAll: quickAccessConversations[index])
     }
 
     private func startNewConversation() {
