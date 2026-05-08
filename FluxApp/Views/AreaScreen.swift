@@ -85,7 +85,7 @@ struct AreaScreen: View {
             }
             .padding(20)
         }
-        .pullToQuickFind()
+        .pullToAgent()
         .background(AppBackground())
         .navigationTitle(area.title)
         .navigationBarTitleDisplayMode(.inline)

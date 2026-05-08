@@ -31,7 +31,10 @@ struct AgentOverlay: View {
     @State private var hoveredPipIndex: Int?
     @State private var selectedPipIndex: Int?
     @State private var showPips = false
-    @State private var showHistoryList = false
+    @State private var isHoveringHistoryPip = false
+    @State private var isHoveringHistoryList = false
+    @State private var historyDismissTask: Task<Void, Never>?
+    @State private var showHistoryListStable = false
     @FocusState private var isFocused: Bool
 
     // MARK: - Result Model
@@ -74,12 +77,19 @@ struct AgentOverlay: View {
 
                     if showHistoryList {
                         historyListView
+                            .onHover { hovering in
+                                isHoveringHistoryList = hovering
+                                updateHistoryVisibility()
+                            }
                             .transition(.opacity)
                     } else if !responses.isEmpty || agent.isProcessing {
                         resultArea
-                            .transition(.identity)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
                     }
                 }
+                .animation(.spring(response: 0.4, dampingFraction: 0.85), value: showHistoryList)
+                .animation(.spring(response: 0.4, dampingFraction: 0.85), value: responses.count)
+                .animation(.spring(response: 0.4, dampingFraction: 0.85), value: agent.isProcessing)
                 .frame(width: 580)
                 .background(Color(white: 0.08).opacity(0.6), in: .rect(cornerRadius: 22))
                 .glassEffect(.regular, in: .rect(cornerRadius: 22))
@@ -129,7 +139,7 @@ struct AgentOverlay: View {
                 .focused($isFocused)
                 .onSubmit { submit() }
 
-            if showPips && !historyPips.isEmpty {
+            if showPips && !recentConversations.isEmpty {
                 scrubberPips
                     .opacity(hasContent ? 0.3 : 1)
                     .animation(.easeOut(duration: 0.2), value: hasContent)
@@ -525,12 +535,42 @@ struct AgentOverlay: View {
         recentConversations.count > 3
     }
 
+    private var showHistoryList: Bool {
+        showHistoryListStable
+    }
+
+    private func updateHistoryVisibility() {
+        let shouldShow = isHoveringHistoryPip || isHoveringHistoryList
+        if shouldShow {
+            historyDismissTask?.cancel()
+            historyDismissTask = nil
+            if !showHistoryListStable {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                    showHistoryListStable = true
+                }
+            }
+        } else {
+            historyDismissTask?.cancel()
+            historyDismissTask = Task {
+                try? await Task.sleep(for: .milliseconds(200))
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    if !isHoveringHistoryPip && !isHoveringHistoryList {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                            showHistoryListStable = false
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private var scrubberPips: some View {
         HStack(spacing: 0) {
             // Pip 1: "New chat" — leftmost, always highlighted when active
             Circle()
-                .fill(selectedPipIndex == nil && !showHistoryList ? Color.primary.opacity(0.5) : Color.primary.opacity(0.15))
-                .frame(width: selectedPipIndex == nil && !showHistoryList ? 6.5 : 5.5, height: selectedPipIndex == nil && !showHistoryList ? 6.5 : 5.5)
+                .fill(selectedPipIndex == nil ? Color.primary.opacity(0.5) : Color.primary.opacity(0.15))
+                .frame(width: selectedPipIndex == nil ? 6.5 : 5.5, height: selectedPipIndex == nil ? 6.5 : 5.5)
                 .padding(6)
                 .contentShape(Rectangle())
                 .onHover { hovering in
@@ -539,15 +579,14 @@ struct AgentOverlay: View {
                     }
                 }
                 .onTapGesture {
-                    showHistoryList = false
                     startNewConversation()
                 }
 
             // Pips 2-4: Quick access (up to 3 recent conversations)
             ForEach(Array(quickAccessConversations.enumerated()), id: \.element.id) { index, conversation in
                 Circle()
-                    .fill(selectedPipIndex == index && !showHistoryList ? Color.primary.opacity(0.5) : Color.primary.opacity(hoveredPipIndex == index ? 0.3 : 0.15))
-                    .frame(width: selectedPipIndex == index && !showHistoryList ? 6.5 : 5.5, height: selectedPipIndex == index && !showHistoryList ? 6.5 : 5.5)
+                    .fill(selectedPipIndex == index ? Color.primary.opacity(0.5) : Color.primary.opacity(hoveredPipIndex == index ? 0.3 : 0.15))
+                    .frame(width: selectedPipIndex == index ? 6.5 : 5.5, height: selectedPipIndex == index ? 6.5 : 5.5)
                     .padding(6)
                     .contentShape(Rectangle())
                     .onHover { hovering in
@@ -556,42 +595,32 @@ struct AgentOverlay: View {
                         }
                     }
                     .onTapGesture {
-                        showHistoryList = false
                         loadConversation(at: index)
                     }
             }
 
-            // Pip 5: "History" — rightmost, opens full history list
+            // Pip 5: "History" — rightmost, hover to peek at full history
             if hasMoreHistory || !recentConversations.isEmpty {
                 Circle()
-                    .fill(showHistoryList ? Color.accentColor.opacity(0.6) : Color.primary.opacity(hoveredPipIndex == -2 ? 0.3 : 0.15))
+                    .fill(showHistoryList ? Color.accentColor.opacity(0.6) : Color.primary.opacity(isHoveringHistoryPip ? 0.3 : 0.15))
                     .frame(width: showHistoryList ? 6.5 : 5.5, height: showHistoryList ? 6.5 : 5.5)
                     .padding(6)
                     .contentShape(Rectangle())
                     .onHover { hovering in
-                        withAnimation(.easeOut(duration: 0.15)) {
-                            hoveredPipIndex = hovering ? -2 : nil
-                        }
-                    }
-                    .onTapGesture {
-                        withAnimation(.easeInOut(duration: 0.25)) {
-                            showHistoryList.toggle()
-                            if showHistoryList {
-                                selectedPipIndex = nil
-                                responses = []
-                            }
-                        }
+                        isHoveringHistoryPip = hovering
+                        if hovering { hoveredPipIndex = -2 }
+                        updateHistoryVisibility()
                     }
             }
         }
         .animation(.easeOut(duration: 0.15), value: selectedPipIndex)
         .animation(.easeOut(duration: 0.15), value: hoveredPipIndex)
-        .animation(.easeOut(duration: 0.15), value: showHistoryList)
+        .animation(.easeOut(duration: 0.15), value: isHoveringHistoryPip)
     }
 
     @ViewBuilder
     private var ghostPreview: some View {
-        if let idx = hoveredPipIndex, idx >= 0, idx < quickAccessConversations.count {
+        if let idx = hoveredPipIndex, idx >= 0, idx < quickAccessConversations.count, !showHistoryList {
             let conversation = quickAccessConversations[idx]
             HStack {
                 Text(conversation.firstQuery)
@@ -604,18 +633,9 @@ struct AgentOverlay: View {
             .font(.system(size: 15, weight: .light))
             .padding(.horizontal, 18)
             .padding(.top, 5)
-            .padding(.bottom, 8)
+            .padding(.bottom, 10)
             .transition(.opacity)
             .animation(.easeOut(duration: 0.2), value: hoveredPipIndex)
-        } else if hoveredPipIndex == -2 {
-            Text("History")
-                .font(.system(size: 15, weight: .light))
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 18)
-                .padding(.top, 5)
-                .padding(.bottom, 8)
-                .transition(.opacity)
-                .animation(.easeOut(duration: 0.2), value: hoveredPipIndex)
         }
     }
 
@@ -626,9 +646,10 @@ struct AgentOverlay: View {
             LazyVStack(spacing: 0) {
                 ForEach(Array(recentConversations.enumerated()), id: \.element.id) { index, conversation in
                     Button {
-                        withAnimation(.easeInOut(duration: 0.25)) {
-                            showHistoryList = false
-                        }
+                        isHoveringHistoryPip = false
+                        isHoveringHistoryList = false
+                        historyDismissTask?.cancel()
+                        showHistoryListStable = false
                         loadConversation(fromAll: conversation)
                     } label: {
                         HStack {
@@ -861,7 +882,7 @@ struct AgentOverlay: View {
                 pendingDeletion: response.pendingDeletion
             )
 
-            withAnimation(.easeOut(duration: 0.25)) {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
                 responses.append(result)
             }
 

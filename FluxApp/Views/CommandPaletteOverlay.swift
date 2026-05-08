@@ -83,14 +83,10 @@ struct CommandPaletteOverlay: View {
             Color.black.opacity(showPanel ? 0.3 : 0)
                 .ignoresSafeArea()
                 .onTapGesture { dismiss() }
-                .animation(.easeOut(duration: 0.25), value: showPanel)
+                .animation(.spring(response: 0.35, dampingFraction: 0.75), value: showPanel)
 
             // Panel
             VStack(spacing: 0) {
-                tabBar
-
-                Divider().opacity(0.4).padding(.horizontal, 12)
-
                 // Content area
                 if mode == .find {
                     findResults
@@ -100,21 +96,23 @@ struct CommandPaletteOverlay: View {
 
                 Divider().opacity(0.3).padding(.horizontal, 12)
 
-                // Input bar at bottom
+                // Input bar at bottom with integrated mode toggle
                 inputBar
             }
             .contentShape(Rectangle())
             .onTapGesture { /* absorb taps on panel so they don't dismiss */ }
             .glassEffect(.regular, in: .rect(cornerRadius: 22))
             .shadow(color: .black.opacity(0.3), radius: 30, y: 10)
-            .scaleEffect(showPanel ? 1 : 0.95)
+            .scaleEffect(showPanel ? 1 : 0.92)
             .opacity(showPanel ? 1 : 0)
+            .offset(y: showPanel ? 0 : -12)
             .padding(.horizontal, 16)
             .padding(.top, 56)
             .frame(maxHeight: .infinity, alignment: .top)
+            .animation(.spring(response: 0.32, dampingFraction: 0.78, blendDuration: 0.08), value: mode)
         }
         .onAppear {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
                 showPanel = true
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
@@ -133,69 +131,44 @@ struct CommandPaletteOverlay: View {
         }
     }
 
-    // MARK: - Tab Bar
+    // (Tab bar removed — mode toggle is integrated into the input bar)
 
-    private var tabBar: some View {
-        HStack(spacing: 8) {
-            tabPill("Find", icon: "magnifyingglass", isActive: mode == .find) {
-                withAnimation(.easeOut(duration: 0.2)) { mode = .find }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { isFindFocused = true }
-            }
-
-            tabPill("Agent", icon: "sparkles", isActive: mode == .agent) {
-                withAnimation(.easeOut(duration: 0.2)) { mode = .agent }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { isAgentFocused = true }
-            }
-
-            Spacer()
-        }
-        .padding(.horizontal, 14)
-        .padding(.top, 12)
-        .padding(.bottom, 6)
-    }
-
-    private func tabPill(_ title: String, icon: String, isActive: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 5) {
-                Image(systemName: icon)
-                    .font(.system(size: 12, weight: .medium))
-                Text(title)
-                    .font(.system(size: 13, weight: .medium))
-            }
-            .foregroundStyle(isActive ? .primary : .tertiary)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 7)
-            .background(
-                isActive ? Color.primary.opacity(0.1) : Color.clear,
-                in: Capsule()
-            )
-        }
-        .buttonStyle(.plain)
-    }
-
-    // MARK: - Unified Input Bar
+    // MARK: - Input Bar with Integrated Mode Toggle
 
     private var inputBar: some View {
         HStack(spacing: 10) {
-            Image(systemName: mode == .find ? "magnifyingglass" : "sparkles")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(.tertiary)
-                .symbolEffect(.pulse, isActive: mode == .agent && (agent.isProcessing || isSynthesizing))
+            // Leading icon — tap to toggle mode
+            Button {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    mode = mode == .find ? .agent : .find
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    if mode == .find { isFindFocused = true }
+                    else { isAgentFocused = true }
+                }
+            } label: {
+                Image(systemName: mode == .find ? "magnifyingglass" : "sparkles")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(mode == .find ? Color.secondary : Color.purple.opacity(0.7))
+                    .contentTransition(.symbolEffect(.replace))
+            }
+            .buttonStyle(.plain)
 
+            // Text field — morphs between modes
             if mode == .find {
-                TextField("Search tasks, projects, areas...", text: $findQuery)
+                TextField("Find", text: $findQuery)
                     .textFieldStyle(.plain)
                     .font(.system(size: 16, weight: .light))
                     .focused($isFindFocused)
             } else {
-                TextField("Ask Flux anything...", text: $agentInput)
+                TextField("Agent", text: $agentInput)
                     .textFieldStyle(.plain)
                     .font(.system(size: 16, weight: .light))
                     .focused($isAgentFocused)
                     .onSubmit { submitAgent() }
             }
 
-            // Trailing accessory
+            // Trailing accessory (clear / send / spinner)
             if mode == .find && !findQuery.isEmpty {
                 Button { findQuery = "" } label: {
                     Image(systemName: "xmark.circle.fill")
@@ -210,22 +183,20 @@ struct CommandPaletteOverlay: View {
                 } else if !agentInput.isEmpty {
                     Button { submitAgent() } label: {
                         Image(systemName: "arrow.up.circle.fill")
-                            .font(.system(size: 24))
+                            .font(.system(size: 20))
                             .foregroundStyle(.primary.opacity(0.5))
+                            .frame(width: 20, height: 20)
                     }
                     .buttonStyle(.plain)
                 }
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
+        .frame(height: 44)
+        .padding(.horizontal, 16)
         .contentShape(Rectangle())
         .onTapGesture {
-            if mode == .find {
-                isFindFocused = true
-            } else {
-                isAgentFocused = true
-            }
+            if mode == .find { isFindFocused = true }
+            else { isAgentFocused = true }
         }
     }
 
@@ -268,53 +239,10 @@ struct CommandPaletteOverlay: View {
 
     private var agentResults: some View {
         Group {
-            if agentResponses.isEmpty && !agent.isProcessing && !isSynthesizing {
-                agentEmptyState
-            } else {
+            if !agentResponses.isEmpty || agent.isProcessing || isSynthesizing {
                 agentResultsList
             }
         }
-    }
-
-    private var agentEmptyState: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "sparkles")
-                .font(.system(size: 28))
-                .foregroundStyle(.tertiary)
-                .padding(.top, 20)
-
-            Text("Ask Flux anything")
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(.secondary)
-
-            VStack(alignment: .leading, spacing: 6) {
-                agentSuggestion("Plan my day")
-                agentSuggestion("What's on my plate today?")
-                agentSuggestion("Add a task to buy groceries")
-            }
-            .padding(.bottom, 14)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private func agentSuggestion(_ text: String) -> some View {
-        Button {
-            agentInput = text
-            submitAgent()
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: "arrow.up.right")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(.tertiary)
-                Text(text)
-                    .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(Color.primary.opacity(0.05), in: Capsule())
-        }
-        .buttonStyle(.plain)
     }
 
     private var agentResultsList: some View {
@@ -538,10 +466,10 @@ struct CommandPaletteOverlay: View {
     private func dismiss() {
         isFindFocused = false
         isAgentFocused = false
-        withAnimation(.easeOut(duration: 0.2)) {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
             showPanel = false
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
             mode = .none
         }
     }
