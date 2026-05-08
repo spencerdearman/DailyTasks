@@ -25,7 +25,7 @@ struct ProjectDetailView: View {
     @State private var showDeleteConfirm = false
 
     var body: some View {
-        ScrollView {
+        ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 24) {
                 Text(project.title)
                     .font(.system(size: 34, weight: .bold))

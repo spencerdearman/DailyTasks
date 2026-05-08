@@ -156,7 +156,7 @@ struct QuickFindOverlay: View {
                         .padding(.vertical, 4)
                         .padding(.bottom, 6)
                     }
-                    .frame(maxHeight: 400)
+                    .frame(maxHeight: 280)
                     .mask(
                         VStack(spacing: 0) {
                             LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)

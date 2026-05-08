@@ -57,7 +57,7 @@ struct ContentView: View {
             SettingsSheet()
         }
         .tint(.primary)
-        .toolbar {}
+        .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
         .background {
             AppBackground()
         }
@@ -234,7 +234,7 @@ struct ContentView: View {
             .glassEffect(.regular, in: .rect(cornerRadius: 14))
             .listRowInsets(EdgeInsets(top: 4, leading: 10, bottom: 4, trailing: 10))
             .listRowSeparator(.hidden)
-            
+
             Section("Core") {
                 navLink("Inbox", systemImage: "tray.fill", selection: .inbox, count: inboxTasks.count)
                 navLink("Today", systemImage: "sun.max.fill", selection: .today, count: todayTasks.count)

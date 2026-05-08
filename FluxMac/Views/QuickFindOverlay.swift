@@ -137,7 +137,7 @@ struct QuickFindOverlay: View {
                             .opacity(0.5)
                             .padding(.horizontal, 16)
 
-                        ScrollView {
+                        ScrollView(showsIndicators: false) {
                             VStack(alignment: .leading, spacing: 0) {
                                 if !coreListItems.isEmpty {
                                     quickFindSection("Lists", items: coreListItems)

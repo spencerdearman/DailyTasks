@@ -32,6 +32,7 @@ struct TaskEditorSheet: View {
     // MARK: - State
 
     @State private var showDeleteConfirm = false
+    @State private var showWhenPicker = false
     @State private var calendarSyncMessage: String?
     @State private var calendarSyncError = false
     @State private var isSyncingCalendarEvent = false
@@ -190,65 +191,34 @@ struct TaskEditorSheet: View {
 
     private var scheduleCard: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // When row with popover menu
-            Menu {
-                Button {
-                    task.whenDate = Calendar.current.startOfDay(for: .now)
-                    task.isEvening = false
-                    task.status = .active
-                    task.updatedAt = .now
-                } label: {
-                    Label("Today", systemImage: "star.fill")
-                }
-
-                Button {
-                    task.whenDate = Calendar.current.startOfDay(for: .now)
-                    task.isEvening = true
-                    task.status = .active
-                    task.updatedAt = .now
-                } label: {
-                    Label("This Evening", systemImage: "moon.fill")
-                }
-
-                Button {
-                    task.whenDate = Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: .now))
-                    task.isEvening = false
-                    task.status = .active
-                    task.updatedAt = .now
-                } label: {
-                    Label("Later", systemImage: "clock")
-                }
-
-                if task.whenDate != nil || task.isEvening {
-                    Divider()
-
-                    Button(role: .destructive) {
-                        task.whenDate = nil
-                        task.isEvening = false
-                        task.updatedAt = .now
-                    } label: {
-                        Label("Clear", systemImage: "xmark")
-                    }
-                }
+            // When row
+            Button {
+                showWhenPicker = true
             } label: {
                 HStack {
                     Image(systemName: whenIcon)
-                        .foregroundStyle(whenColor)
-                        .frame(width: 24)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(whenColor == .secondary ? .secondary : .white)
+                        .frame(width: 30, height: 30)
+                        .background(whenColor, in: Circle())
                     Text("When")
                         .foregroundStyle(.primary)
                     Spacer()
                     Text(whenLabel)
                         .foregroundStyle(.secondary)
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.caption2.weight(.semibold))
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(.tertiary)
                 }
                 .padding(.horizontal, 16)
-                .padding(.vertical, 10)
+                .padding(.vertical, 8)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .popover(isPresented: $showWhenPicker) {
+                whenPickerPopover
+                    .presentationCompactAdaptation(.popover)
+            }
 
             Divider().padding(.leading, 52)
 
@@ -389,6 +359,87 @@ struct TaskEditorSheet: View {
                 .background(.red.opacity(0.12), in: Capsule())
         }
         .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - When Picker Popover
+
+    private var whenPickerPopover: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            whenPickerRow(icon: "star.fill", color: .yellow, label: "Today",
+                isSelected: task.whenDate != nil && Calendar.current.isDateInToday(task.whenDate!) && !task.isEvening) {
+                task.whenDate = Calendar.current.startOfDay(for: .now)
+                task.isEvening = false
+                task.status = .active
+                task.updatedAt = .now
+                showWhenPicker = false
+            }
+
+            Divider().padding(.leading, 56)
+
+            whenPickerRow(icon: "moon.fill", color: .indigo, label: "This Evening",
+                isSelected: task.isEvening) {
+                task.whenDate = Calendar.current.startOfDay(for: .now)
+                task.isEvening = true
+                task.status = .active
+                task.updatedAt = .now
+                showWhenPicker = false
+            }
+
+            Divider().padding(.leading, 56)
+
+            whenPickerRow(icon: "clock", color: .teal, label: "Later",
+                isSelected: {
+                    guard let w = task.whenDate else { return false }
+                    return !Calendar.current.isDateInToday(w) && !task.isEvening
+                }()) {
+                task.whenDate = Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: .now))
+                task.isEvening = false
+                task.status = .active
+                task.updatedAt = .now
+                showWhenPicker = false
+            }
+
+            if task.whenDate != nil || task.isEvening {
+                Divider()
+
+                whenPickerRow(icon: "xmark", color: .gray, label: "Clear",
+                    isSelected: false) {
+                    task.whenDate = nil
+                    task.isEvening = false
+                    task.updatedAt = .now
+                    showWhenPicker = false
+                }
+            }
+        }
+        .padding(.vertical, 4)
+        .frame(width: 220)
+    }
+
+    private func whenPickerRow(icon: String, color: Color, label: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.white)
+                    .frame(width: 30, height: 30)
+                    .background(color, in: Circle())
+
+                Text(label)
+                    .foregroundStyle(.primary)
+
+                Spacer()
+
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.blue)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Computed Properties

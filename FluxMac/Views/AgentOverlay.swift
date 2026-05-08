@@ -133,7 +133,7 @@ struct AgentOverlay: View {
 
     private var resultArea: some View {
         ScrollViewReader { proxy in
-            ScrollView {
+            ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(Array(responses.enumerated()), id: \.element.id) { index, result in
                         if index > 0 {
@@ -151,10 +151,6 @@ struct AgentOverlay: View {
                         thinkingView
                             .id("thinking")
                     }
-
-                    Color.clear
-                        .frame(height: 1)
-                        .id("bottom")
                 }
                 .padding(.bottom, 10)
             }
@@ -169,16 +165,18 @@ struct AgentOverlay: View {
                 }
             )
             .onChange(of: responses.count) {
-                // Delay slightly so RevealView animation has started and content has height
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                    withAnimation(.easeOut(duration: 0.3)) {
-                        proxy.scrollTo("bottom", anchor: .bottom)
+                // Delay so RevealView animation has started and content has height
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    if let last = responses.last {
+                        withAnimation(.easeInOut(duration: 0.5)) {
+                            proxy.scrollTo(last.id, anchor: .top)
+                        }
                     }
                 }
             }
             .onChange(of: agent.isProcessing) {
                 if agent.isProcessing {
-                    withAnimation(.easeOut(duration: 0.3)) {
+                    withAnimation(.easeInOut(duration: 0.4)) {
                         proxy.scrollTo("thinking", anchor: .top)
                     }
                 }

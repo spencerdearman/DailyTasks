@@ -18,8 +18,9 @@ struct AgentResponse {
     let eventCards: [EventCard]?
     let isPlanDay: Bool
     let proposal: ScheduleProposal?
+    let pendingDeletion: EventDeletion?
 
-    init(message: String, affectedTaskIDs: [UUID] = [], subtasks: [String]? = nil, taskCards: [TaskCard]? = nil, eventCards: [EventCard]? = nil, isPlanDay: Bool = false, proposal: ScheduleProposal? = nil) {
+    init(message: String, affectedTaskIDs: [UUID] = [], subtasks: [String]? = nil, taskCards: [TaskCard]? = nil, eventCards: [EventCard]? = nil, isPlanDay: Bool = false, proposal: ScheduleProposal? = nil, pendingDeletion: EventDeletion? = nil) {
         self.message = message
         self.affectedTaskIDs = affectedTaskIDs
         self.subtasks = subtasks
@@ -27,6 +28,7 @@ struct AgentResponse {
         self.eventCards = eventCards
         self.isPlanDay = isPlanDay
         self.proposal = proposal
+        self.pendingDeletion = pendingDeletion
     }
 }
 
@@ -67,6 +69,13 @@ struct EventCard: Identifiable {
     let isAllDay: Bool
 }
 
+/// Represents a pending event deletion awaiting user confirmation.
+struct EventDeletion {
+    let eventID: String
+    let eventTitle: String
+    let eventDate: Date
+}
+
 // MARK: - Execution Context
 
 /// Bundles all dependencies the agent needs to execute actions.
@@ -80,6 +89,7 @@ struct AgentContext {
     let projects: [Project]
     let tasks: [TaskItem]
     let calendarEvents: [CalendarEvent]
+    var lastUserInput: String? = nil
 }
 
 // MARK: - TaskAgent
@@ -135,20 +145,23 @@ final class TaskAgent {
             print("[TaskAgent] isProcessing set to false")
         }
 
+        var ctx = context
+        ctx.lastUserInput = input
+
         guard !apiKey.isEmpty else {
             print("[TaskAgent] No API key, using keyword fallback")
-            let response = keywordFallback(input: input, ctx: context)
+            let response = keywordFallback(input: input, ctx: ctx)
             lastResponse = response
             return response
         }
 
-        let systemPrompt = buildSystemPrompt(ctx: context)
+        let systemPrompt = buildSystemPrompt(ctx: ctx)
         print("[TaskAgent] System prompt built (\(systemPrompt.count) chars), calling Gemini...")
 
         do {
             let geminiResponse = try await gemini.send(input, apiKey: apiKey, systemPrompt: systemPrompt)
             print("[TaskAgent] Gemini returned action: \(geminiResponse.action), message: \(geminiResponse.message ?? "nil")")
-            var response = await execute(geminiResponse, ctx: context)
+            var response = await execute(geminiResponse, ctx: ctx)
             print("[TaskAgent] Executed action, final message: \(response.message.prefix(100))")
 
             // Follow-up loop: if the input looks like multiple commands and Gemini
@@ -175,7 +188,7 @@ final class TaskAgent {
                         break // No more actions to take
                     }
 
-                    let extra = await executeSingle(followUp, ctx: context)
+                    let extra = await executeSingle(followUp, ctx: ctx)
                     allIDs.append(contentsOf: extra.affectedTaskIDs)
                     if let cards = extra.taskCards { allTaskCards.append(contentsOf: cards) }
                     if let events = extra.eventCards { allEventCards.append(contentsOf: events) }
@@ -297,6 +310,7 @@ final class TaskAgent {
             )
 
         case "create_event":
+            print("[TaskAgent] create_event raw fields — eventTitle: \(response.eventTitle ?? "nil"), eventStart: \(response.eventStart ?? "nil"), eventEnd: \(response.eventEnd ?? "nil"), date: \(response.date ?? "nil"), title: \(response.title ?? "nil")")
             return await doCreateEvent(
                 title: response.eventTitle ?? response.title ?? "New Event",
                 startString: response.eventStart ?? response.date,
@@ -519,8 +533,26 @@ final class TaskAgent {
 
         print("[TaskAgent] doCreateEvent: startString=\(startString ?? "nil"), endString=\(endString ?? "nil"), location=\(location ?? "nil")")
 
-        guard let startStr = startString, let startDate = parseDatetime(startStr) else {
-            print("[TaskAgent] doCreateEvent: Failed to parse startString '\(startString ?? "nil")'")
+        // Try to parse startString, or fall back to extracting datetime from the title
+        var startDate: Date?
+        if let startStr = startString {
+            startDate = parseDatetime(startStr)
+        }
+
+        // Fallback: parse datetime from the title (e.g. "Dinner Event Tomorrow at 7 PM")
+        if startDate == nil {
+            startDate = parseDatetime(title)
+            print("[TaskAgent] doCreateEvent: Fell back to parsing title, got: \(startDate?.description ?? "nil")")
+        }
+
+        // Last resort: extract time from the user's original message via conversation context
+        if startDate == nil, let lastUserInput = ctx.lastUserInput {
+            startDate = extractDatetimeFromNaturalLanguage(lastUserInput)
+            print("[TaskAgent] doCreateEvent: Fell back to user input '\(lastUserInput)', got: \(startDate?.description ?? "nil")")
+        }
+
+        guard let startDate else {
+            print("[TaskAgent] doCreateEvent: All parsing attempts failed")
             return AgentResponse(message: "Couldn't understand the event time. Please try again with a specific date and time.")
         }
 
@@ -904,6 +936,76 @@ final class TaskAgent {
 
         // Fall back to date-only parsing
         return parseDate(trimmed)
+    }
+
+    /// Extracts a datetime from natural language like "add a dinner event tomorrow at 7 pm"
+    /// by finding a day reference and a time reference within the string.
+    private func extractDatetimeFromNaturalLanguage(_ text: String) -> Date? {
+        let lower = text.lowercased()
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: .now)
+
+        // Find the day
+        var baseDate: Date?
+        if lower.contains("tonight") || lower.contains("today") {
+            baseDate = today
+        } else if lower.contains("tomorrow") {
+            baseDate = cal.date(byAdding: .day, value: 1, to: today)
+        } else {
+            let weekdays = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
+            for (idx, day) in weekdays.enumerated() {
+                if lower.contains(day) {
+                    let targetDay = idx + 1
+                    let currentDay = cal.component(.weekday, from: today)
+                    let daysAhead = (targetDay - currentDay + 7) % 7
+                    baseDate = cal.date(byAdding: .day, value: daysAhead == 0 ? 7 : daysAhead, to: today)
+                    break
+                }
+            }
+        }
+
+        // Default to today if no day found
+        if baseDate == nil { baseDate = today }
+
+        // Find the time — look for patterns like "7 pm", "7:00 PM", "3pm", "19:00"
+        let timePattern = #"(\d{1,2})(?::(\d{2}))?\s*(am|pm|AM|PM)"#
+        if let regex = try? NSRegularExpression(pattern: timePattern),
+           let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+           let hourRange = Range(match.range(at: 1), in: text) {
+            var hour = Int(text[hourRange]) ?? 0
+            let minute: Int
+            if let minRange = Range(match.range(at: 2), in: text) {
+                minute = Int(text[minRange]) ?? 0
+            } else {
+                minute = 0
+            }
+            if let ampmRange = Range(match.range(at: 3), in: text) {
+                let ampm = String(text[ampmRange]).lowercased()
+                if ampm == "pm" && hour < 12 { hour += 12 }
+                if ampm == "am" && hour == 12 { hour = 0 }
+            }
+            return cal.date(bySettingHour: hour, minute: minute, second: 0, of: baseDate!)
+        }
+
+        // Try 24-hour time like "19:00"
+        let time24Pattern = #"(\d{1,2}):(\d{2})"#
+        if let regex = try? NSRegularExpression(pattern: time24Pattern),
+           let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+           let hourRange = Range(match.range(at: 1), in: text),
+           let minRange = Range(match.range(at: 2), in: text) {
+            let hour = Int(text[hourRange]) ?? 0
+            let minute = Int(text[minRange]) ?? 0
+            if hour >= 0 && hour <= 23 {
+                return cal.date(bySettingHour: hour, minute: minute, second: 0, of: baseDate!)
+            }
+        }
+
+        // "tonight" / "evening" with no time → 7 PM
+        if lower.contains("tonight") || lower.contains("evening") || lower.contains("dinner") {
+            return cal.date(bySettingHour: 19, minute: 0, second: 0, of: baseDate!)
+        }
+
+        return nil
     }
 
     private func parseDate(_ string: String) -> Date? {

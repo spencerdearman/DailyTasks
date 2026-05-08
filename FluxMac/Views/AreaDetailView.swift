@@ -32,7 +32,7 @@ struct AreaDetailView: View {
     }
     
     var body: some View {
-        ScrollView {
+        ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 22) {
                 Text(area.title)
                     .font(.system(size: 34, weight: .bold))

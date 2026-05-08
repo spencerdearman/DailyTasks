@@ -805,7 +805,7 @@ struct TaskRow: View {
                         .textCase(.uppercase)
                         .tracking(0.5)
                     
-                    ScrollView {
+                    ScrollView(showsIndicators: false) {
                         VStack(alignment: .leading, spacing: 6) {
                             ForEach(allAreas) { area in
                                 areaMoveRow(area)

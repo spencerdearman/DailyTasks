@@ -25,7 +25,7 @@ struct TaskCollectionView: View {
     var onOpenSynthesis: (() -> Void)? = nil
 
     var body: some View {
-        ScrollView {
+        ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 22) {
                 Text(title)
                     .font(.system(size: 34, weight: .bold))

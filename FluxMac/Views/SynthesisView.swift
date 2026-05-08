@@ -101,7 +101,7 @@ struct SynthesisView: View {
     // MARK: Content
 
     private var contentScroll: some View {
-        ScrollView {
+        ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 14) {
                 // Greeting
                 if !synthesis.greeting.isEmpty {

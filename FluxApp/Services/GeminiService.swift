@@ -72,7 +72,8 @@ actor GeminiService {
                 "enum": [
                     "create_task", "complete_task", "move_task", "schedule_task",
                     "defer_task", "list_tasks", "decompose_task", "plan_day",
-                    "reschedule_overdue", "create_event", "query", "chat",
+                    "reschedule_overdue", "create_event", "delete_event",
+                    "query", "chat",
                 ],
             ],
             "title": ["type": "STRING", "description": "Task title for create_task, or goal for decompose_task"],
@@ -89,8 +90,8 @@ actor GeminiService {
                 "description": "For decompose_task: list of suggested subtask titles",
             ],
             "event_title": ["type": "STRING", "description": "For create_event: calendar event title"],
-            "event_start": ["type": "STRING", "description": "For create_event: start datetime as ISO 8601 (YYYY-MM-DDTHH:mm:ss)"],
-            "event_end": ["type": "STRING", "description": "For create_event: end datetime as ISO 8601 (YYYY-MM-DDTHH:mm:ss)"],
+            "event_start": ["type": "STRING", "description": "REQUIRED for create_event: start datetime as ISO 8601 (YYYY-MM-DDTHH:mm:ss). Example: 2026-05-08T19:00:00. You MUST always set this for create_event actions."],
+            "event_end": ["type": "STRING", "description": "REQUIRED for create_event: end datetime as ISO 8601 (YYYY-MM-DDTHH:mm:ss). Example: 2026-05-08T20:00:00. You MUST always set this for create_event actions."],
             "event_location": ["type": "STRING", "description": "For create_event: location of the event"],
             "add_to_calendar": ["type": "BOOLEAN", "description": "For create_task: also create a calendar event for this task"],
             "location_name": ["type": "STRING", "description": "Location name for the task or event"],
@@ -105,7 +106,8 @@ actor GeminiService {
                             "enum": [
                                 "create_task", "complete_task", "move_task", "schedule_task",
                                 "defer_task", "list_tasks", "decompose_task", "plan_day",
-                                "reschedule_overdue", "create_event", "query", "chat",
+                                "reschedule_overdue", "create_event", "delete_event",
+                                "query", "chat",
                             ],
                         ],
                         "title": ["type": "STRING"],
@@ -161,7 +163,7 @@ actor GeminiService {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = jsonData
-        request.timeoutInterval = 30
+        request.timeoutInterval = 60
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
@@ -232,6 +234,13 @@ enum GeminiPromptBuilder {
         calendarEvents: [(title: String, date: String, start: String, end: String, location: String?)] = [],
         todayDate: String
     ) -> String {
+        let tomorrowDate: String = {
+            let fmt = DateFormatter()
+            fmt.dateFormat = "yyyy-MM-dd"
+            let tmrw = Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date()
+            return fmt.string(from: tmrw)
+        }()
+
         var prompt = """
         You are Flux Agent, an intelligent assistant built into the Flux task manager app. \
         Today's date is \(todayDate). \
@@ -254,13 +263,16 @@ enum GeminiPromptBuilder {
         - decompose_task: Break a goal into subtasks. Set title (the goal) and subtasks (array of subtask titles).
         - plan_day: Suggest a prioritized plan for today.
         - reschedule_overdue: Find overdue tasks and suggest new dates.
-        - create_event: Add a calendar event. Set event_title, event_start (ISO 8601: YYYY-MM-DDTHH:mm:ss), \
-        event_end (ISO 8601), and optionally event_location. For example, "dinner at 7pm today" → \
-        event_start = "\(todayDate.prefix(10))T19:00:00", event_end = "\(todayDate.prefix(10))T20:00:00". \
-        Default duration is 1 hour if not specified. \
-        CRITICAL: Always provide event_title, event_start, and event_end in the SAME response — never ask follow-up questions for these. \
-        If the user doesn't specify a title, infer one from context (e.g. "meeting", "dinner"). \
-        Do NOT check for calendar conflicts — the app handles conflict detection automatically.
+        - create_event: Add a calendar event. You MUST set event_title, event_start, and event_end. \
+        event_start and event_end MUST be ISO 8601 format: YYYY-MM-DDTHH:mm:ss. \
+        Example: "dinner at 7pm today" → event_title="Dinner", event_start="\(todayDate.prefix(10))T19:00:00", event_end="\(todayDate.prefix(10))T20:00:00". \
+        Example: "meeting tomorrow at 2pm for 90 minutes" → event_start="\(tomorrowDate)T14:00:00", event_end="\(tomorrowDate)T15:30:00". \
+        Default duration is 1 hour if not specified. Today's date is \(todayDate.prefix(10)). Tomorrow is \(tomorrowDate). \
+        NEVER omit event_start or event_end — the event will fail without them. \
+        If the user doesn't specify a title, infer one from context. \
+        Optionally set event_location. Do NOT check for calendar conflicts — the app handles that.
+        - delete_event: Cancel/remove a calendar event. Set search_text to match the event title. \
+        The app will show the user a confirmation dialog before actually deleting — never delete silently.
         - query: Answer questions about tasks, productivity, workload.
         - chat: For general conversation or when no action fits.
 

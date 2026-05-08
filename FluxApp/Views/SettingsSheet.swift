@@ -61,20 +61,31 @@ struct SettingsSheet: View {
                     }
                     .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-                    // Agent section
-                    sectionHeader("Agent")
+                    // Flux Agent section
+                    Label("Flux Agent", systemImage: "sparkles")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .padding(.leading, 4)
+                        .padding(.top, 12)
+
                     VStack(spacing: 0) {
-                        SecureField("Gemini API Key", text: $geminiAPIKey)
-                            .textContentType(.password)
-                            .autocorrectionDisabled()
-                            .textInputAutocapitalization(.never)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                            .onChange(of: geminiAPIKey) {
-                                if validationState != .idle {
-                                    validationState = .idle
+                        HStack {
+                            Text("Gemini API Key")
+                            Spacer()
+                            SecureField("Paste key here", text: $geminiAPIKey)
+                                .textContentType(.password)
+                                .autocorrectionDisabled()
+                                .textInputAutocapitalization(.never)
+                                .multilineTextAlignment(.trailing)
+                                .frame(maxWidth: 200)
+                                .onChange(of: geminiAPIKey) {
+                                    if validationState != .idle {
+                                        validationState = .idle
+                                    }
                                 }
-                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
 
                         if !geminiAPIKey.isEmpty {
                             Divider().padding(.leading, 16)
@@ -84,10 +95,16 @@ struct SettingsSheet: View {
 
                                 Spacer()
 
-                                Button(validationState == .valid ? "Revalidate" : "Validate") {
+                                Button {
                                     validateKey()
+                                } label: {
+                                    Text(validationState == .valid ? "Revalidate" : "Validate")
+                                        .font(.subheadline.weight(.medium))
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 5)
+                                        .background(Color.primary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                                 }
-                                .font(.subheadline.weight(.medium))
+                                .buttonStyle(.plain)
                                 .disabled(validationState == .validating)
                             }
                             .padding(.horizontal, 16)
@@ -97,8 +114,8 @@ struct SettingsSheet: View {
                     .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
                     Text("Get a free key from Google AI Studio. Powers natural language task management.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
                         .padding(.horizontal, 4)
                 }
                 .padding(.horizontal, 16)
