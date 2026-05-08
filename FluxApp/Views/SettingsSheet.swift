@@ -28,50 +28,84 @@ struct SettingsSheet: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                // General
-                Section {
-                    Toggle("Show completed tasks", isOn: $showCompleted)
-
-                    Picker("Default view", selection: $defaultView) {
-                        Text("Inbox").tag("inbox")
-                        Text("Today").tag("today")
-                        Text("Upcoming").tag("upcoming")
-                        Text("Open").tag("anytime")
-                    }
-                }
-
-                // Flux Agent
-                Section {
-                    SecureField("Gemini API Key", text: $geminiAPIKey)
-                        .textContentType(.password)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
-                        .onChange(of: geminiAPIKey) {
-                            if validationState != .idle {
-                                validationState = .idle
-                            }
-                        }
-
-                    if !geminiAPIKey.isEmpty {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 8) {
+                    // General section
+                    sectionHeader("General")
+                    VStack(spacing: 0) {
                         HStack {
-                            validationStatus
-
+                            Text("Show completed tasks")
                             Spacer()
+                            Toggle("", isOn: $showCompleted)
+                                .labelsHidden()
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
 
-                            Button(validationState == .valid ? "Revalidate" : "Validate") {
-                                validateKey()
+                        Divider().padding(.leading, 16)
+
+                        HStack {
+                            Text("Default view")
+                            Spacer()
+                            Picker("", selection: $defaultView) {
+                                Text("Inbox").tag("inbox")
+                                Text("Today").tag("today")
+                                Text("Upcoming").tag("upcoming")
+                                Text("Open").tag("anytime")
                             }
-                            .font(.subheadline.weight(.medium))
-                            .disabled(validationState == .validating)
+                            .labelsHidden()
+                            .tint(.secondary)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                    }
+                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                    // Agent section
+                    sectionHeader("Agent")
+                    VStack(spacing: 0) {
+                        SecureField("Gemini API Key", text: $geminiAPIKey)
+                            .textContentType(.password)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                            .onChange(of: geminiAPIKey) {
+                                if validationState != .idle {
+                                    validationState = .idle
+                                }
+                            }
+
+                        if !geminiAPIKey.isEmpty {
+                            Divider().padding(.leading, 16)
+
+                            HStack {
+                                validationStatus
+
+                                Spacer()
+
+                                Button(validationState == .valid ? "Revalidate" : "Validate") {
+                                    validateKey()
+                                }
+                                .font(.subheadline.weight(.medium))
+                                .disabled(validationState == .validating)
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
                         }
                     }
-                } header: {
-                    Label("Agent", systemImage: "sparkles")
-                } footer: {
+                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
                     Text("Get a free key from Google AI Studio. Powers natural language task management.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 4)
                 }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 32)
             }
+            .background(Color(.systemGroupedBackground))
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -83,6 +117,17 @@ struct SettingsSheet: View {
                 }
             }
         }
+    }
+
+    // MARK: - Section Header
+
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .textCase(.uppercase)
+            .padding(.leading, 4)
+            .padding(.top, 12)
     }
 
     // MARK: - Validation Status

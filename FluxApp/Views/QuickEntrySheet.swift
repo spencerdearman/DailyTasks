@@ -38,54 +38,198 @@ struct QuickEntrySheet: View {
     @State private var isEvening = false
     @State private var status: TaskStatus = .active
 
+    // MARK: - Computed
+
+    private var canSave: Bool {
+        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private var whenLabel: String {
+        if isEvening { return "This Evening" }
+        guard let w = whenDate else { return "None" }
+        if Calendar.current.isDateInToday(w) { return "Today" }
+        if Calendar.current.isDateInTomorrow(w) { return "Tomorrow" }
+        let fmt = DateFormatter()
+        fmt.dateStyle = .medium
+        fmt.timeStyle = .none
+        return fmt.string(from: w)
+    }
+
+    private var whenIcon: String {
+        if isEvening { return "moon.fill" }
+        guard let w = whenDate else { return "calendar" }
+        if Calendar.current.isDateInToday(w) { return "star.fill" }
+        return "clock"
+    }
+
+    private var whenColor: Color {
+        if isEvening { return .indigo }
+        guard let w = whenDate else { return .secondary }
+        if Calendar.current.isDateInToday(w) { return .yellow }
+        return .teal
+    }
+
     // MARK: - Body
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Task") {
-                    TextField("New task", text: $title)
-                    TextField("Notes", text: $notes, axis: .vertical)
-                        .lineLimit(3...8)
-                }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 8) {
+                    // Title & Notes
+                    VStack(alignment: .leading, spacing: 0) {
+                        TextField("What do you need to do?", text: $title)
+                            .font(.title3.weight(.semibold))
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 14)
 
-                Section("Placement") {
-                    Picker("Area", selection: $selectedAreaID) {
-                        Text("Inbox").tag(UUID?.none)
-                        ForEach(areas) { area in
-                            Text(area.title).tag(Optional(area.id))
+                        Divider().padding(.leading, 16)
+
+                        TextField("Notes", text: $notes, axis: .vertical)
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2...8)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                    }
+                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                    // Schedule
+                    sectionHeader("Schedule")
+                    VStack(spacing: 0) {
+                        // When row with menu
+                        Menu {
+                            Button {
+                                whenDate = Calendar.current.startOfDay(for: .now)
+                                isEvening = false
+                                status = .active
+                            } label: {
+                                Label("Today", systemImage: "star.fill")
+                            }
+
+                            Button {
+                                whenDate = Calendar.current.startOfDay(for: .now)
+                                isEvening = true
+                                status = .active
+                            } label: {
+                                Label("This Evening", systemImage: "moon.fill")
+                            }
+
+                            Button {
+                                whenDate = Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: .now))
+                                isEvening = false
+                                status = .active
+                            } label: {
+                                Label("Later", systemImage: "clock")
+                            }
+
+                            if whenDate != nil || isEvening {
+                                Divider()
+
+                                Button(role: .destructive) {
+                                    whenDate = nil
+                                    isEvening = false
+                                } label: {
+                                    Label("Clear", systemImage: "xmark")
+                                }
+                            }
+                        } label: {
+                            HStack {
+                                Image(systemName: whenIcon)
+                                    .foregroundStyle(whenColor)
+                                    .frame(width: 24)
+                                Text("When")
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                                Text(whenLabel)
+                                    .foregroundStyle(.secondary)
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .font(.caption2.weight(.semibold))
+                                    .foregroundStyle(.tertiary)
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .contentShape(Rectangle())
                         }
-                    }
+                        .buttonStyle(.plain)
 
-                    Picker("Project", selection: $selectedProjectID) {
-                        Text("None").tag(UUID?.none)
-                        ForEach(filteredProjects) { project in
-                            Text(project.title).tag(Optional(project.id))
+                        Divider().padding(.leading, 52)
+
+                        // Deadline
+                        HStack {
+                            Label("Deadline", systemImage: "flag.fill")
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+                                .fixedSize(horizontal: true, vertical: false)
+                            Spacer()
+                            Button {
+                                deadline = nil
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundStyle(.tertiary)
+                            }
+                            .opacity(deadline != nil ? 1 : 0)
+                            .disabled(deadline == nil)
+
+                            DatePicker("", selection: deadlineBinding, displayedComponents: [.date, .hourAndMinute])
+                                .labelsHidden()
+                                .fixedSize()
                         }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
                     }
-                    .disabled(selectedAreaID == nil)
+                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                    // Organize
+                    sectionHeader("Organize")
+                    VStack(spacing: 0) {
+                        HStack {
+                            Label("Area", systemImage: "square.grid.2x2")
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+                                .fixedSize(horizontal: true, vertical: false)
+                            Spacer()
+                            Picker("", selection: $selectedAreaID) {
+                                Text("Inbox").tag(UUID?.none)
+                                ForEach(areas) { area in
+                                    Text(area.title).tag(Optional(area.id))
+                                }
+                            }
+                            .labelsHidden()
+                            .tint(.secondary)
+                            .lineLimit(1)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+
+                        Divider().padding(.leading, 52)
+
+                        HStack {
+                            Label("Project", systemImage: "paperplane")
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+                                .fixedSize(horizontal: true, vertical: false)
+                            Spacer()
+                            Picker("", selection: $selectedProjectID) {
+                                Text("None").tag(UUID?.none)
+                                ForEach(filteredProjects) { project in
+                                    Text(project.title).tag(Optional(project.id))
+                                }
+                            }
+                            .labelsHidden()
+                            .tint(.secondary)
+                            .lineLimit(1)
+                            .disabled(selectedAreaID == nil)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                    }
+                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
-
-                Section("Timing") {
-                    Picker("Status", selection: $status) {
-                        Text("Active").tag(TaskStatus.active)
-                        Text("Later").tag(TaskStatus.someday)
-                    }
-
-                    Toggle("This Evening", isOn: $isEvening)
-                    DatePicker("When", selection: whenBinding, displayedComponents: .date)
-                    DatePicker("Deadline", selection: deadlineBinding, displayedComponents: [.date, .hourAndMinute])
-
-                    Button("Clear When") {
-                        whenDate = nil
-                        isEvening = false
-                    }
-
-                    Button("Clear Deadline") {
-                        deadline = nil
-                    }
-                }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 32)
             }
+            .background(Color(.systemGroupedBackground))
             .navigationTitle("New Task")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -102,11 +246,22 @@ struct QuickEntrySheet: View {
                         Image(systemName: "checkmark")
                             .font(.system(size: 14, weight: .semibold))
                     }
-                    .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .disabled(!canSave)
                 }
             }
             .onAppear(perform: applyDefaultSelection)
         }
+    }
+
+    // MARK: - Section Header
+
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .textCase(.uppercase)
+            .padding(.leading, 4)
+            .padding(.top, 12)
     }
 
     // MARK: - Computed Properties
@@ -114,13 +269,6 @@ struct QuickEntrySheet: View {
     private var filteredProjects: [Project] {
         guard let selectedAreaID else { return [] }
         return projects.filter { $0.area?.id == selectedAreaID }
-    }
-
-    private var whenBinding: Binding<Date> {
-        Binding(
-            get: { whenDate ?? .now },
-            set: { whenDate = Calendar.current.startOfDay(for: $0) }
-        )
     }
 
     private var deadlineBinding: Binding<Date> {

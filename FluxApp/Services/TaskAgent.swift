@@ -251,6 +251,25 @@ final class TaskAgent {
         let whenDate = isLater ? nil : response.date.flatMap { parseDate($0) }
         let taskStatus: TaskStatus = isLater ? .someday : .active
 
+        // Parse deadline — set to 11:59 PM of that day if no time specified
+        var deadlineDate: Date? = nil
+        if let deadlineStr = response.deadline, let parsed = parseDate(deadlineStr) {
+            let cal = Calendar.current
+            deadlineDate = cal.date(bySettingHour: 23, minute: 59, second: 0, of: parsed)
+        }
+
+        // Fallback: detect "by <day>" in the title when Gemini forgot the deadline field
+        if deadlineDate == nil {
+            let titleLower = title.lowercased()
+            if let byRange = titleLower.range(of: #"\bby\s+(\w+(?:\s+\w+)?)\s*$"#, options: .regularExpression) {
+                let dateStr = String(titleLower[byRange]).replacingOccurrences(of: "by ", with: "").trimmingCharacters(in: .whitespaces)
+                if let parsed = parseDate(dateStr) {
+                    let cal = Calendar.current
+                    deadlineDate = cal.date(bySettingHour: 23, minute: 59, second: 0, of: parsed)
+                }
+            }
+        }
+
         if area == nil && project == nil {
             let classification = await categorizer.categorize(
                 title: title,
@@ -272,6 +291,7 @@ final class TaskAgent {
             title: title,
             notes: response.notes ?? "",
             whenDate: whenDate,
+            deadline: deadlineDate,
             status: taskStatus,
             isInInbox: area == nil && project == nil,
             area: area,
@@ -280,7 +300,7 @@ final class TaskAgent {
         ctx.modelContext.insert(task)
         try? ctx.modelContext.save()
 
-        let taskCard = AgentTaskCard(id: task.id, title: task.title, project: project?.title, area: area?.title, whenDate: whenDate, deadline: nil, isCompleted: false)
+        let taskCard = AgentTaskCard(id: task.id, title: task.title, project: project?.title, area: area?.title, whenDate: whenDate, deadline: deadlineDate, isCompleted: false)
         return AgentResponse(message: message, affectedTaskIDs: [task.id], taskCards: [taskCard])
     }
 
@@ -416,7 +436,16 @@ final class TaskAgent {
                 let fallbackMessage = "No tasks scheduled specifically for today, but here are your active tasks:"
                 return AgentResponse(message: fallbackMessage, affectedTaskIDs: active.prefix(15).map(\.id), taskCards: fallbackCards)
             }
-            return AgentResponse(message: message)
+            let emptyMessage: String
+            switch filter.lowercased() {
+            case "inbox": emptyMessage = "Your inbox is empty."
+            case "today": emptyMessage = "No tasks scheduled for today."
+            case "tomorrow": emptyMessage = "No tasks scheduled for tomorrow."
+            case "later": emptyMessage = "No tasks in your Later list."
+            case "done": emptyMessage = "No completed tasks yet."
+            default: emptyMessage = "No tasks found for \"\(filter)\"."
+            }
+            return AgentResponse(message: emptyMessage)
         }
 
         let cards: [AgentTaskCard] = Array(filtered.prefix(15).map { task in
@@ -545,6 +574,18 @@ final class TaskAgent {
         case "next week": return calendar.date(byAdding: .weekOfYear, value: 1, to: today)
         default:
             let weekdays = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
+            // Handle "next <weekday>" — always jumps to next week's instance
+            if lowered.hasPrefix("next ") {
+                let dayName = String(lowered.dropFirst(5))
+                if let idx = weekdays.firstIndex(of: dayName) {
+                    let targetDay = idx + 1
+                    let currentDay = calendar.component(.weekday, from: today)
+                    let daysAhead = (targetDay - currentDay + 7) % 7
+                    let offset = daysAhead == 0 ? 7 : daysAhead
+                    return calendar.date(byAdding: .day, value: offset, to: today)
+                }
+            }
+            // Handle bare weekday names
             if let idx = weekdays.firstIndex(of: lowered) {
                 let targetDay = idx + 1
                 let currentDay = calendar.component(.weekday, from: today)

@@ -353,6 +353,25 @@ final class TaskAgent {
         let whenDate = isLater ? nil : response.date.flatMap { parseDate($0) }
         let taskStatus: TaskStatus = isLater ? .someday : .active
 
+        // Parse deadline — set to 11:59 PM of that day if no time specified
+        var deadlineDate: Date? = nil
+        if let deadlineStr = response.deadline, let parsed = parseDate(deadlineStr) {
+            let cal = Calendar.current
+            deadlineDate = cal.date(bySettingHour: 23, minute: 59, second: 0, of: parsed)
+        }
+
+        // Fallback: detect "by <day>" in the title when Gemini forgot the deadline field
+        if deadlineDate == nil {
+            let titleLower = title.lowercased()
+            if let byRange = titleLower.range(of: #"\bby\s+(\w+(?:\s+\w+)?)\s*$"#, options: .regularExpression) {
+                let dateStr = String(titleLower[byRange]).replacingOccurrences(of: "by ", with: "").trimmingCharacters(in: .whitespaces)
+                if let parsed = parseDate(dateStr) {
+                    let cal = Calendar.current
+                    deadlineDate = cal.date(bySettingHour: 23, minute: 59, second: 0, of: parsed)
+                }
+            }
+        }
+
         // Auto-categorize if Gemini didn't assign area/project
         if area == nil && project == nil {
             let classification = await categorizer.categorize(
@@ -378,6 +397,7 @@ final class TaskAgent {
             title: title,
             notes: response.notes ?? "",
             whenDate: whenDate,
+            deadline: deadlineDate,
             status: taskStatus,
             isInInbox: area == nil && project == nil,
             locationName: response.locationName,
@@ -387,7 +407,7 @@ final class TaskAgent {
         ctx.modelContext.insert(task)
         try? ctx.modelContext.save()
 
-        let taskCard = TaskCard(id: task.id, title: task.title, project: project?.title, area: area?.title, whenDate: whenDate, deadline: nil, isCompleted: false)
+        let taskCard = TaskCard(id: task.id, title: task.title, project: project?.title, area: area?.title, whenDate: whenDate, deadline: deadlineDate, isCompleted: false)
         var eventCards: [EventCard]? = nil
 
         // If Gemini says to also add to calendar, create the event
@@ -497,7 +517,10 @@ final class TaskAgent {
             return AgentResponse(message: "Calendar access is not available.")
         }
 
+        print("[TaskAgent] doCreateEvent: startString=\(startString ?? "nil"), endString=\(endString ?? "nil"), location=\(location ?? "nil")")
+
         guard let startStr = startString, let startDate = parseDatetime(startStr) else {
+            print("[TaskAgent] doCreateEvent: Failed to parse startString '\(startString ?? "nil")'")
             return AgentResponse(message: "Couldn't understand the event time. Please try again with a specific date and time.")
         }
 
@@ -589,7 +612,16 @@ final class TaskAgent {
 
         if filtered.isEmpty && eventCards == nil {
             print("[TaskAgent] doListTasks: no local tasks matched filter '\(filter)'")
-            return AgentResponse(message: message)
+            let emptyMessage: String
+            switch filter.lowercased() {
+            case "inbox": emptyMessage = "Your inbox is empty."
+            case "today": emptyMessage = "No tasks scheduled for today."
+            case "tomorrow": emptyMessage = "No tasks scheduled for tomorrow."
+            case "later": emptyMessage = "No tasks in your Later list."
+            case "done": emptyMessage = "No completed tasks yet."
+            default: emptyMessage = "No tasks found for \"\(filter)\"."
+            }
+            return AgentResponse(message: emptyMessage)
         }
 
         let cards: [TaskCard]? = filtered.isEmpty ? nil : Array(filtered.prefix(15).map { task in
@@ -795,25 +827,83 @@ final class TaskAgent {
     }
 
     private func parseDatetime(_ string: String) -> Date? {
+        let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
+
         // ISO 8601 with timezone
         let isoFormatter = ISO8601DateFormatter()
         isoFormatter.formatOptions = [.withInternetDateTime]
-        if let date = isoFormatter.date(from: string) { return date }
+        if let date = isoFormatter.date(from: trimmed) { return date }
 
         // ISO 8601 without timezone (YYYY-MM-DDTHH:mm:ss)
         let localIso = DateFormatter()
         localIso.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
         localIso.timeZone = .current
-        if let date = localIso.date(from: string) { return date }
+        if let date = localIso.date(from: trimmed) { return date }
 
         // YYYY-MM-DD HH:mm
         let spaceFmt = DateFormatter()
         spaceFmt.dateFormat = "yyyy-MM-dd HH:mm"
         spaceFmt.timeZone = .current
-        if let date = spaceFmt.date(from: string) { return date }
+        if let date = spaceFmt.date(from: trimmed) { return date }
+
+        // Time-only formats (assume today): "7:00 PM", "3:30pm", "19:00"
+        let timeFormats = ["h:mm a", "h:mma", "ha", "h a", "HH:mm"]
+        for fmt in timeFormats {
+            let tf = DateFormatter()
+            tf.dateFormat = fmt
+            tf.timeZone = .current
+            if let time = tf.date(from: trimmed) {
+                let cal = Calendar.current
+                let comps = cal.dateComponents([.hour, .minute], from: time)
+                return cal.date(bySettingHour: comps.hour ?? 0, minute: comps.minute ?? 0, second: 0, of: Date())
+            }
+        }
+
+        // "tomorrow at 3pm", "today at 7:00 PM", "tomorrow night" — extract date prefix + time
+        let prefixPattern = #"^(today|tomorrow|tonight)\s*(?:(?:at|night|evening)\s*)?(.*)$"#
+        if let regex = try? NSRegularExpression(pattern: prefixPattern, options: .caseInsensitive),
+           let match = regex.firstMatch(in: trimmed, range: NSRange(trimmed.startIndex..., in: trimmed)),
+           let dayRange = Range(match.range(at: 1), in: trimmed) {
+            let dayStr = String(trimmed[dayRange]).lowercased()
+            let baseDate = parseDate(dayStr == "tonight" ? "today" : dayStr) ?? Calendar.current.startOfDay(for: .now)
+
+            let timeStr: String
+            if let timeRange = Range(match.range(at: 2), in: trimmed) {
+                timeStr = String(trimmed[timeRange]).trimmingCharacters(in: .whitespaces)
+            } else {
+                timeStr = ""
+            }
+
+            if !timeStr.isEmpty, let timeOnly = parseDatetime(timeStr) {
+                let cal = Calendar.current
+                let comps = cal.dateComponents([.hour, .minute], from: timeOnly)
+                return cal.date(bySettingHour: comps.hour ?? 0, minute: comps.minute ?? 0, second: 0, of: baseDate)
+            }
+
+            // "tonight" / "tomorrow night" with no explicit time → default to 7:00 PM
+            if dayStr == "tonight" || trimmed.lowercased().contains("night") || trimmed.lowercased().contains("evening") {
+                return Calendar.current.date(bySettingHour: 19, minute: 0, second: 0, of: baseDate)
+            }
+        }
+
+        // "<time> tomorrow/today" — e.g. "7pm tomorrow", "3:00 PM today"
+        let suffixPattern = #"^(.+?)\s+(today|tomorrow|tonight)$"#
+        if let regex = try? NSRegularExpression(pattern: suffixPattern, options: .caseInsensitive),
+           let match = regex.firstMatch(in: trimmed, range: NSRange(trimmed.startIndex..., in: trimmed)),
+           let timeRange = Range(match.range(at: 1), in: trimmed),
+           let dayRange = Range(match.range(at: 2), in: trimmed) {
+            let dayStr = String(trimmed[dayRange]).lowercased()
+            let timeStr = String(trimmed[timeRange])
+            let baseDate = parseDate(dayStr == "tonight" ? "today" : dayStr) ?? Calendar.current.startOfDay(for: .now)
+            if let timeOnly = parseDatetime(timeStr) {
+                let cal = Calendar.current
+                let comps = cal.dateComponents([.hour, .minute], from: timeOnly)
+                return cal.date(bySettingHour: comps.hour ?? 0, minute: comps.minute ?? 0, second: 0, of: baseDate)
+            }
+        }
 
         // Fall back to date-only parsing
-        return parseDate(string)
+        return parseDate(trimmed)
     }
 
     private func parseDate(_ string: String) -> Date? {
@@ -827,6 +917,18 @@ final class TaskAgent {
         case "next week": return calendar.date(byAdding: .weekOfYear, value: 1, to: today)
         default:
             let weekdays = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
+            // Handle "next <weekday>" — always jumps to next week's instance
+            if lowered.hasPrefix("next ") {
+                let dayName = String(lowered.dropFirst(5))
+                if let idx = weekdays.firstIndex(of: dayName) {
+                    let targetDay = idx + 1
+                    let currentDay = calendar.component(.weekday, from: today)
+                    let daysAhead = (targetDay - currentDay + 7) % 7
+                    let offset = daysAhead == 0 ? 7 : daysAhead
+                    return calendar.date(byAdding: .day, value: offset, to: today)
+                }
+            }
+            // Handle bare weekday names
             if let idx = weekdays.firstIndex(of: lowered) {
                 let targetDay = idx + 1
                 let currentDay = calendar.component(.weekday, from: today)

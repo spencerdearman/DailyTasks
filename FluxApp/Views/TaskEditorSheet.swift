@@ -36,21 +36,54 @@ struct TaskEditorSheet: View {
     @State private var calendarSyncError = false
     @State private var isSyncingCalendarEvent = false
 
+    // MARK: - Computed
+
+    private var whenLabel: String {
+        if task.isEvening { return "This Evening" }
+        guard let w = task.whenDate else { return "None" }
+        if Calendar.current.isDateInToday(w) { return "Today" }
+        if Calendar.current.isDateInTomorrow(w) { return "Tomorrow" }
+        let fmt = DateFormatter()
+        fmt.dateStyle = .medium
+        fmt.timeStyle = .none
+        return fmt.string(from: w)
+    }
+
+    private var whenIcon: String {
+        if task.isEvening { return "moon.fill" }
+        guard let w = task.whenDate else { return "calendar" }
+        if Calendar.current.isDateInToday(w) { return "star.fill" }
+        return "clock"
+    }
+
+    private var whenColor: Color {
+        if task.isEvening { return .indigo }
+        guard let w = task.whenDate else { return .secondary }
+        if Calendar.current.isDateInToday(w) { return .yellow }
+        return .teal
+    }
+
     // MARK: - Body
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: 8) {
                     titleAndNotesSection
                     checklistSection
+
+                    sectionHeader("Schedule")
+                    scheduleCard
+
+                    sectionHeader("Organize")
                     placementSection
-                    scheduleQuickPicksSection
-                    deadlineAndCalendarSection
+
                     deleteSection
+                        .padding(.top, 16)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
+                .padding(.bottom, 32)
             }
             .background(Color(.systemGroupedBackground))
             .navigationBarTitleDisplayMode(.inline)
@@ -82,6 +115,17 @@ struct TaskEditorSheet: View {
                 Text(calendarSyncMessage ?? "")
             }
         }
+    }
+
+    // MARK: - Section Header
+
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .textCase(.uppercase)
+            .padding(.leading, 4)
+            .padding(.top, 12)
     }
 
     // MARK: - Title & Notes
@@ -142,122 +186,89 @@ struct TaskEditorSheet: View {
         }
     }
 
-    // MARK: - Placement (Area / Project)
+    // MARK: - Schedule Card
 
-    private var placementSection: some View {
+    private var scheduleCard: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Label("Area", systemImage: "square.grid.2x2")
-                    .foregroundStyle(.primary)
-                Spacer()
-                Picker("", selection: areaBinding) {
-                    Text("Inbox").tag(UUID?.none)
-                    ForEach(areas) { area in
-                        Text(area.title).tag(Optional(area.id))
-                    }
-                }
-                .labelsHidden()
-                .tint(.secondary)
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-
-            Divider().padding(.leading, 52)
-
-            HStack {
-                Label("Project", systemImage: "paperplane")
-                    .foregroundStyle(.primary)
-                Spacer()
-                Picker("", selection: projectBinding) {
-                    Text("None").tag(UUID?.none)
-                    ForEach(filteredProjects) { project in
-                        Text(project.title).tag(Optional(project.id))
-                    }
-                }
-                .labelsHidden()
-                .tint(.secondary)
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-        }
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-    }
-
-    // MARK: - Schedule Quick Picks
-
-    private var scheduleQuickPicksSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 12) {
-                scheduleQuickButton(icon: "star.fill", iconColor: .yellow, label: "Today",
-                    isSelected: task.whenDate != nil && Calendar.current.isDateInToday(task.whenDate!) && !task.isEvening) {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                        task.whenDate = Calendar.current.startOfDay(for: .now)
-                        task.isEvening = false
-                        task.status = .active
-                        task.updatedAt = .now
-                    }
+            // When row with popover menu
+            Menu {
+                Button {
+                    task.whenDate = Calendar.current.startOfDay(for: .now)
+                    task.isEvening = false
+                    task.status = .active
+                    task.updatedAt = .now
+                } label: {
+                    Label("Today", systemImage: "star.fill")
                 }
 
-                scheduleQuickButton(icon: "moon.fill", iconColor: .indigo, label: "Evening",
-                    isSelected: task.isEvening) {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                        task.whenDate = Calendar.current.startOfDay(for: .now)
-                        task.isEvening = true
-                        task.status = .active
-                        task.updatedAt = .now
-                    }
+                Button {
+                    task.whenDate = Calendar.current.startOfDay(for: .now)
+                    task.isEvening = true
+                    task.status = .active
+                    task.updatedAt = .now
+                } label: {
+                    Label("This Evening", systemImage: "moon.fill")
                 }
 
-                scheduleQuickButton(icon: "clock", iconColor: .teal, label: "Later",
-                    isSelected: {
-                        guard let w = task.whenDate else { return false }
-                        return !Calendar.current.isDateInToday(w) && !task.isEvening
-                    }()) {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                        task.whenDate = Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: .now))
-                        task.isEvening = false
-                        task.status = .active
-                        task.updatedAt = .now
-                    }
+                Button {
+                    task.whenDate = Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: .now))
+                    task.isEvening = false
+                    task.status = .active
+                    task.updatedAt = .now
+                } label: {
+                    Label("Later", systemImage: "clock")
                 }
 
                 if task.whenDate != nil || task.isEvening {
-                    scheduleQuickButton(icon: "xmark", iconColor: .secondary, label: "Clear", isSelected: false) {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                            task.whenDate = nil
-                            task.isEvening = false
-                            task.updatedAt = .now
-                        }
+                    Divider()
+
+                    Button(role: .destructive) {
+                        task.whenDate = nil
+                        task.isEvening = false
+                        task.updatedAt = .now
+                    } label: {
+                        Label("Clear", systemImage: "xmark")
                     }
-                    .transition(.scale.combined(with: .opacity))
                 }
+            } label: {
+                HStack {
+                    Image(systemName: whenIcon)
+                        .foregroundStyle(whenColor)
+                        .frame(width: 24)
+                    Text("When")
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    Text(whenLabel)
+                        .foregroundStyle(.secondary)
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .contentShape(Rectangle())
             }
-            .animation(.spring(response: 0.35, dampingFraction: 0.7), value: task.whenDate)
-            .animation(.spring(response: 0.35, dampingFraction: 0.7), value: task.isEvening)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-        }
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-    }
+            .buttonStyle(.plain)
 
-    // MARK: - Deadline & Calendar
+            Divider().padding(.leading, 52)
 
-    private var deadlineAndCalendarSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
             // Deadline
             HStack {
                 Label("Deadline", systemImage: "flag.fill")
                     .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
                 Spacer()
-                if task.deadline != nil {
-                    Button {
-                        task.deadline = nil
-                        task.updatedAt = .now
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.tertiary)
-                    }
+                Button {
+                    task.deadline = nil
+                    task.updatedAt = .now
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.tertiary)
                 }
+                .opacity(task.deadline != nil ? 1 : 0)
+                .disabled(task.deadline == nil)
+
                 DatePicker("", selection: deadlineBinding, displayedComponents: [.date, .hourAndMinute])
                     .labelsHidden()
                     .fixedSize()
@@ -317,21 +328,67 @@ struct TaskEditorSheet: View {
         .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
+    // MARK: - Placement (Area / Project)
+
+    private var placementSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Label("Area", systemImage: "square.grid.2x2")
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+                Spacer()
+                Picker("", selection: areaBinding) {
+                    Text("Inbox").tag(UUID?.none)
+                    ForEach(areas) { area in
+                        Text(area.title).tag(Optional(area.id))
+                    }
+                }
+                .labelsHidden()
+                .tint(.secondary)
+                .lineLimit(1)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+
+            Divider().padding(.leading, 52)
+
+            HStack {
+                Label("Project", systemImage: "paperplane")
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+                Spacer()
+                Picker("", selection: projectBinding) {
+                    Text("None").tag(UUID?.none)
+                    ForEach(filteredProjects) { project in
+                        Text(project.title).tag(Optional(project.id))
+                    }
+                }
+                .labelsHidden()
+                .tint(.secondary)
+                .lineLimit(1)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+        }
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
     // MARK: - Delete
 
     private var deleteSection: some View {
         Button(role: .destructive) {
             showDeleteConfirm = true
         } label: {
-            HStack {
-                Spacer()
-                Label("Delete Task", systemImage: "trash")
-                    .font(.body.weight(.medium))
-                Spacer()
-            }
-            .padding(.vertical, 12)
-            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            Text("Delete Task")
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.red)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 8)
+                .background(.red.opacity(0.12), in: Capsule())
         }
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Computed Properties
@@ -376,17 +433,6 @@ struct TaskEditorSheet: View {
         )
     }
 
-    private var whenBinding: Binding<Date> {
-        Binding(
-            get: { task.whenDate ?? .now },
-            set: {
-                task.whenDate = Calendar.current.startOfDay(for: $0)
-                task.status = .active
-                task.updatedAt = .now
-            }
-        )
-    }
-
     private var deadlineBinding: Binding<Date> {
         Binding(
             get: { task.deadline ?? .now },
@@ -414,7 +460,6 @@ struct TaskEditorSheet: View {
     private func scheduleOnCalendar() {
         isSyncingCalendarEvent = true
 
-        // Use deadline as calendar start time
         if let deadline = task.deadline {
             task.calendarStartAt = deadline
             task.whenDate = Calendar.current.startOfDay(for: deadline)
@@ -455,29 +500,5 @@ struct TaskEditorSheet: View {
             }
             isSyncingCalendarEvent = false
         }
-    }
-
-    // MARK: - Schedule Quick Button
-
-    private func scheduleQuickButton(icon: String, iconColor: Color, label: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            VStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(isSelected ? .white : iconColor)
-                    .symbolEffect(.bounce, value: isSelected)
-                Text(label)
-                    .font(.caption2.weight(.medium))
-                    .foregroundStyle(isSelected ? .white : .secondary)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 6)
-            .background(
-                isSelected ? AnyShapeStyle(iconColor) : AnyShapeStyle(Color.clear),
-                in: RoundedRectangle(cornerRadius: 10, style: .continuous)
-            )
-            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-        }
-        .buttonStyle(.plain)
     }
 }

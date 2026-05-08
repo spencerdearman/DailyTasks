@@ -168,7 +168,6 @@ struct QuickFindOverlay: View {
                     )
                 }
             }
-            .background(.background.opacity(0.85), in: .rect(cornerRadius: hasResults ? 22 : 26))
             .glassEffect(.regular, in: .rect(cornerRadius: hasResults ? 22 : 26))
             .shadow(color: .black.opacity(0.25), radius: 30, y: 10)
             .scaleEffect(showPanel ? 1 : 0.95)

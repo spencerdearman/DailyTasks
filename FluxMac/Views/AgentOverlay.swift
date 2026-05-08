@@ -151,6 +151,10 @@ struct AgentOverlay: View {
                         thinkingView
                             .id("thinking")
                     }
+
+                    Color.clear
+                        .frame(height: 1)
+                        .id("bottom")
                 }
                 .padding(.bottom, 10)
             }
@@ -165,9 +169,17 @@ struct AgentOverlay: View {
                 }
             )
             .onChange(of: responses.count) {
-                if let last = responses.last {
+                // Delay slightly so RevealView animation has started and content has height
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                     withAnimation(.easeOut(duration: 0.3)) {
-                        proxy.scrollTo(last.id, anchor: .bottom)
+                        proxy.scrollTo("bottom", anchor: .bottom)
+                    }
+                }
+            }
+            .onChange(of: agent.isProcessing) {
+                if agent.isProcessing {
+                    withAnimation(.easeOut(duration: 0.3)) {
+                        proxy.scrollTo("thinking", anchor: .top)
                     }
                 }
             }
@@ -455,7 +467,7 @@ struct AgentOverlay: View {
     private func shortDate(_ date: Date) -> String {
         let cal = Calendar.current
         if cal.isDateInToday(date) { return "Today" }
-        if cal.isDateInTomorrow(date) { return "Tmrw" }
+        if cal.isDateInTomorrow(date) { return "Tomorrow" }
         let f = DateFormatter()
         f.dateFormat = "MMM d"
         return f.string(from: date)

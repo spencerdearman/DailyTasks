@@ -115,7 +115,7 @@ struct DailyPlanCard: View {
         VStack(spacing: 0) {
             ForEach(parsed.blocks) { block in
                 let times = splitTimeRange(block.timeRange)
-                HStack(alignment: .top, spacing: 0) {
+                HStack(alignment: .center, spacing: 0) {
                     // Time column — stacked start/end
                     VStack(alignment: .trailing, spacing: 1) {
                         Text(times.start)
@@ -451,7 +451,7 @@ struct DailyPlanCard: View {
     private func shortDate(_ date: Date) -> String {
         let cal = Calendar.current
         if cal.isDateInToday(date) { return "Today" }
-        if cal.isDateInTomorrow(date) { return "Tmrw" }
+        if cal.isDateInTomorrow(date) { return "Tomorrow" }
         let f = DateFormatter()
         f.dateFormat = "MMM d"
         return f.string(from: date)

@@ -26,6 +26,7 @@ struct GeminiActionResponse: Codable, Sendable {
     let eventLocation: String?
     let addToCalendar: Bool?
     let locationName: String?
+    let deadline: String?
     let suggestions: [TimeSuggestion]?
     let additionalActions: [GeminiActionResponse]?
 
@@ -46,6 +47,7 @@ struct GeminiActionResponse: Codable, Sendable {
         case eventLocation = "event_location"
         case addToCalendar = "add_to_calendar"
         case locationName = "location_name"
+        case deadline
         case suggestions
         case additionalActions = "additional_actions"
     }
@@ -104,6 +106,7 @@ actor GeminiService {
             "event_location": ["type": "STRING", "description": "For create_event: location of the event"],
             "add_to_calendar": ["type": "BOOLEAN", "description": "For create_task: also create a calendar event for this task (true when user mentions calendar/schedule/book)"],
             "location_name": ["type": "STRING", "description": "Location name for the task or event (e.g. 'Whole Foods', 'Office', 'Home')"],
+            "deadline": ["type": "STRING", "description": "For create_task: due date when user says 'by', 'due', or 'deadline'. Use natural language: today, tomorrow, friday, next monday, or YYYY-MM-DD"],
             "suggestions": [
                 "type": "ARRAY",
                 "items": [
@@ -188,7 +191,7 @@ actor GeminiService {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = jsonData
-        request.timeoutInterval = 120
+        request.timeoutInterval = 30
 
         let (data, response) = try await URLSession.shared.data(for: request)
         print("[GeminiService] Response received, data size: \(data.count) bytes")
@@ -296,15 +299,18 @@ enum GeminiPromptBuilder {
 
         AVAILABLE ACTIONS:
         - create_task: Create a new task. Set title, notes, date, target_project, target_area as needed. \
-        Parse natural language dates (e.g. "Tuesday" → the next Tuesday as YYYY-MM-DD, "next week" → next Monday). \
+        For dates, pass the natural language string directly: "today", "tomorrow", "next week", "friday", "next monday", etc. \
+        Do NOT convert weekday names to YYYY-MM-DD — the app handles date parsing. Only use YYYY-MM-DD for specific calendar dates like "May 15" → "2026-05-15". \
         If the user says "for later", "someday", or "maybe", set date to "later" — this puts it in the Later/Someday list. \
+        If the user says "by", "due", or "deadline", set the deadline field (not date) — this marks a due date, not a scheduled date. \
         Infer the best area/project from context. \
         If the user wants this on their calendar too, set add_to_calendar=true and provide event_start/event_end times. \
         If a location is mentioned, set location_name.
         - complete_task: Mark a task as done. Set search_text to match the task title.
         - move_task: Move a task to a different project or area. Set search_text + target_project/target_area.
-        - schedule_task: Set or change a task's date. MUST set search_text AND date (YYYY-MM-DD or weekday name). \
-        The date field is REQUIRED — without it the task won't actually move.
+        - schedule_task: Set or change a task's date. MUST set search_text AND date. \
+        Pass the date as natural language: "today", "tomorrow", "friday", "next monday", "next week", or YYYY-MM-DD. \
+        Do NOT convert weekday names to YYYY-MM-DD — the app handles date parsing. The date field is REQUIRED.
         - defer_task: Move a task to "Later" (someday/maybe). Set search_text.
         - list_tasks: Show tasks. Set filter to: inbox, today, tomorrow, upcoming, open, later, done, \
         or a project/area name, or a search query.
@@ -319,10 +325,12 @@ enum GeminiPromptBuilder {
         Include overdue items prominently.
         - reschedule_overdue: Find overdue tasks and suggest new dates in the message.
         - create_event: Add a calendar event. Set event_title, event_start (ISO 8601: YYYY-MM-DDTHH:mm:ss), \
-        event_end (ISO 8601), and optionally event_location. For example, "dinner at 7pm" → event_start "2026-05-06T19:00:00", \
-        event_end "2026-05-06T20:00:00". Default duration is 1 hour if not specified. Always use today's date if the user says "tonight" or "today". \
-        IMPORTANT: Before creating, check if the requested time overlaps with an existing calendar event. \
-        If there IS a conflict, use propose_reschedule instead of create_event.
+        event_end (ISO 8601), and optionally event_location. For example, "dinner at 7pm today" → \
+        event_start = "\(todayDate.prefix(10))T19:00:00", event_end = "\(todayDate.prefix(10))T20:00:00". \
+        Default duration is 1 hour if not specified. Always use today's date (\(todayDate.prefix(10))) if the user says "tonight" or "today". \
+        CRITICAL: Always provide event_title, event_start, and event_end in the SAME response — never ask follow-up questions for these. \
+        If the user doesn't specify a title, infer one from context (e.g. "meeting", "dinner"). \
+        Do NOT check for calendar conflicts — the app handles conflict detection automatically.
         - propose_reschedule: Use this when the user wants to schedule something but the time conflicts \
         with an existing event. Set event_title, event_start, event_end with the ORIGINALLY requested time. \
         Set the message to explain the conflict. Set suggestions with 2-4 alternative time slots that are FREE \
