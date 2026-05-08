@@ -46,9 +46,12 @@ struct TetherApp: App {
 
     // MARK: Body
 
+    @StateObject private var calendarStore = CalendarStore()
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(calendarStore)
         }
         .modelContainer(sharedModelContainer)
     }

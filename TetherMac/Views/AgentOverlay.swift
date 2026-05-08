@@ -65,7 +65,7 @@ struct AgentOverlay: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(showPanel ? 0.25 : 0)
+            Color.black.opacity(showPanel ? 0.1 : 0)
                 .ignoresSafeArea()
                 .onTapGesture { dismiss() }
                 .animation(.easeOut(duration: 0.2), value: showPanel)
@@ -140,34 +140,33 @@ struct AgentOverlay: View {
                 .focused($isFocused)
                 .onSubmit { submit() }
 
-            ZStack {
-                if agent.isProcessing {
-                    ProgressView()
-                        .controlSize(.small)
-                        .transition(.opacity)
-                } else if !input.isEmpty {
-                    Button { submit() } label: {
-                        Image(systemName: "arrow.up.circle.fill")
-                            .font(.system(size: 20))
-                            .foregroundStyle(.primary.opacity(0.5))
-                    }
-                    .buttonStyle(.plain)
-                    .transition(.scale.combined(with: .opacity))
-                }
-            }
-            .frame(width: 28, height: 22)
-
             if !recentConversations.isEmpty {
                 scrubberPips
                     .opacity(showPips ? (hasContent ? 0.3 : 1) : 0)
                     .animation(.easeOut(duration: 0.2), value: hasContent)
                     .animation(.easeOut(duration: 0.3), value: showPips)
             }
+
+            if agent.isProcessing {
+                ProgressView()
+                    .controlSize(.small)
+                    .frame(width: 22, height: 22)
+                    .transition(.blurReplace)
+            } else if !input.isEmpty {
+                Button { submit() } label: {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.system(size: 20))
+                        .foregroundStyle(.primary.opacity(0.5))
+                }
+                .buttonStyle(.plain)
+                .frame(width: 22, height: 22)
+                .transition(.blurReplace)
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .animation(.easeOut(duration: 0.12), value: input.isEmpty)
-        .animation(.easeOut(duration: 0.12), value: agent.isProcessing)
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: input.isEmpty)
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: agent.isProcessing)
     }
 
     // MARK: - Result Area
@@ -191,6 +190,15 @@ struct AgentOverlay: View {
                     if agent.isProcessing {
                         thinkingView
                             .id("thinking")
+                    }
+
+                    if !responses.isEmpty && !agent.isProcessing {
+                        Text("AI can make mistakes.")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.top, 4)
+                            .padding(.bottom, 2)
                     }
                 }
                 .padding(.bottom, 10)

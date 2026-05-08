@@ -71,9 +71,9 @@ struct TaskRow: View {
                 .contentShape(Rectangle())
                 .onTapGesture(perform: onTap)
             }
-            .padding(.horizontal, 18)
-            .padding(.top, 14)
-            .padding(.bottom, isExpanded ? 2 : 14)
+            .padding(.horizontal, 16)
+            .padding(.top, 10)
+            .padding(.bottom, isExpanded ? 2 : 10)
             .opacity(isCompleting ? 0.5 : 1.0)
 
             // Expanded

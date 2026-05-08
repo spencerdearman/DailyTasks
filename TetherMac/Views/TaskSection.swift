@@ -93,8 +93,8 @@ struct TaskSection: View {
                     }
                 }
             }
-            .padding(.vertical, 8)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+            .padding(.vertical, 6)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
     }
     

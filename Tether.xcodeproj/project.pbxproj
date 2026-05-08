@@ -7,68 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		4D3A98F12FA7A324001DDB61 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 4DA258D72FA29C5100DCA196 /* AppIcon.icon */; };
-		4D3A98F22FA7A324001DDB61 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 4DA258D72FA29C5100DCA196 /* AppIcon.icon */; };
 		4D3A98F32FA7A324001DDB61 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 4DA258D72FA29C5100DCA196 /* AppIcon.icon */; };
 		4D3A98F42FA7A324001DDB61 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 4DA258D72FA29C5100DCA196 /* AppIcon.icon */; };
-		4D9CB80A2F8C41AC00F536E1 /* Tether Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 4D9CB8092F8C41AC00F536E1 /* Tether Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		4D9CB8A32F8DA9CB00F536E1 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4D9CB8A22F8DA9CB00F536E1 /* WidgetKit.framework */; };
-		4D9CB8A52F8DA9CB00F536E1 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4D9CB8A42F8DA9CB00F536E1 /* SwiftUI.framework */; };
-		4D9CB8B42F8DA9CD00F536E1 /* TetherWidgetExtensionExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4D9CB8A02F8DA9CB00F536E1 /* TetherWidgetExtensionExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
-
-/* Begin PBXContainerItemProxy section */
-		4D9CB80B2F8C41AC00F536E1 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 4D9CB7FD2F8C41AC00F536E1 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 4D9CB8082F8C41AC00F536E1;
-			remoteInfo = "Tether Watch App";
-		};
-		4D9CB8B22F8DA9CD00F536E1 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 4D9CB7FD2F8C41AC00F536E1 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 4D9CB89F2F8DA9CB00F536E1;
-			remoteInfo = TetherWidgetExtensionExtension;
-		};
-/* End PBXContainerItemProxy section */
-
-/* Begin PBXCopyFilesBuildPhase section */
-		4D9CB8192F8C41AD00F536E1 /* Embed Watch Content */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
-			dstSubfolderSpec = 16;
-			files = (
-				4D9CB80A2F8C41AC00F536E1 /* Tether Watch App.app in Embed Watch Content */,
-			);
-			name = "Embed Watch Content";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		4D9CB8B92F8DA9CD00F536E1 /* Embed Foundation Extensions */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 13;
-			files = (
-				4D9CB8B42F8DA9CD00F536E1 /* TetherWidgetExtensionExtension.appex in Embed Foundation Extensions */,
-			);
-			name = "Embed Foundation Extensions";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		4D058B252F970F440065CADF /* TetherMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TetherMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4D058B392F9712AC0065CADF /* TetherApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TetherApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		4D058B492F9719A30065CADF /* Tether-Watch-App-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Tether-Watch-App-Info.plist"; sourceTree = "<group>"; };
-		4D9CB8032F8C41AC00F536E1 /* Tether.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tether.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		4D9CB8092F8C41AC00F536E1 /* Tether Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Tether Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		4D9CB8A02F8DA9CB00F536E1 /* TetherWidgetExtensionExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TetherWidgetExtensionExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		4D9CB8A22F8DA9CB00F536E1 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
-		4D9CB8A42F8DA9CB00F536E1 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
-		4D9CB8BB2F8DAA9400F536E1 /* TetherWidgetExtensionExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TetherWidgetExtensionExtension.entitlements; sourceTree = "<group>"; };
 		4DA258D72FA29C5100DCA196 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -79,13 +24,6 @@
 				Info.plist,
 			);
 			target = 4D058B382F9712AC0065CADF /* TetherApp */;
-		};
-		4D9CB8B52F8DA9CD00F536E1 /* Exceptions for "TetherWidgetExtension" folder in "TetherWidgetExtensionExtension" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 4D9CB89F2F8DA9CB00F536E1 /* TetherWidgetExtensionExtension */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -101,19 +39,6 @@
 				4D058B4B2F9719B50065CADF /* Exceptions for "TetherApp" folder in "TetherApp" target */,
 			);
 			path = TetherApp;
-			sourceTree = "<group>";
-		};
-		4D9CB80D2F8C41AC00F536E1 /* TetherWatch */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = TetherWatch;
-			sourceTree = "<group>";
-		};
-		4D9CB8A62F8DA9CB00F536E1 /* TetherWidgetExtension */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				4D9CB8B52F8DA9CD00F536E1 /* Exceptions for "TetherWidgetExtension" folder in "TetherWidgetExtensionExtension" target */,
-			);
-			path = TetherWidgetExtension;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -133,35 +58,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		4D9CB8062F8C41AC00F536E1 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		4D9CB89D2F8DA9CB00F536E1 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				4D9CB8A52F8DA9CB00F536E1 /* SwiftUI.framework in Frameworks */,
-				4D9CB8A32F8DA9CB00F536E1 /* WidgetKit.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		4D9CB7FC2F8C41AC00F536E1 = {
 			isa = PBXGroup;
 			children = (
-				4D058B492F9719A30065CADF /* Tether-Watch-App-Info.plist */,
-				4D9CB8BB2F8DAA9400F536E1 /* TetherWidgetExtensionExtension.entitlements */,
-				4D9CB80D2F8C41AC00F536E1 /* TetherWatch */,
-				4D9CB8A62F8DA9CB00F536E1 /* TetherWidgetExtension */,
 				4D058B262F970F440065CADF /* TetherMac */,
 				4D058B3A2F9712AC0065CADF /* TetherApp */,
-				4D9CB8A12F8DA9CB00F536E1 /* Frameworks */,
 				4D9CB8042F8C41AC00F536E1 /* Products */,
 				4DA258D72FA29C5100DCA196 /* AppIcon.icon */,
 			);
@@ -170,22 +74,10 @@
 		4D9CB8042F8C41AC00F536E1 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				4D9CB8032F8C41AC00F536E1 /* Tether.app */,
-				4D9CB8092F8C41AC00F536E1 /* Tether Watch App.app */,
-				4D9CB8A02F8DA9CB00F536E1 /* TetherWidgetExtensionExtension.appex */,
 				4D058B252F970F440065CADF /* TetherMac.app */,
 				4D058B392F9712AC0065CADF /* TetherApp.app */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		4D9CB8A12F8DA9CB00F536E1 /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-				4D9CB8A22F8DA9CB00F536E1 /* WidgetKit.framework */,
-				4D9CB8A42F8DA9CB00F536E1 /* SwiftUI.framework */,
-			);
-			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -235,71 +127,6 @@
 			productReference = 4D058B392F9712AC0065CADF /* TetherApp.app */;
 			productType = "com.apple.product-type.application";
 		};
-		4D9CB8022F8C41AC00F536E1 /* Tether */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 4D9CB81A2F8C41AD00F536E1 /* Build configuration list for PBXNativeTarget "Tether" */;
-			buildPhases = (
-				4D9CB8012F8C41AC00F536E1 /* Resources */,
-				4D9CB8192F8C41AD00F536E1 /* Embed Watch Content */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				4D9CB80C2F8C41AC00F536E1 /* PBXTargetDependency */,
-			);
-			name = Tether;
-			packageProductDependencies = (
-			);
-			productName = Tether;
-			productReference = 4D9CB8032F8C41AC00F536E1 /* Tether.app */;
-			productType = "com.apple.product-type.application.watchapp2-container";
-		};
-		4D9CB8082F8C41AC00F536E1 /* Tether Watch App */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 4D9CB8162F8C41AD00F536E1 /* Build configuration list for PBXNativeTarget "Tether Watch App" */;
-			buildPhases = (
-				4D9CB8052F8C41AC00F536E1 /* Sources */,
-				4D9CB8062F8C41AC00F536E1 /* Frameworks */,
-				4D9CB8072F8C41AC00F536E1 /* Resources */,
-				4D9CB8B92F8DA9CD00F536E1 /* Embed Foundation Extensions */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				4D9CB8B32F8DA9CD00F536E1 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				4D9CB80D2F8C41AC00F536E1 /* TetherWatch */,
-			);
-			name = "Tether Watch App";
-			packageProductDependencies = (
-			);
-			productName = "Tether Watch App";
-			productReference = 4D9CB8092F8C41AC00F536E1 /* Tether Watch App.app */;
-			productType = "com.apple.product-type.application";
-		};
-		4D9CB89F2F8DA9CB00F536E1 /* TetherWidgetExtensionExtension */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 4D9CB8B62F8DA9CD00F536E1 /* Build configuration list for PBXNativeTarget "TetherWidgetExtensionExtension" */;
-			buildPhases = (
-				4D9CB89C2F8DA9CB00F536E1 /* Sources */,
-				4D9CB89D2F8DA9CB00F536E1 /* Frameworks */,
-				4D9CB89E2F8DA9CB00F536E1 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				4D9CB8A62F8DA9CB00F536E1 /* TetherWidgetExtension */,
-			);
-			name = TetherWidgetExtensionExtension;
-			packageProductDependencies = (
-			);
-			productName = TetherWidgetExtensionExtension;
-			productReference = 4D9CB8A02F8DA9CB00F536E1 /* TetherWidgetExtensionExtension.appex */;
-			productType = "com.apple.product-type.app-extension";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -315,16 +142,6 @@
 					};
 					4D058B382F9712AC0065CADF = {
 						CreatedOnToolsVersion = 26.4.1;
-					};
-					4D9CB8022F8C41AC00F536E1 = {
-						CreatedOnToolsVersion = 26.4;
-						LastSwiftMigration = 2640;
-					};
-					4D9CB8082F8C41AC00F536E1 = {
-						CreatedOnToolsVersion = 26.4;
-					};
-					4D9CB89F2F8DA9CB00F536E1 = {
-						CreatedOnToolsVersion = 26.4;
 					};
 				};
 			};
@@ -342,9 +159,6 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				4D9CB8022F8C41AC00F536E1 /* Tether */,
-				4D9CB8082F8C41AC00F536E1 /* Tether Watch App */,
-				4D9CB89F2F8DA9CB00F536E1 /* TetherWidgetExtensionExtension */,
 				4D058B242F970F440065CADF /* TetherMac */,
 				4D058B382F9712AC0065CADF /* TetherApp */,
 			);
@@ -368,29 +182,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		4D9CB8012F8C41AC00F536E1 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				4D3A98F12FA7A324001DDB61 /* AppIcon.icon in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		4D9CB8072F8C41AC00F536E1 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				4D3A98F22FA7A324001DDB61 /* AppIcon.icon in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		4D9CB89E2F8DA9CB00F536E1 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -408,34 +199,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		4D9CB8052F8C41AC00F536E1 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		4D9CB89C2F8DA9CB00F536E1 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXTargetDependency section */
-		4D9CB80C2F8C41AC00F536E1 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 4D9CB8082F8C41AC00F536E1 /* Tether Watch App */;
-			targetProxy = 4D9CB80B2F8C41AC00F536E1 /* PBXContainerItemProxy */;
-		};
-		4D9CB8B32F8DA9CD00F536E1 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 4D9CB89F2F8DA9CB00F536E1 /* TetherWidgetExtensionExtension */;
-			targetProxy = 4D9CB8B22F8DA9CD00F536E1 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		4D058B2E2F970F460065CADF /* Debug */ = {
@@ -763,184 +527,6 @@
 			};
 			name = Release;
 		};
-		4D9CB8172F8C41AD00F536E1 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = TetherWatch/TetherWatch.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = T64WR5HWCN;
-				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "Tether-Watch-App-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = Tether;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				INFOPLIST_KEY_WKWatchOnly = YES;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.spencerdearman.tether.watchkitapp;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = watchos;
-				SKIP_INSTALL = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 4;
-				WATCHOS_DEPLOYMENT_TARGET = 26.0;
-			};
-			name = Debug;
-		};
-		4D9CB8182F8C41AD00F536E1 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = TetherWatch/TetherWatch.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = T64WR5HWCN;
-				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "Tether-Watch-App-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = Tether;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				INFOPLIST_KEY_WKWatchOnly = YES;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.spencerdearman.tether.watchkitapp;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = watchos;
-				SKIP_INSTALL = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 4;
-				VALIDATE_PRODUCT = YES;
-				WATCHOS_DEPLOYMENT_TARGET = 26.0;
-			};
-			name = Release;
-		};
-		4D9CB81B2F8C41AD00F536E1 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = T64WR5HWCN;
-				INFOPLIST_KEY_CFBundleDisplayName = Tether;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.spencerdearman.tether;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-			};
-			name = Debug;
-		};
-		4D9CB81C2F8C41AD00F536E1 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = T64WR5HWCN;
-				INFOPLIST_KEY_CFBundleDisplayName = Tether;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.spencerdearman.tether;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				VALIDATE_PRODUCT = YES;
-			};
-			name = Release;
-		};
-		4D9CB8B72F8DA9CD00F536E1 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
-				CODE_SIGN_ENTITLEMENTS = TetherWidgetExtensionExtension.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = T64WR5HWCN;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = TetherWidgetExtension/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = TetherWidgetExtension;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-					"@executable_path/../../../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.spencerdearman.tether.watchkitapp.TetherWidgetExtension;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = watchos;
-				SKIP_INSTALL = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 4;
-				WATCHOS_DEPLOYMENT_TARGET = 26.0;
-			};
-			name = Debug;
-		};
-		4D9CB8B82F8DA9CD00F536E1 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
-				CODE_SIGN_ENTITLEMENTS = TetherWidgetExtensionExtension.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = T64WR5HWCN;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = TetherWidgetExtension/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = TetherWidgetExtension;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-					"@executable_path/../../../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.spencerdearman.tether.watchkitapp.TetherWidgetExtension;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = watchos;
-				SKIP_INSTALL = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 4;
-				VALIDATE_PRODUCT = YES;
-				WATCHOS_DEPLOYMENT_TARGET = 26.0;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -967,33 +553,6 @@
 			buildConfigurations = (
 				4D9CB8142F8C41AD00F536E1 /* Debug */,
 				4D9CB8152F8C41AD00F536E1 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		4D9CB8162F8C41AD00F536E1 /* Build configuration list for PBXNativeTarget "Tether Watch App" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				4D9CB8172F8C41AD00F536E1 /* Debug */,
-				4D9CB8182F8C41AD00F536E1 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		4D9CB81A2F8C41AD00F536E1 /* Build configuration list for PBXNativeTarget "Tether" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				4D9CB81B2F8C41AD00F536E1 /* Debug */,
-				4D9CB81C2F8C41AD00F536E1 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		4D9CB8B62F8DA9CD00F536E1 /* Build configuration list for PBXNativeTarget "TetherWidgetExtensionExtension" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				4D9CB8B72F8DA9CD00F536E1 /* Debug */,
-				4D9CB8B82F8DA9CD00F536E1 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

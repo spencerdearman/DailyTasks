@@ -16,6 +16,7 @@ struct TaskListScreen: View {
 
     let title: String
     let tasks: [TaskItem]
+    var events: [CalendarEvent] = []
     let defaultSelection: SidebarSelection?
 
     // MARK: - State
@@ -30,10 +31,14 @@ struct TaskListScreen: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                if tasks.isEmpty {
+                if !events.isEmpty {
+                    EventStrip(events: events)
+                }
+
+                if tasks.isEmpty && events.isEmpty {
                     EmptyCard(title: title)
-                } else {
-                    LazyVStack(spacing: 14) {
+                } else if !tasks.isEmpty {
+                    LazyVStack(spacing: 10) {
                         ForEach(tasks) { task in
                             TaskCard(task: task) {
                                 editingTask = task

@@ -191,15 +191,22 @@ struct ContentView: View {
                 Button {
                     showQuickFind = true
                 } label: {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 4) {
                         Image(systemName: "magnifyingglass")
                             .font(.system(size: 12, weight: .medium))
                         Text("Find")
                             .font(.system(size: 13, weight: .medium))
-                        Spacer()
+                            .lineLimit(1)
+                            .layoutPriority(1)
+                        Spacer(minLength: 2)
+                        HStack(spacing: 1) {
+                            keycapBadge("⌘")
+                            keycapBadge("F")
+                        }
+                        .fixedSize()
                     }
                     .foregroundStyle(.secondary)
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, 10)
                     .padding(.vertical, 9)
                     .contentShape(Rectangle())
                 }
@@ -212,15 +219,22 @@ struct ContentView: View {
                 Button {
                     withAnimation(.easeOut(duration: 0.25)) { showAgent.toggle() }
                 } label: {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 4) {
                         Image(systemName: "sparkles")
                             .font(.system(size: 12, weight: .medium))
                         Text("Agent")
                             .font(.system(size: 13, weight: .medium))
-                        Spacer()
+                            .lineLimit(1)
+                            .layoutPriority(1)
+                        Spacer(minLength: 2)
+                        HStack(spacing: 1) {
+                            keycapBadge("⌘")
+                            keycapBadge("A")
+                        }
+                        .fixedSize()
                     }
                     .foregroundStyle(.secondary)
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, 10)
                     .padding(.vertical, 9)
                     .contentShape(Rectangle())
                 }
@@ -628,6 +642,21 @@ struct ContentView: View {
                 }
             }
         }
+    }
+
+    private func keycapBadge(_ key: String) -> some View {
+        Text(key)
+            .font(.system(size: 8, weight: .medium, design: .rounded))
+            .foregroundStyle(.quaternary)
+            .frame(width: 12, height: 12)
+            .background(
+                RoundedRectangle(cornerRadius: 3, style: .continuous)
+                    .fill(.primary.opacity(0.04))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 3, style: .continuous)
+                    .strokeBorder(.primary.opacity(0.06), lineWidth: 0.5)
+            )
     }
 
     // MARK: - Weather

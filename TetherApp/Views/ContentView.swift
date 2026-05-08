@@ -18,6 +18,7 @@ struct ContentView: View {
     @Query(sort: \Area.sortOrder) private var areas: [Area]
     @Query(sort: \Project.sortOrder) private var projects: [Project]
     @Query(sort: \TaskItem.createdAt, order: .reverse) private var tasks: [TaskItem]
+    @EnvironmentObject private var calendarStore: CalendarStore
 
     // MARK: - State
 
@@ -133,6 +134,9 @@ struct ContentView: View {
             .navigationDestination(for: SidebarSelection.self) { selection in
                 destination(for: selection)
             }
+            .onAppear {
+                calendarStore.refresh()
+            }
         }
         .tint(.primary)
         .environment(\.overlayMode, $overlayMode)
@@ -185,9 +189,9 @@ struct ContentView: View {
             case .inbox:
                 TaskListScreen(title: "Inbox", tasks: inboxTasks, defaultSelection: .inbox)
             case .today:
-                TaskListScreen(title: "Today", tasks: todayTasks + eveningTasks, defaultSelection: .today)
+                TaskListScreen(title: "Today", tasks: todayTasks + eveningTasks, events: calendarStore.todayEvents, defaultSelection: .today)
             case .upcoming:
-                TaskListScreen(title: "Upcoming", tasks: upcomingTasks, defaultSelection: .upcoming)
+                TaskListScreen(title: "Upcoming", tasks: upcomingTasks, events: calendarStore.upcomingEvents, defaultSelection: .upcoming)
             case .anytime:
                 TaskListScreen(title: "Open", tasks: anytimeTasks, defaultSelection: .anytime)
             case .someday:

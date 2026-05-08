@@ -14,7 +14,7 @@ struct SettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("tetherShowCompletedTasks") private var showCompleted = false
     @AppStorage("tetherShowTaskCounts") private var showTaskCounts = true
-    @AppStorage("tetherDefaultView") private var defaultView = "inbox"
+
     @AppStorage("geminiAPIKey") private var geminiAPIKey = ""
 
     @State private var validationState: ValidationState = .idle
@@ -57,24 +57,7 @@ struct SettingsSheet: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
 
-                Divider()
-                    .padding(.leading, 16)
 
-                HStack {
-                    Text("Default view")
-                        .font(.body)
-                    Spacer()
-                    Picker("", selection: $defaultView) {
-                        Text("Inbox").tag("inbox")
-                        Text("Today").tag("today")
-                        Text("Upcoming").tag("upcoming")
-                        Text("Open").tag("anytime")
-                    }
-                    .labelsHidden()
-                    .fixedSize()
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
             }
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
 

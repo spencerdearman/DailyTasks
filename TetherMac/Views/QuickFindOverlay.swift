@@ -88,7 +88,7 @@ struct QuickFindOverlay: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(showPanel ? 0.25 : 0)
+            Color.black.opacity(showPanel ? 0.1 : 0)
                 .ignoresSafeArea()
                 .onTapGesture { onDismiss() }
                 .animation(.easeOut(duration: 0.2), value: showPanel)

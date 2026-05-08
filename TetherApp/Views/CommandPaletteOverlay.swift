@@ -288,6 +288,15 @@ struct CommandPaletteOverlay: View {
                         .id("thinking")
                         .transition(.opacity)
                     }
+
+                    if !agentResponses.isEmpty && !agent.isProcessing && !isSynthesizing {
+                        Text("AI can make mistakes.")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.top, 6)
+                            .padding(.bottom, 2)
+                    }
                 }
                 .padding(.vertical, 6)
                 .background(GeometryReader { geo in

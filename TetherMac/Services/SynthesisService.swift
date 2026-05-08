@@ -22,7 +22,7 @@ actor SynthesisService {
         "properties": [
             "greeting": [
                 "type": "STRING",
-                "description": "A brief, motivational good-morning greeting (1 sentence)",
+                "description": "A brief, warm greeting appropriate to the time of day (1 sentence). Must match the current period (morning/afternoon/evening) and correctly reference the current day of week.",
             ],
             "conflicts": [
                 "type": "ARRAY",
@@ -101,8 +101,10 @@ actor SynthesisService {
             periodInstruction = "Generate a morning briefing. Help the user start their day with a clear plan."
         }
 
+        let weekdayName = dayFmt.string(from: .now).components(separatedBy: ",").first ?? "today"
         var prompt = """
-        Today is \(dayFmt.string(from: .now)). \(periodInstruction)
+        TODAY IS \(dayFmt.string(from: .now)) (a \(weekdayName)). It is currently the \(period). \(periodInstruction)
+        IMPORTANT: The day is \(weekdayName), NOT any other day. Do not mention any other day of the week in the greeting.
 
         """
 

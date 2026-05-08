@@ -61,7 +61,7 @@ struct TaskCard: View {
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.leading)
-                            .lineLimit(3)
+                            .lineLimit(2)
                     }
                 }
             }
@@ -71,7 +71,7 @@ struct TaskCard: View {
         .padding(.vertical, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .opacity(isCompleting ? 0.5 : 1.0)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .contextMenu {
             Button(task.isCompleted ? "Mark Incomplete" : "Mark Complete") {
                 toggleTask()
