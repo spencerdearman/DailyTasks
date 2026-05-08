@@ -9,7 +9,7 @@ import Foundation
 
 // MARK: - Gemini Structured Response
 
-struct GeminiActionResponse: Codable, Sendable {
+struct GeminiActionResponse: Codable, @unchecked Sendable {
     let action: String
     let title: String?
     let notes: String?
@@ -82,7 +82,7 @@ actor GeminiService {
             "target_project": ["type": "STRING", "description": "Project name to assign/move to"],
             "target_area": ["type": "STRING", "description": "Area name to assign/move to"],
             "date": ["type": "STRING", "description": "Date: today, tomorrow, next week, monday-sunday, YYYY-MM-DD, or 'later' to mark as someday/maybe"],
-            "filter": ["type": "STRING", "description": "For list_tasks: inbox, today, tomorrow, upcoming, open, later, done, or a search query"],
+            "filter": ["type": "STRING", "description": "For list_tasks: inbox, today, tomorrow, upcoming, open, later, done, or a search query. For plan_day: today or tomorrow."],
             "message": ["type": "STRING", "description": "Natural language response to show the user"],
             "subtasks": [
                 "type": "ARRAY",
@@ -280,7 +280,7 @@ enum GeminiPromptBuilder {
         - list_tasks: Show tasks. Set filter to: inbox, today, tomorrow, upcoming, open, later, done, \
         or a project/area name, or a search query.
         - decompose_task: Break a goal into subtasks. Set title (the goal) and subtasks (array of subtask titles).
-        - plan_day: Suggest a prioritized plan for today.
+        - plan_day: Suggest a prioritized plan. Set filter to "today" or "tomorrow" based on what the user asks. Default to "today" if unspecified.
         - reschedule_overdue: Find overdue tasks and suggest new dates.
         - create_event: Add a calendar event. You MUST set event_title, event_start, and event_end. \
         event_start and event_end MUST be ISO 8601 format: YYYY-MM-DDTHH:mm:ss. \

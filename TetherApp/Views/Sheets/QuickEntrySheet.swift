@@ -25,6 +25,8 @@ struct QuickEntrySheet: View {
 
     // MARK: - Properties
 
+    private let eventKitSync = EventKitSyncService()
+
     let defaultSelection: SidebarSelection?
 
     // MARK: - State
@@ -37,7 +39,10 @@ struct QuickEntrySheet: View {
     @State private var deadline: Date?
     @State private var isEvening = false
     @State private var status: TaskStatus = .active
-    @State private var showWhenPicker = false
+    @State private var durationMinutes: Int = 60
+    @State private var isSyncingCalendarEvent = false
+    @State private var calendarSyncMessage: String?
+    @State private var calendarSyncError = false
 
     // MARK: - Computed
 
@@ -96,108 +101,11 @@ struct QuickEntrySheet: View {
 
                     // Schedule
                     sectionHeader("Schedule")
-                    VStack(spacing: 0) {
-                        // When row
-                        Button {
-                            showWhenPicker = true
-                        } label: {
-                            HStack {
-                                Image(systemName: whenIcon)
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundStyle(whenColor == .secondary ? Color.secondary : Color.white)
-                                    .frame(width: 30, height: 30)
-                                    .background(whenColor, in: Circle())
-                                Text("When")
-                                    .foregroundStyle(.primary)
-                                Spacer()
-                                Text(whenLabel)
-                                    .foregroundStyle(.secondary)
-                                Image(systemName: "chevron.right")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(.tertiary)
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .popover(isPresented: $showWhenPicker, arrowEdge: .top) {
-                            whenPickerPopover
-                                .presentationCompactAdaptation(.popover)
-                        }
-
-                        Divider().padding(.leading, 52)
-
-                        // Deadline
-                        HStack {
-                            Label("Deadline", systemImage: "flag.fill")
-                                .foregroundStyle(.primary)
-                                .lineLimit(1)
-                                .fixedSize(horizontal: true, vertical: false)
-                            Spacer()
-                            Button {
-                                deadline = nil
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundStyle(.tertiary)
-                            }
-                            .opacity(deadline != nil ? 1 : 0)
-                            .allowsHitTesting(deadline != nil)
-
-                            DatePicker("", selection: deadlineBinding, displayedComponents: [.date, .hourAndMinute])
-                                .labelsHidden()
-                                .fixedSize()
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                    }
-                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    scheduleCard
 
                     // Organize
                     sectionHeader("Organize")
-                    VStack(spacing: 0) {
-                        HStack {
-                            Label("Area", systemImage: "square.grid.2x2")
-                                .foregroundStyle(.primary)
-                                .lineLimit(1)
-                                .fixedSize(horizontal: true, vertical: false)
-                            Spacer()
-                            Picker("", selection: $selectedAreaID) {
-                                Text("Inbox").tag(UUID?.none)
-                                ForEach(areas) { area in
-                                    Text(area.title).tag(Optional(area.id))
-                                }
-                            }
-                            .labelsHidden()
-                            .tint(.secondary)
-                            .lineLimit(1)
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-
-                        Divider().padding(.leading, 52)
-
-                        HStack {
-                            Label("Project", systemImage: "paperplane")
-                                .foregroundStyle(.primary)
-                                .lineLimit(1)
-                                .fixedSize(horizontal: true, vertical: false)
-                            Spacer()
-                            Picker("", selection: $selectedProjectID) {
-                                Text("None").tag(UUID?.none)
-                                ForEach(filteredProjects) { project in
-                                    Text(project.title).tag(Optional(project.id))
-                                }
-                            }
-                            .labelsHidden()
-                            .tint(.secondary)
-                            .lineLimit(1)
-                            .disabled(selectedAreaID == nil)
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                    }
-                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    placementSection
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
@@ -224,6 +132,14 @@ struct QuickEntrySheet: View {
                 }
             }
             .onAppear(perform: applyDefaultSelection)
+            .alert(calendarSyncError ? "Calendar Sync Failed" : "Calendar Updated", isPresented: alertIsPresented) {
+                Button("OK", role: .cancel) {
+                    calendarSyncMessage = nil
+                    calendarSyncError = false
+                }
+            } message: {
+                Text(calendarSyncMessage ?? "")
+            }
         }
     }
 
@@ -236,6 +152,178 @@ struct QuickEntrySheet: View {
             .textCase(.uppercase)
             .padding(.leading, 4)
             .padding(.top, 12)
+    }
+
+    // MARK: - Schedule Card
+
+    private var scheduleCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // When row
+            HStack {
+                Image(systemName: whenIcon)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(whenColor == .secondary ? Color.secondary : Color.white)
+                    .frame(width: 30, height: 30)
+                    .background(whenColor, in: Circle())
+                Text("When")
+                    .foregroundStyle(.primary)
+                Spacer()
+                Menu {
+                    Button {
+                        whenDate = Calendar.current.startOfDay(for: .now)
+                        isEvening = false
+                        status = .active
+                    } label: {
+                        Label("Today", systemImage: "star.fill")
+                        if whenDate != nil && Calendar.current.isDateInToday(whenDate!) && !isEvening {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                    Button {
+                        whenDate = Calendar.current.startOfDay(for: .now)
+                        isEvening = true
+                        status = .active
+                    } label: {
+                        Label("This Evening", systemImage: "moon.fill")
+                        if isEvening {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                    Button {
+                        whenDate = Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: .now))
+                        isEvening = false
+                        status = .active
+                    } label: {
+                        Label("Later", systemImage: "clock")
+                        if let w = whenDate, !Calendar.current.isDateInToday(w) && !isEvening {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                    if whenDate != nil || isEvening {
+                        Divider()
+                        Button {
+                            whenDate = nil
+                            isEvening = false
+                        } label: {
+                            Label("Clear", systemImage: "xmark")
+                        }
+                    }
+                } label: {
+                    Text(whenLabel)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.primary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color(.systemGray5), in: Capsule())
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+
+            Divider().padding(.leading, 52)
+
+            // Deadline
+            HStack {
+                Label("Deadline", systemImage: "flag.fill")
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+                Spacer()
+                Button {
+                    deadline = nil
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.tertiary)
+                }
+                .opacity(deadline != nil ? 1 : 0)
+                .allowsHitTesting(deadline != nil)
+
+                DatePicker("", selection: deadlineBinding, displayedComponents: [.date, .hourAndMinute])
+                    .labelsHidden()
+                    .fixedSize()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+
+            Divider().padding(.leading, 52)
+
+            // Duration
+            Stepper(value: $durationMinutes, in: 15...480, step: 15) {
+                HStack {
+                    Label("Duration", systemImage: "timer")
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    Text("\(durationMinutes) min")
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+
+            Divider().padding(.leading, 52)
+
+            // Calendar action row
+            Button {
+                scheduleOnCalendar()
+            } label: {
+                Label("Add to Calendar", systemImage: "calendar.badge.plus")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.blue)
+            }
+            .buttonStyle(.plain)
+            .disabled(isSyncingCalendarEvent || title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+        }
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    // MARK: - Placement (Area / Project)
+
+    private var placementSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Label("Area", systemImage: "square.grid.2x2")
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+                Spacer()
+                Picker("", selection: $selectedAreaID) {
+                    Text("Inbox").tag(UUID?.none)
+                    ForEach(areas) { area in
+                        Text(area.title).tag(Optional(area.id))
+                    }
+                }
+                .labelsHidden()
+                .tint(.secondary)
+                .lineLimit(1)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+
+            Divider().padding(.leading, 52)
+
+            HStack {
+                Label("Project", systemImage: "paperplane")
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+                Spacer()
+                Picker("", selection: $selectedProjectID) {
+                    Text("None").tag(UUID?.none)
+                    ForEach(filteredProjects) { project in
+                        Text(project.title).tag(Optional(project.id))
+                    }
+                }
+                .labelsHidden()
+                .tint(.secondary)
+                .lineLimit(1)
+                .disabled(selectedAreaID == nil)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+        }
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
     // MARK: - Computed Properties
@@ -252,81 +340,16 @@ struct QuickEntrySheet: View {
         )
     }
 
-    // MARK: - When Picker Popover
-
-    private var whenPickerPopover: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            whenPickerRow(icon: "star.fill", color: .yellow, label: "Today",
-                isSelected: whenDate != nil && Calendar.current.isDateInToday(whenDate!) && !isEvening) {
-                whenDate = Calendar.current.startOfDay(for: .now)
-                isEvening = false
-                status = .active
-                showWhenPicker = false
-            }
-
-            Divider().padding(.leading, 56)
-
-            whenPickerRow(icon: "moon.fill", color: .indigo, label: "This Evening",
-                isSelected: isEvening) {
-                whenDate = Calendar.current.startOfDay(for: .now)
-                isEvening = true
-                status = .active
-                showWhenPicker = false
-            }
-
-            Divider().padding(.leading, 56)
-
-            whenPickerRow(icon: "clock", color: .teal, label: "Later",
-                isSelected: {
-                    guard let w = whenDate else { return false }
-                    return !Calendar.current.isDateInToday(w) && !isEvening
-                }()) {
-                whenDate = Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: .now))
-                isEvening = false
-                status = .active
-                showWhenPicker = false
-            }
-
-            if whenDate != nil || isEvening {
-                Divider()
-
-                whenPickerRow(icon: "xmark", color: .gray, label: "Clear",
-                    isSelected: false) {
-                    whenDate = nil
-                    isEvening = false
-                    showWhenPicker = false
+    private var alertIsPresented: Binding<Bool> {
+        Binding(
+            get: { calendarSyncMessage != nil },
+            set: { presented in
+                if !presented {
+                    calendarSyncMessage = nil
+                    calendarSyncError = false
                 }
             }
-        }
-        .padding(.vertical, 4)
-        .frame(width: 220)
-    }
-
-    private func whenPickerRow(icon: String, color: Color, label: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.white)
-                    .frame(width: 30, height: 30)
-                    .background(color, in: Circle())
-
-                Text(label)
-                    .foregroundStyle(.primary)
-
-                Spacer()
-
-                if isSelected {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.blue)
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
+        )
     }
 
     // MARK: - Actions
@@ -362,8 +385,51 @@ struct QuickEntrySheet: View {
             area: area,
             project: project
         )
+        task.calendarDurationMinutes = durationMinutes
         modelContext.insert(task)
         try? modelContext.save()
         dismiss()
+    }
+
+    private func scheduleOnCalendar() {
+        guard canSave else { return }
+        isSyncingCalendarEvent = true
+
+        // Save the task first so we have something to attach the event to
+        let project = projects.first(where: { $0.id == selectedProjectID })
+        let area = project?.area ?? areas.first(where: { $0.id == selectedAreaID })
+        let task = TaskItem(
+            title: title.trimmingCharacters(in: .whitespacesAndNewlines),
+            notes: notes.trimmingCharacters(in: .whitespacesAndNewlines),
+            whenDate: whenDate,
+            deadline: deadline,
+            status: status,
+            isInInbox: area == nil && project == nil,
+            isEvening: isEvening,
+            sortOrder: Double((project?.taskList.count ?? area?.taskList.count ?? 0)),
+            area: area,
+            project: project
+        )
+        task.calendarDurationMinutes = durationMinutes
+        if let dl = deadline {
+            task.calendarStartAt = dl
+            task.whenDate = Calendar.current.startOfDay(for: dl)
+        }
+        modelContext.insert(task)
+        try? modelContext.save()
+
+        Task {
+            do {
+                try await eventKitSync.upsertCalendarEvent(for: task)
+                try? modelContext.save()
+                calendarSyncError = false
+                calendarSyncMessage = "The task was scheduled on your calendar."
+            } catch {
+                calendarSyncError = true
+                calendarSyncMessage = error.localizedDescription
+            }
+            isSyncingCalendarEvent = false
+            dismiss()
+        }
     }
 }

@@ -99,7 +99,6 @@ struct TaskCard: View {
                 isCompleting = true
             }
 
-            let taskID = task.id
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
                 guard isCompleting else { return }
                 withAnimation(.easeInOut(duration: 0.5)) {

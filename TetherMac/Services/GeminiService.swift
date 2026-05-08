@@ -93,7 +93,7 @@ actor GeminiService {
             "target_project": ["type": "STRING", "description": "Project name to assign/move to"],
             "target_area": ["type": "STRING", "description": "Area name to assign/move to"],
             "date": ["type": "STRING", "description": "Date: today, tomorrow, next week, monday-sunday, YYYY-MM-DD, or 'later' to mark as someday/maybe"],
-            "filter": ["type": "STRING", "description": "For list_tasks: inbox, today, tomorrow, upcoming, open, later, done, or a search query"],
+            "filter": ["type": "STRING", "description": "For list_tasks: inbox, today, tomorrow, upcoming, open, later, done, or a search query. For plan_day: today or tomorrow."],
             "message": ["type": "STRING", "description": "Natural language response to show the user"],
             "subtasks": [
                 "type": "ARRAY",
@@ -343,7 +343,7 @@ enum GeminiPromptBuilder {
         or a project/area name, or a search query.
         - decompose_task: Break a goal into subtasks. Set title (the goal) and subtasks (array of subtask titles). \
         Generate 3-7 concrete, actionable subtasks.
-        - plan_day: Suggest a prioritized plan for today. Look at today's tasks, deadlines, and calendar. \
+        - plan_day: Suggest a prioritized plan. Set filter to "today" or "tomorrow" based on what the user asks (default "today"). Look at the target day's tasks, deadlines, and calendar. \
         The app renders your message as a structured timeline, so you MUST format each time block on its own line \
         using this exact format (one block per line, separated by newlines): \
         "*9:00 – 10:30 AM* — Focus block: tackle **Report draft** before your 11 AM meeting.\n*12:00 – 1:00 PM* — Lunch break, good time to handle **Pick up dry cleaning** since it's nearby.\n*2:00 – 3:30 PM* — Deep work on **Prepare Presentation**." \

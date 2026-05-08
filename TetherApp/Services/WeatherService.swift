@@ -8,6 +8,7 @@
 import Combine
 import CoreLocation
 import Foundation
+import MapKit
 import WeatherKit
 
 // MARK: - TetherWeatherService
@@ -74,7 +75,8 @@ final class TetherWeatherService: NSObject, ObservableObject, CLLocationManagerD
             // Reverse geocode for city name
             if cityName == nil {
                 let geocoder = CLGeocoder()
-                if let placemark = try? await geocoder.reverseGeocodeLocation(location).first {
+                if let placemarks = try? await geocoder.reverseGeocodeLocation(location),
+                   let placemark = placemarks.first {
                     cityName = placemark.locality
                 }
             }

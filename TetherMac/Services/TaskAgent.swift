@@ -353,8 +353,7 @@ final class TaskAgent {
             return AgentResponse(message: message, subtasks: response.subtasks)
 
         case "plan_day":
-            // Always show today's tasks and events for daily planning
-            return buildPlanDayResponse(message: message, ctx: ctx)
+            return buildPlanDayResponse(message: message, filter: response.filter, ctx: ctx)
 
         case "reschedule_overdue":
             // Show overdue tasks
@@ -794,15 +793,17 @@ final class TaskAgent {
 
     // MARK: - Plan Day Response
 
-    private func buildPlanDayResponse(message: String, ctx: AgentContext) -> AgentResponse {
+    private func buildPlanDayResponse(message: String, filter: String?, ctx: AgentContext) -> AgentResponse {
         let cal = Calendar.current
         let today = cal.startOfDay(for: .now)
+        let isTomorrow = filter?.lowercased() == "tomorrow"
+        let targetDate = isTomorrow ? cal.date(byAdding: .day, value: 1, to: today)! : today
         let active = ctx.tasks.filter { $0.status == .active }
 
-        // Today's tasks
-        let todayTasks = active.filter {
+        // Target day's tasks
+        let targetTasks = active.filter {
             guard let d = $0.effectiveDate else { return false }
-            return cal.isDateInToday(d)
+            return cal.isDate(d, inSameDayAs: targetDate)
         }
 
         // Overdue tasks
@@ -814,14 +815,16 @@ final class TaskAgent {
         // Inbox tasks (unsorted)
         let inboxTasks = active.filter(\.isInInbox)
 
-        // Combine: overdue first, then today, then inbox
+        // Combine: overdue first, then target day, then inbox (only for today)
         var allRelevant: [TaskItem] = []
         allRelevant.append(contentsOf: overdueTasks)
-        allRelevant.append(contentsOf: todayTasks)
-        allRelevant.append(contentsOf: inboxTasks.filter { t in
-            !overdueTasks.contains(where: { $0.id == t.id }) &&
-            !todayTasks.contains(where: { $0.id == t.id })
-        })
+        allRelevant.append(contentsOf: targetTasks)
+        if !isTomorrow {
+            allRelevant.append(contentsOf: inboxTasks.filter { t in
+                !overdueTasks.contains(where: { $0.id == t.id }) &&
+                !targetTasks.contains(where: { $0.id == t.id })
+            })
+        }
 
         let taskCards: [TaskCard]? = allRelevant.isEmpty ? nil : Array(allRelevant.prefix(15).map { task in
             TaskCard(
@@ -831,9 +834,9 @@ final class TaskAgent {
             )
         })
 
-        // Today's calendar events
-        let todayEvents = ctx.calendarEvents.filter { cal.isDateInToday($0.startDate) }
-        let eventCards: [EventCard]? = todayEvents.isEmpty ? nil : todayEvents.map { event in
+        // Target day's calendar events
+        let targetEvents = ctx.calendarEvents.filter { cal.isDate($0.startDate, inSameDayAs: targetDate) }
+        let eventCards: [EventCard]? = targetEvents.isEmpty ? nil : targetEvents.map { event in
             EventCard(id: event.id, title: event.title, startDate: event.startDate, endDate: event.endDate, location: event.location, isAllDay: event.isAllDay)
         }
 

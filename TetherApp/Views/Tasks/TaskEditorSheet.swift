@@ -236,7 +236,7 @@ struct TaskEditorSheet: View {
                     }
                     if task.whenDate != nil || task.isEvening {
                         Divider()
-                        Button(role: .destructive) {
+                        Button {
                             task.whenDate = nil
                             task.isEvening = false
                             task.updatedAt = .now
@@ -245,13 +245,12 @@ struct TaskEditorSheet: View {
                         }
                     }
                 } label: {
-                    HStack(spacing: 4) {
-                        Text(whenLabel)
-                            .foregroundStyle(.secondary)
-                        Image(systemName: "chevron.up.chevron.down")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.tertiary)
-                    }
+                    Text(whenLabel)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.primary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color(.systemGray5), in: Capsule())
                 }
             }
             .padding(.horizontal, 16)

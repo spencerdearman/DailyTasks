@@ -163,6 +163,7 @@ struct AgentOverlay: View {
                 .transition(.blurReplace)
             }
         }
+        .frame(minHeight: 22)
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: input.isEmpty)
@@ -207,7 +208,9 @@ struct AgentOverlay: View {
                 })
             }
             .onPreferenceChange(ResultContentHeightKey.self) { height in
-                resultContentHeight = height
+                withAnimation(.easeOut(duration: 0.35)) {
+                    resultContentHeight = height
+                }
             }
             .scrollIndicatorsFlash(onAppear: false)
             .scrollContentBackground(.hidden)

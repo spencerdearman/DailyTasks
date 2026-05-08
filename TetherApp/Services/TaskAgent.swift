@@ -274,7 +274,7 @@ final class TaskAgent {
         case "decompose_task":
             return AgentResponse(message: message, subtasks: response.subtasks)
         case "plan_day":
-            return buildPlanDayResponse(message: message, ctx: ctx)
+            return buildPlanDayResponse(message: message, filter: response.filter, ctx: ctx)
         case "reschedule_overdue":
             let cal = Calendar.current
             let today = cal.startOfDay(for: .now)
@@ -612,14 +612,16 @@ final class TaskAgent {
 
     // MARK: - Plan Day Response
 
-    private func buildPlanDayResponse(message: String, ctx: AgentContext) -> AgentResponse {
+    private func buildPlanDayResponse(message: String, filter: String?, ctx: AgentContext) -> AgentResponse {
         let cal = Calendar.current
         let today = cal.startOfDay(for: .now)
+        let isTomorrow = filter?.lowercased() == "tomorrow"
+        let targetDate = isTomorrow ? cal.date(byAdding: .day, value: 1, to: today)! : today
         let active = ctx.tasks.filter { $0.status == .active }
 
-        let todayTasks = active.filter {
+        let targetTasks = active.filter {
             guard let d = $0.effectiveDate else { return false }
-            return cal.isDateInToday(d)
+            return cal.isDate(d, inSameDayAs: targetDate)
         }
         let overdueTasks = active.filter {
             guard let d = $0.effectiveDate else { return false }
@@ -629,11 +631,13 @@ final class TaskAgent {
 
         var allRelevant: [TaskItem] = []
         allRelevant.append(contentsOf: overdueTasks)
-        allRelevant.append(contentsOf: todayTasks)
-        allRelevant.append(contentsOf: inboxTasks.filter { t in
-            !overdueTasks.contains(where: { $0.id == t.id }) &&
-            !todayTasks.contains(where: { $0.id == t.id })
-        })
+        allRelevant.append(contentsOf: targetTasks)
+        if !isTomorrow {
+            allRelevant.append(contentsOf: inboxTasks.filter { t in
+                !overdueTasks.contains(where: { $0.id == t.id }) &&
+                !targetTasks.contains(where: { $0.id == t.id })
+            })
+        }
 
         let taskCards: [AgentTaskCard]? = allRelevant.isEmpty ? nil : Array(allRelevant.prefix(15).map { task in
             AgentTaskCard(id: task.id, title: task.title, project: task.project?.title, area: task.area?.title, whenDate: task.whenDate, deadline: task.deadline, isCompleted: task.isCompleted)
