@@ -27,21 +27,17 @@ struct NewProjectSheet: View {
     @State private var title = ""
     @State private var notes = ""
     @State private var selectedAreaID: UUID?
-    @State private var tintHex = "#3B82F6"
-    @State private var showCustomColorPicker = false
-    @State private var customColor = Color.blue
+    @State private var tintHex = "#93C5FD"
 
     // MARK: - Constants
 
     private let tintOptions = [
-        "#3B82F6", // blue
-        "#8B5CF6", // purple
-        "#EC4899", // pink
-        "#EF4444", // red
-        "#F59E0B", // amber
-        "#10B981", // emerald
-        "#06B6D4", // cyan
-        "#6366F1", // indigo
+        "#93C5FD", // soft blue
+        "#C4B5FD", // soft purple
+        "#FDA4AF", // soft pink
+        "#86EFAC", // soft green
+        "#FDE68A", // soft amber
+        "#A5F3FC", // soft cyan
     ]
 
     // MARK: - Computed
@@ -101,31 +97,30 @@ struct NewProjectSheet: View {
                     // Color
                     sectionHeader("Color")
                     VStack(spacing: 0) {
-                        HStack(spacing: 10) {
-                            ForEach(tintOptions, id: \.self) { hex in
-                                Circle()
-                                    .fill(Color(hex: hex))
-                                    .frame(width: 32, height: 32)
-                                    .overlay {
-                                        if tintHex == hex {
-                                            Image(systemName: "checkmark")
-                                                .font(.system(size: 13, weight: .bold))
-                                                .foregroundStyle(.white)
+                        HStack {
+                            Label("Color", systemImage: "paintpalette")
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+                                .fixedSize(horizontal: true, vertical: false)
+                            Spacer()
+                            HStack(spacing: 8) {
+                                ForEach(tintOptions, id: \.self) { hex in
+                                    Circle()
+                                        .fill(Color(hex: hex))
+                                        .frame(width: 28, height: 28)
+                                        .overlay {
+                                            if tintHex == hex {
+                                                Image(systemName: "checkmark")
+                                                    .font(.system(size: 11, weight: .bold))
+                                                    .foregroundStyle(.white)
+                                            }
                                         }
-                                    }
-                                    .onTapGesture { tintHex = hex }
-                            }
-
-                            // Custom color picker
-                            ColorPicker("", selection: $customColor, supportsOpacity: false)
-                                .labelsHidden()
-                                .frame(width: 32, height: 32)
-                                .onChange(of: customColor) {
-                                    tintHex = customColor.toHex()
+                                        .onTapGesture { tintHex = hex }
                                 }
+                            }
                         }
                         .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
+                        .padding(.vertical, 10)
                     }
                     .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
@@ -147,7 +142,6 @@ struct NewProjectSheet: View {
                     Button { createProject() } label: {
                         Image(systemName: "checkmark")
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(canSave ? .green : .secondary)
                     }
                     .disabled(!canSave)
                 }

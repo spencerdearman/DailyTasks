@@ -15,6 +15,7 @@ enum EventKitSyncError: LocalizedError {
     case accessDenied
     case missingDefaultCalendar
     case missingDefaultReminderList
+    case eventNotFound
 
     var errorDescription: String? {
         switch self {
@@ -24,6 +25,8 @@ enum EventKitSyncError: LocalizedError {
             return "No default calendar is available for new events."
         case .missingDefaultReminderList:
             return "No default reminders list is available."
+        case .eventNotFound:
+            return "The calendar event could not be found."
         }
     }
 }
@@ -140,7 +143,39 @@ final class EventKitSyncService {
         }
     }
 
-    // MARK: Calendar Events
+    // MARK: Calendar Events (Agent)
+
+    /// Creates a standalone calendar event (used by the agent).
+    func createCalendarEvent(title: String, startDate: Date, endDate: Date, location: String?) async throws -> CalendarEvent {
+        guard try await requestCalendarAccess() else {
+            throw EventKitSyncError.accessDenied
+        }
+        guard let defaultCalendar = eventStore.defaultCalendarForNewEvents else {
+            throw EventKitSyncError.missingDefaultCalendar
+        }
+        let event = EKEvent(eventStore: eventStore)
+        event.calendar = defaultCalendar
+        event.title = title
+        event.startDate = startDate
+        event.endDate = endDate
+        event.location = location
+        event.isAllDay = false
+        try eventStore.save(event, span: .thisEvent)
+        return CalendarEvent(id: event.eventIdentifier, title: event.title, startDate: event.startDate, endDate: event.endDate, location: event.location, isAllDay: false)
+    }
+
+    /// Deletes a calendar event by its identifier.
+    func deleteCalendarEvent(withID eventID: String) async throws {
+        guard try await requestCalendarAccess() else {
+            throw EventKitSyncError.accessDenied
+        }
+        guard let event = eventStore.event(withIdentifier: eventID) else {
+            throw EventKitSyncError.eventNotFound
+        }
+        try eventStore.remove(event, span: .thisEvent)
+    }
+
+    // MARK: Calendar Events (Task Sync)
 
     /// Creates or updates a calendar event for the given task.
     func upsertCalendarEvent(for task: TaskItem) async throws {

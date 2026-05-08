@@ -17,6 +17,7 @@ struct AgentResponse {
     let taskCards: [AgentTaskCard]?
     let eventCards: [AgentEventCard]?
     let isPlanDay: Bool
+    let pendingDeletion: EventDeletion?
 
     init(
         message: String,
@@ -24,7 +25,8 @@ struct AgentResponse {
         subtasks: [String]? = nil,
         taskCards: [AgentTaskCard]? = nil,
         eventCards: [AgentEventCard]? = nil,
-        isPlanDay: Bool = false
+        isPlanDay: Bool = false,
+        pendingDeletion: EventDeletion? = nil
     ) {
         self.message = message
         self.affectedTaskIDs = affectedTaskIDs
@@ -32,6 +34,7 @@ struct AgentResponse {
         self.taskCards = taskCards
         self.eventCards = eventCards
         self.isPlanDay = isPlanDay
+        self.pendingDeletion = pendingDeletion
     }
 }
 
@@ -56,6 +59,13 @@ struct AgentEventCard: Identifiable {
     let isAllDay: Bool
 }
 
+/// Represents a pending event deletion awaiting user confirmation.
+struct EventDeletion {
+    let eventID: String
+    let eventTitle: String
+    let eventDate: Date
+}
+
 // MARK: - Execution Context
 
 struct AgentContext {
@@ -64,6 +74,8 @@ struct AgentContext {
     let projects: [Project]
     let tasks: [TaskItem]
     let calendarEvents: [CalendarEvent]
+    var eventKitService: EventKitSyncService? = nil
+    var lastUserInput: String? = nil
 }
 
 // MARK: - TaskAgent
@@ -91,18 +103,21 @@ final class TaskAgent {
         isProcessing = true
         defer { isProcessing = false }
 
+        var ctx = context
+        ctx.lastUserInput = input
+
         guard !apiKey.isEmpty else {
-            let response = keywordFallback(input: input, ctx: context)
+            let response = keywordFallback(input: input, ctx: ctx)
             lastResponse = response
             return response
         }
 
-        let systemPrompt = buildSystemPrompt(ctx: context)
+        let systemPrompt = buildSystemPrompt(ctx: ctx)
 
         do {
             let geminiResponse = try await gemini.send(input, apiKey: apiKey, systemPrompt: systemPrompt)
             print("[TaskAgent] Gemini action: \(geminiResponse.action), filter: \(geminiResponse.filter ?? "nil"), message: \(geminiResponse.message ?? "nil")")
-            var response = await execute(geminiResponse, ctx: context)
+            var response = await execute(geminiResponse, ctx: ctx)
             print("[TaskAgent] Response taskCards: \(response.taskCards?.count ?? 0), eventCards: \(response.eventCards?.count ?? 0), isPlanDay: \(response.isPlanDay)")
 
             // Follow-up loop: if the input looks like multiple commands and Gemini
@@ -128,7 +143,7 @@ final class TaskAgent {
                         break
                     }
 
-                    let extra = await executeSingle(followUp, ctx: context)
+                    let extra = await executeSingle(followUp, ctx: ctx)
                     allIDs.append(contentsOf: extra.affectedTaskIDs)
                     if let cards = extra.taskCards { allTaskCards.append(contentsOf: cards) }
                     if let events = extra.eventCards { allEventCards.append(contentsOf: events) }
@@ -219,6 +234,19 @@ final class TaskAgent {
             return doDeferTask(searchText: response.searchText ?? "", message: message, ctx: ctx)
         case "list_tasks":
             return doListTasks(filter: response.filter ?? "today", message: message, ctx: ctx)
+        case "create_event":
+            return await doCreateEvent(
+                title: response.eventTitle ?? response.title ?? "New Event",
+                startString: response.eventStart ?? response.date,
+                endString: response.eventEnd,
+                location: response.eventLocation,
+                message: message, ctx: ctx
+            )
+        case "delete_event":
+            return doDeleteEvent(
+                searchText: response.searchText ?? response.eventTitle ?? response.title ?? "",
+                message: message, ctx: ctx
+            )
         case "decompose_task":
             return AgentResponse(message: message, subtasks: response.subtasks)
         case "plan_day":
@@ -380,6 +408,64 @@ final class TaskAgent {
         match.updatedAt = .now
         try? ctx.modelContext.save()
         return AgentResponse(message: message, affectedTaskIDs: [match.id])
+    }
+
+    // MARK: - Action: Create Event
+
+    private func doCreateEvent(title: String, startString: String?, endString: String?, location: String?, message: String, ctx: AgentContext) async -> AgentResponse {
+        guard let eventKit = ctx.eventKitService else {
+            return AgentResponse(message: "Calendar access is not available.")
+        }
+
+        // Try to parse startString, or fall back to extracting from title / user input
+        var startDate: Date?
+        if let startStr = startString {
+            startDate = parseDatetime(startStr)
+        }
+        if startDate == nil {
+            startDate = parseDatetime(title)
+        }
+        if startDate == nil, let userInput = ctx.lastUserInput {
+            startDate = extractDatetimeFromNaturalLanguage(userInput)
+        }
+
+        guard let startDate else {
+            return AgentResponse(message: "Couldn't understand the event time. Please try again with a specific date and time.")
+        }
+
+        let endDate: Date
+        if let endStr = endString, let parsed = parseDatetime(endStr) {
+            endDate = parsed
+        } else {
+            endDate = startDate.addingTimeInterval(3600)
+        }
+
+        do {
+            let event = try await eventKit.createCalendarEvent(title: title, startDate: startDate, endDate: endDate, location: location)
+            let card = AgentEventCard(id: event.id, title: event.title, startDate: event.startDate, endDate: event.endDate, location: event.location, isAllDay: false)
+            return AgentResponse(message: message, eventCards: [card])
+        } catch {
+            return AgentResponse(message: "Failed to create calendar event: \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - Action: Delete Event
+
+    private func doDeleteEvent(searchText: String, message: String, ctx: AgentContext) -> AgentResponse {
+        let searchLower = searchText.lowercased()
+        let matching = ctx.calendarEvents.filter { event in
+            event.title.lowercased().contains(searchLower) ||
+            searchLower.contains(event.title.lowercased())
+        }
+
+        guard let event = matching.first else {
+            return AgentResponse(message: "Couldn't find a calendar event matching \"\(searchText)\".")
+        }
+
+        let card = AgentEventCard(id: event.id, title: event.title, startDate: event.startDate, endDate: event.endDate, location: event.location, isAllDay: event.isAllDay)
+        let deletion = EventDeletion(eventID: event.id, eventTitle: event.title, eventDate: event.startDate)
+
+        return AgentResponse(message: message, eventCards: [card], pendingDeletion: deletion)
     }
 
     // MARK: - Action: List Tasks
@@ -569,6 +655,107 @@ final class TaskAgent {
         guard !name.isEmpty else { return nil }
         if let exact = projects.first(where: { $0.title.lowercased() == name.lowercased() }) { return exact }
         return projects.first { $0.title.localizedCaseInsensitiveContains(name) }
+    }
+
+    private func parseDatetime(_ string: String) -> Date? {
+        let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // ISO 8601 (YYYY-MM-DDTHH:mm:ss)
+        let localIso = DateFormatter()
+        localIso.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        localIso.timeZone = .current
+        if let date = localIso.date(from: trimmed) { return date }
+
+        // YYYY-MM-DD HH:mm
+        let spaceFmt = DateFormatter()
+        spaceFmt.dateFormat = "yyyy-MM-dd HH:mm"
+        spaceFmt.timeZone = .current
+        if let date = spaceFmt.date(from: trimmed) { return date }
+
+        // Time-only: "7:00 PM", "3pm"
+        let timeFormats = ["h:mm a", "h:mma", "ha", "h a", "HH:mm"]
+        for fmt in timeFormats {
+            let tf = DateFormatter()
+            tf.dateFormat = fmt
+            tf.timeZone = .current
+            if let time = tf.date(from: trimmed) {
+                let cal = Calendar.current
+                let comps = cal.dateComponents([.hour, .minute], from: time)
+                return cal.date(bySettingHour: comps.hour ?? 0, minute: comps.minute ?? 0, second: 0, of: Date())
+            }
+        }
+
+        // "tomorrow at 3pm", "today at 7:00 PM"
+        let prefixPattern = #"^(today|tomorrow|tonight)\s*(?:(?:at|night|evening)\s*)?(.*)$"#
+        if let regex = try? NSRegularExpression(pattern: prefixPattern, options: .caseInsensitive),
+           let match = regex.firstMatch(in: trimmed, range: NSRange(trimmed.startIndex..., in: trimmed)),
+           let dayRange = Range(match.range(at: 1), in: trimmed) {
+            let dayStr = String(trimmed[dayRange]).lowercased()
+            let baseDate = parseDate(dayStr == "tonight" ? "today" : dayStr) ?? Calendar.current.startOfDay(for: .now)
+
+            if let timeRange = Range(match.range(at: 2), in: trimmed) {
+                let timeStr = String(trimmed[timeRange]).trimmingCharacters(in: .whitespaces)
+                if !timeStr.isEmpty, let timeOnly = parseDatetime(timeStr) {
+                    let cal = Calendar.current
+                    let comps = cal.dateComponents([.hour, .minute], from: timeOnly)
+                    return cal.date(bySettingHour: comps.hour ?? 0, minute: comps.minute ?? 0, second: 0, of: baseDate)
+                }
+            }
+
+            if dayStr == "tonight" || trimmed.lowercased().contains("night") {
+                return Calendar.current.date(bySettingHour: 19, minute: 0, second: 0, of: baseDate)
+            }
+        }
+
+        return parseDate(trimmed)
+    }
+
+    private func extractDatetimeFromNaturalLanguage(_ text: String) -> Date? {
+        let lower = text.lowercased()
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: .now)
+
+        var baseDate: Date?
+        if lower.contains("tonight") || lower.contains("today") {
+            baseDate = today
+        } else if lower.contains("tomorrow") {
+            baseDate = cal.date(byAdding: .day, value: 1, to: today)
+        } else {
+            let weekdays = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
+            for (idx, day) in weekdays.enumerated() {
+                if lower.contains(day) {
+                    let targetDay = idx + 1
+                    let currentDay = cal.component(.weekday, from: today)
+                    let daysAhead = (targetDay - currentDay + 7) % 7
+                    baseDate = cal.date(byAdding: .day, value: daysAhead == 0 ? 7 : daysAhead, to: today)
+                    break
+                }
+            }
+        }
+        if baseDate == nil { baseDate = today }
+
+        let timePattern = #"(\d{1,2})(?::(\d{2}))?\s*(am|pm|AM|PM)"#
+        if let regex = try? NSRegularExpression(pattern: timePattern),
+           let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+           let hourRange = Range(match.range(at: 1), in: text) {
+            var hour = Int(text[hourRange]) ?? 0
+            let minute: Int = {
+                if let minRange = Range(match.range(at: 2), in: text) { return Int(text[minRange]) ?? 0 }
+                return 0
+            }()
+            if let ampmRange = Range(match.range(at: 3), in: text) {
+                let ampm = String(text[ampmRange]).lowercased()
+                if ampm == "pm" && hour < 12 { hour += 12 }
+                if ampm == "am" && hour == 12 { hour = 0 }
+            }
+            return cal.date(bySettingHour: hour, minute: minute, second: 0, of: baseDate!)
+        }
+
+        if lower.contains("tonight") || lower.contains("evening") || lower.contains("dinner") {
+            return cal.date(bySettingHour: 19, minute: 0, second: 0, of: baseDate!)
+        }
+
+        return nil
     }
 
     private func parseDate(_ string: String) -> Date? {

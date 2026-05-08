@@ -26,6 +26,7 @@ struct AgentSheet: View {
 
     @State private var agent = TaskAgent()
     @State private var weatherService = FluxWeatherService()
+    @State private var eventKitService = EventKitSyncService()
     @State private var input = ""
     @State private var responses: [AgentResult] = []
     @State private var isSynthesizing = false
@@ -43,6 +44,18 @@ struct AgentSheet: View {
         let subtasks: [String]?
         let isPlanDay: Bool
         var synthesis: SynthesisData?
+        let pendingDeletion: EventDeletion?
+
+        init(query: String, text: String, taskCards: [AgentTaskCard]? = nil, eventCards: [AgentEventCard]? = nil, subtasks: [String]? = nil, isPlanDay: Bool = false, synthesis: SynthesisData? = nil, pendingDeletion: EventDeletion? = nil) {
+            self.query = query
+            self.text = text
+            self.taskCards = taskCards
+            self.eventCards = eventCards
+            self.subtasks = subtasks
+            self.isPlanDay = isPlanDay
+            self.synthesis = synthesis
+            self.pendingDeletion = pendingDeletion
+        }
     }
 
     /// Extra data for synthesis-style plan day responses.
@@ -207,6 +220,8 @@ struct AgentSheet: View {
                 synthesisPlanContent(result, synthesis: synthesis)
             } else if result.isPlanDay {
                 planDayContent(result)
+            } else if let deletion = result.pendingDeletion {
+                deletionResultContent(result, deletion: deletion)
             } else {
                 standardResultContent(result)
             }
@@ -685,12 +700,23 @@ struct AgentSheet: View {
         let isPlanQuery = detectPlanQuery(query)
 
         Task {
+            // Fetch calendar events for context
+            let calEvents: [CalendarEvent]
+            if let hasAccess = try? await eventKitService.requestCalendarAccess(), hasAccess {
+                let start = Calendar.current.startOfDay(for: .now)
+                let end = Calendar.current.date(byAdding: .day, value: 7, to: start) ?? start
+                calEvents = eventKitService.events(from: start, to: end)
+            } else {
+                calEvents = []
+            }
+
             let ctx = AgentContext(
                 modelContext: modelContext,
                 areas: areas,
                 projects: projects,
                 tasks: tasks,
-                calendarEvents: []
+                calendarEvents: calEvents,
+                eventKitService: eventKitService
             )
 
             if isPlanQuery {
@@ -705,7 +731,8 @@ struct AgentSheet: View {
                         taskCards: response.taskCards,
                         eventCards: response.eventCards,
                         subtasks: response.subtasks,
-                        isPlanDay: response.isPlanDay
+                        isPlanDay: response.isPlanDay,
+                        pendingDeletion: response.pendingDeletion
                     ))
                 }
             }
@@ -947,6 +974,135 @@ struct AgentSheet: View {
         }
     }
 
+    // MARK: - Deletion Confirmation
+
+    private func deletionResultContent(_ result: AgentResult, deletion: EventDeletion) -> some View {
+        let hasCards = result.eventCards != nil
+        let displayText = cleanMessage(result.text, hasCards: hasCards)
+
+        return VStack(alignment: .leading, spacing: 0) {
+            if !displayText.isEmpty {
+                Text(markdownString(displayText))
+                    .font(.system(size: 14))
+                    .foregroundStyle(.primary.opacity(0.85))
+                    .lineSpacing(3)
+                    .textSelection(.enabled)
+                    .padding(.horizontal, 18)
+                    .padding(.bottom, 8)
+            }
+
+            // Event card with integrated buttons
+            if let events = result.eventCards, let event = events.first {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(dayLabel(event.startDate))
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.secondary)
+                        .textCase(.uppercase)
+                        .tracking(0.5)
+                        .padding(.horizontal, 10)
+                        .padding(.top, 8)
+                        .padding(.bottom, 3)
+
+                    HStack(spacing: 8) {
+                        Text(event.startDate.formatted(date: .omitted, time: .shortened))
+                            .font(.system(size: 10, weight: .medium, design: .monospaced))
+                            .foregroundStyle(.tertiary)
+                            .frame(width: 52, alignment: .trailing)
+
+                        RoundedRectangle(cornerRadius: 1.5)
+                            .fill(Color.red.opacity(0.5))
+                            .frame(width: 2.5)
+
+                        Text(event.title)
+                            .font(.system(size: 12, weight: .medium))
+                            .lineLimit(1)
+
+                        Spacer()
+
+                        Text(duration(from: event.startDate, to: event.endDate))
+                            .font(.system(size: 9.5, design: .monospaced))
+                            .foregroundStyle(.quaternary)
+                    }
+                    .padding(.vertical, 4)
+                    .padding(.horizontal, 8)
+
+                    Divider()
+                        .opacity(0.3)
+                        .padding(.horizontal, 10)
+                        .padding(.top, 4)
+
+                    // Inline action buttons
+                    deleteConfirmation(for: deletion)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 8)
+                }
+                .background(Color.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .padding(.horizontal, 12)
+                .padding(.bottom, 4)
+            }
+        }
+    }
+
+    private func deleteConfirmation(for deletion: EventDeletion) -> some View {
+        HStack(spacing: 8) {
+            Button {
+                confirmDeletion(deletion)
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: "trash")
+                        .font(.system(size: 10, weight: .medium))
+                    Text("Remove")
+                        .font(.system(size: 11, weight: .semibold))
+                }
+                .foregroundStyle(.red)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(.red.opacity(0.1), in: Capsule())
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                withAnimation(.easeOut(duration: 0.25)) {
+                    responses.append(AgentResult(
+                        query: "Keep: \(deletion.eventTitle)",
+                        text: "Kept **\(deletion.eventTitle)** on your calendar."
+                    ))
+                }
+            } label: {
+                Text("Keep")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(Color.primary.opacity(0.06), in: Capsule())
+            }
+            .buttonStyle(.plain)
+
+            Spacer()
+        }
+    }
+
+    private func confirmDeletion(_ deletion: EventDeletion) {
+        Task {
+            do {
+                try await eventKitService.deleteCalendarEvent(withID: deletion.eventID)
+                withAnimation(.easeOut(duration: 0.25)) {
+                    responses.append(AgentResult(
+                        query: "Deleted: \(deletion.eventTitle)",
+                        text: "**\(deletion.eventTitle)** has been removed from your calendar."
+                    ))
+                }
+            } catch {
+                withAnimation(.easeOut(duration: 0.25)) {
+                    responses.append(AgentResult(
+                        query: "Delete: \(deletion.eventTitle)",
+                        text: "Failed to delete event: \(error.localizedDescription)"
+                    ))
+                }
+            }
+        }
+    }
+
     // MARK: - Helpers
 
     private func markdownString(_ text: String) -> AttributedString {
@@ -1014,7 +1170,7 @@ struct AgentSheet: View {
     private func shortDate(_ date: Date) -> String {
         let cal = Calendar.current
         if cal.isDateInToday(date) { return "Today" }
-        if cal.isDateInTomorrow(date) { return "Tmrw" }
+        if cal.isDateInTomorrow(date) { return "Tomorrow" }
         let f = DateFormatter()
         f.dateFormat = "MMM d"
         return f.string(from: date)

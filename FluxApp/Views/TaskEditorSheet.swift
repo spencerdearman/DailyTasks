@@ -198,7 +198,7 @@ struct TaskEditorSheet: View {
                 HStack {
                     Image(systemName: whenIcon)
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(whenColor == .secondary ? .secondary : .white)
+                        .foregroundStyle(whenColor == .secondary ? Color.secondary : Color.white)
                         .frame(width: 30, height: 30)
                         .background(whenColor, in: Circle())
                     Text("When")
@@ -215,7 +215,7 @@ struct TaskEditorSheet: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .popover(isPresented: $showWhenPicker) {
+            .popover(isPresented: $showWhenPicker, arrowEdge: .top) {
                 whenPickerPopover
                     .presentationCompactAdaptation(.popover)
             }
@@ -237,7 +237,7 @@ struct TaskEditorSheet: View {
                         .foregroundStyle(.tertiary)
                 }
                 .opacity(task.deadline != nil ? 1 : 0)
-                .disabled(task.deadline == nil)
+                .allowsHitTesting(task.deadline != nil)
 
                 DatePicker("", selection: deadlineBinding, displayedComponents: [.date, .hourAndMinute])
                     .labelsHidden()

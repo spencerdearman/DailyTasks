@@ -104,7 +104,7 @@ struct QuickEntrySheet: View {
                             HStack {
                                 Image(systemName: whenIcon)
                                     .font(.system(size: 14, weight: .medium))
-                                    .foregroundStyle(whenColor == .secondary ? .secondary : .white)
+                                    .foregroundStyle(whenColor == .secondary ? Color.secondary : Color.white)
                                     .frame(width: 30, height: 30)
                                     .background(whenColor, in: Circle())
                                 Text("When")
@@ -121,7 +121,7 @@ struct QuickEntrySheet: View {
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
-                        .popover(isPresented: $showWhenPicker) {
+                        .popover(isPresented: $showWhenPicker, arrowEdge: .top) {
                             whenPickerPopover
                                 .presentationCompactAdaptation(.popover)
                         }
@@ -142,7 +142,7 @@ struct QuickEntrySheet: View {
                                     .foregroundStyle(.tertiary)
                             }
                             .opacity(deadline != nil ? 1 : 0)
-                            .disabled(deadline == nil)
+                            .allowsHitTesting(deadline != nil)
 
                             DatePicker("", selection: deadlineBinding, displayedComponents: [.date, .hourAndMinute])
                                 .labelsHidden()

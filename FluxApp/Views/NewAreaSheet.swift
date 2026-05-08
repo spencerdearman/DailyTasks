@@ -27,29 +27,23 @@ struct NewAreaSheet: View {
     @State private var title = ""
     @State private var notes = ""
     @State private var symbolName = "square.grid.2x2"
-    @State private var tintHex = "#3B82F6"
-    @State private var customColor = Color.blue
-    @State private var showEmojiField = false
-    @State private var customEmoji = ""
+    @State private var tintHex = "#93C5FD"
 
     // MARK: - Constants
 
     private let symbolOptions = [
         "square.grid.2x2", "briefcase.fill", "heart.fill",
         "house.fill", "graduationcap.fill", "figure.run",
-        "dollarsign.circle.fill", "paintbrush.fill",
-        "book.fill", "airplane", "leaf.fill", "gamecontroller.fill",
+        "book.fill", "leaf.fill",
     ]
 
     private let tintOptions = [
-        "#3B82F6", // blue
-        "#8B5CF6", // purple
-        "#EC4899", // pink
-        "#EF4444", // red
-        "#F59E0B", // amber
-        "#10B981", // emerald
-        "#06B6D4", // cyan
-        "#6366F1", // indigo
+        "#93C5FD", // soft blue
+        "#C4B5FD", // soft purple
+        "#FDA4AF", // soft pink
+        "#86EFAC", // soft green
+        "#FDE68A", // soft amber
+        "#A5F3FC", // soft cyan
     ]
 
     // MARK: - Computed
@@ -85,12 +79,13 @@ struct NewAreaSheet: View {
                     // Icon
                     sectionHeader("Icon")
                     VStack(spacing: 0) {
-                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 6), spacing: 8) {
+                        HStack {
                             ForEach(symbolOptions, id: \.self) { symbol in
+                                Spacer()
                                 Image(systemName: symbol)
                                     .font(.title3)
                                     .foregroundStyle(symbolName == symbol ? Color(hex: tintHex) : .secondary)
-                                    .frame(width: 40, height: 40)
+                                    .frame(width: 36, height: 36)
                                     .background(
                                         symbolName == symbol
                                         ? Color(hex: tintHex).opacity(0.15)
@@ -99,75 +94,42 @@ struct NewAreaSheet: View {
                                     )
                                     .onTapGesture {
                                         symbolName = symbol
-                                        showEmojiField = false
-                                        customEmoji = ""
                                     }
                             }
-
-                            // Custom emoji button
-                            Group {
-                                if showEmojiField {
-                                    TextField("", text: $customEmoji)
-                                        .font(.title3)
-                                        .multilineTextAlignment(.center)
-                                        .frame(width: 40, height: 40)
-                                        .background(
-                                            Color(hex: tintHex).opacity(0.15),
-                                            in: RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        )
-                                        .onChange(of: customEmoji) {
-                                            if customEmoji.count > 1 {
-                                                customEmoji = String(customEmoji.suffix(1))
-                                            }
-                                        }
-                                } else {
-                                    Image(systemName: "plus")
-                                        .font(.title3)
-                                        .foregroundStyle(.secondary)
-                                        .frame(width: 40, height: 40)
-                                        .background(
-                                            Color(.tertiarySystemGroupedBackground),
-                                            in: RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        )
-                                        .onTapGesture {
-                                            showEmojiField = true
-                                            symbolName = ""
-                                        }
-                                }
-                            }
+                            Spacer()
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
                     }
                     .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
                     // Color
                     sectionHeader("Color")
                     VStack(spacing: 0) {
-                        HStack(spacing: 10) {
-                            ForEach(tintOptions, id: \.self) { hex in
-                                Circle()
-                                    .fill(Color(hex: hex))
-                                    .frame(width: 32, height: 32)
-                                    .overlay {
-                                        if tintHex == hex {
-                                            Image(systemName: "checkmark")
-                                                .font(.system(size: 13, weight: .bold))
-                                                .foregroundStyle(.white)
+                        HStack {
+                            Label("Color", systemImage: "paintpalette")
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+                                .fixedSize(horizontal: true, vertical: false)
+                            Spacer()
+                            HStack(spacing: 8) {
+                                ForEach(tintOptions, id: \.self) { hex in
+                                    Circle()
+                                        .fill(Color(hex: hex))
+                                        .frame(width: 28, height: 28)
+                                        .overlay {
+                                            if tintHex == hex {
+                                                Image(systemName: "checkmark")
+                                                    .font(.system(size: 11, weight: .bold))
+                                                    .foregroundStyle(.white)
+                                            }
                                         }
-                                    }
-                                    .onTapGesture { tintHex = hex }
-                            }
-
-                            ColorPicker("", selection: $customColor, supportsOpacity: false)
-                                .labelsHidden()
-                                .frame(width: 32, height: 32)
-                                .onChange(of: customColor) {
-                                    tintHex = customColor.toHex()
+                                        .onTapGesture { tintHex = hex }
                                 }
+                            }
                         }
                         .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
+                        .padding(.vertical, 10)
                     }
                     .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
@@ -189,7 +151,6 @@ struct NewAreaSheet: View {
                     Button { createArea() } label: {
                         Image(systemName: "checkmark")
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(canSave ? .green : .secondary)
                     }
                     .disabled(!canSave)
                 }
