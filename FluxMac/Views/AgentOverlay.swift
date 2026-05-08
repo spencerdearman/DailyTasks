@@ -75,19 +75,22 @@ struct AgentOverlay: View {
 
                     ghostPreview
 
-                    if showHistoryList {
-                        historyListView
-                            .onHover { hovering in
-                                isHoveringHistoryList = hovering
-                                updateHistoryVisibility()
-                            }
-                            .transition(.opacity)
-                    } else if !responses.isEmpty || agent.isProcessing {
-                        resultArea
-                            .transition(.opacity.combined(with: .move(edge: .top)))
+                    ZStack {
+                        if !responses.isEmpty || agent.isProcessing {
+                            resultArea
+                                .opacity(showHistoryList ? 0 : 1)
+                        }
+
+                        if showHistoryList {
+                            historyListView
+                                .onHover { hovering in
+                                    isHoveringHistoryList = hovering
+                                    updateHistoryVisibility()
+                                }
+                        }
                     }
+                    .animation(nil, value: showHistoryList)
                 }
-                .animation(.spring(response: 0.4, dampingFraction: 0.85), value: showHistoryList)
                 .animation(.spring(response: 0.4, dampingFraction: 0.85), value: responses.count)
                 .animation(.spring(response: 0.4, dampingFraction: 0.85), value: agent.isProcessing)
                 .frame(width: 580)
@@ -654,14 +657,14 @@ struct AgentOverlay: View {
                     } label: {
                         HStack {
                             Text(conversation.firstQuery)
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundStyle(.primary.opacity(0.8))
+                                .font(.system(size: 15, weight: .light))
+                                .foregroundStyle(.secondary)
                                 .lineLimit(1)
 
                             Spacer()
 
                             Text(relativeTime(conversation.updatedAt))
-                                .font(.system(size: 11))
+                                .font(.system(size: 13, weight: .light))
                                 .foregroundStyle(.quaternary)
                         }
                         .padding(.horizontal, 18)

@@ -94,6 +94,16 @@ struct CommandPaletteOverlay: View {
                     agentResults
                 }
 
+                // Thinking indicator — bottom-left, above input bar
+                if mode == .agent && (agent.isProcessing || isSynthesizing) {
+                    HStack {
+                        ThinkingShimmer()
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 6)
+                }
+
                 Divider().opacity(0.3).padding(.horizontal, 12)
 
                 // Input bar at bottom with integrated mode toggle
@@ -259,16 +269,10 @@ struct CommandPaletteOverlay: View {
                             .id(result.id)
                     }
 
-                    if agent.isProcessing || isSynthesizing {
-                        ThinkingShimmer()
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .id("thinking")
-                    }
                 }
                 .padding(.vertical, 6)
             }
-            .frame(maxHeight: 360)
+            .frame(maxHeight: 420)
             .onChange(of: agentResponses.count) {
                 if let last = agentResponses.last {
                     withAnimation(.easeOut(duration: 0.3)) {
@@ -297,27 +301,306 @@ struct CommandPaletteOverlay: View {
             .padding(.top, 6)
             .padding(.bottom, 4)
 
-            // Text content
-            let hasCards = result.taskCards != nil || result.eventCards != nil
-            let displayText = cleanAgentMessage(result.text, hasCards: hasCards)
+            if result.isPlanDay {
+                // Calendar timeline view (matches macOS DailyPlanCard)
+                dailyPlanView(result)
+            } else {
+                // Standard text + task cards
+                let hasCards = result.taskCards != nil || result.eventCards != nil
+                let displayText = cleanAgentMessage(result.text, hasCards: hasCards)
 
-            if !displayText.isEmpty {
-                Text(markdownString(displayText))
-                    .font(.system(size: 13))
-                    .foregroundStyle(.primary.opacity(0.85))
-                    .lineSpacing(2)
-                    .textSelection(.enabled)
+                if !displayText.isEmpty {
+                    Text(markdownString(displayText))
+                        .font(.system(size: 13))
+                        .foregroundStyle(.primary.opacity(0.85))
+                        .lineSpacing(2)
+                        .textSelection(.enabled)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, hasCards ? 6 : 2)
+                }
+
+                if let cards = result.taskCards, !cards.isEmpty {
+                    agentTaskList(cards)
+                        .padding(.horizontal, 10)
+                        .padding(.bottom, 4)
+                }
+            }
+        }
+    }
+
+    // MARK: - Daily Plan View (Calendar Timeline)
+
+    private func dailyPlanView(_ result: AgentResult) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Header: Your Day + date + weather
+            HStack(spacing: 8) {
+                Image(systemName: "sun.max.fill")
+                    .font(.system(size: 14))
+                    .foregroundStyle(.orange)
+
+                Text("Your Day")
+                    .font(.system(size: 14, weight: .semibold))
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 1) {
+                    Text(dayDateLabel)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.tertiary)
+
+                    if let weather = result.synthesis?.weatherSummary {
+                        Text(weather)
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(.blue.opacity(0.7))
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .padding(.bottom, 4)
+
+            Divider()
+                .padding(.horizontal, 16)
+                .opacity(0.4)
+
+            // Intro summary
+            let parsed = parsePlan(from: result.text)
+
+            if !parsed.intro.isEmpty {
+                Text(markdownString(parsed.intro))
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .lineSpacing(3)
                     .padding(.horizontal, 16)
-                    .padding(.bottom, hasCards ? 6 : 2)
+                    .padding(.top, 8)
+                    .padding(.bottom, 4)
             }
 
-            // Task cards
+            // Schedule timeline blocks
+            if !parsed.blocks.isEmpty {
+                scheduleTimeline(parsed.blocks, eventCards: result.eventCards)
+                    .padding(.top, 4)
+                    .padding(.bottom, 4)
+            } else if parsed.intro.isEmpty {
+                // Fallback: render full text
+                Text(markdownString(result.text))
+                    .font(.system(size: 12))
+                    .foregroundStyle(.primary.opacity(0.8))
+                    .lineSpacing(3)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 6)
+            }
+
+            // Task cards below timeline
             if let cards = result.taskCards, !cards.isEmpty {
+                Divider()
+                    .padding(.horizontal, 16)
+                    .opacity(0.3)
+
                 agentTaskList(cards)
                     .padding(.horizontal, 10)
+                    .padding(.top, 6)
                     .padding(.bottom, 4)
             }
         }
+    }
+
+    // MARK: - Schedule Timeline
+
+    private func scheduleTimeline(_ blocks: [PlanTimeBlock], eventCards: [AgentEventCard]?) -> some View {
+        VStack(spacing: 0) {
+            ForEach(blocks) { block in
+                let times = splitTimeRange(block.timeRange)
+                HStack(alignment: .center, spacing: 0) {
+                    // Time column
+                    VStack(alignment: .trailing, spacing: 1) {
+                        Text(times.start)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(.primary.opacity(0.6))
+                        if let end = times.end {
+                            Text(end)
+                                .font(.system(size: 10))
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .frame(width: 65, alignment: .trailing)
+
+                    // Accent bar
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(accentColor(for: block.blockType, eventCards: eventCards, description: block.description))
+                        .frame(width: 3)
+                        .padding(.leading, 8)
+                        .padding(.trailing, 8)
+                        .padding(.vertical, 2)
+
+                    // Content
+                    Text(markdownString(block.description))
+                        .font(.system(size: 12))
+                        .foregroundStyle(.primary.opacity(0.85))
+                        .lineSpacing(2)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Spacer(minLength: 0)
+                }
+                .padding(.vertical, 7)
+                .padding(.trailing, 16)
+            }
+        }
+    }
+
+    // MARK: - Plan Parsing
+
+    private struct PlanTimeBlock: Identifiable {
+        let id = UUID()
+        let timeRange: String
+        let description: String
+        let blockType: PlanBlockType
+    }
+
+    private enum PlanBlockType {
+        case calendar, focus, errand, flex
+    }
+
+    private struct ParsedPlan {
+        let intro: String
+        let blocks: [PlanTimeBlock]
+    }
+
+    private func parsePlan(from text: String) -> ParsedPlan {
+        let cleaned = text.replacingOccurrences(of: "\\n", with: "\n")
+        var blocks = parseLineByLine(cleaned)
+        if blocks.count <= 1 {
+            blocks = parseInline(cleaned)
+        }
+        let intro = extractIntro(from: cleaned)
+        return ParsedPlan(intro: intro, blocks: blocks)
+    }
+
+    private func parseLineByLine(_ text: String) -> [PlanTimeBlock] {
+        let lines = text.components(separatedBy: "\n")
+        var blocks: [PlanTimeBlock] = []
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty, looksLikeTimeBlock(trimmed) else { continue }
+            if let block = extractBlock(from: trimmed) {
+                blocks.append(block)
+            }
+        }
+        return blocks
+    }
+
+    private func parseInline(_ text: String) -> [PlanTimeBlock] {
+        let timePattern = #"\*{0,2}(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?\s*[—–\-]+\s*\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?)\*{0,2}\s*[—–\-]\s*"#
+        guard let regex = try? NSRegularExpression(pattern: timePattern, options: []) else { return [] }
+        let nsText = text as NSString
+        let matches = regex.matches(in: text, options: [], range: NSRange(location: 0, length: nsText.length))
+        guard !matches.isEmpty else { return [] }
+        var blocks: [PlanTimeBlock] = []
+        for (i, match) in matches.enumerated() {
+            let timeRange = nsText.substring(with: match.range(at: 1))
+                .trimmingCharacters(in: CharacterSet.whitespaces.union(.init(charactersIn: "*")))
+            let descStart = match.range.location + match.range.length
+            let descEnd = i + 1 < matches.count ? matches[i + 1].range.location : nsText.length
+            guard descStart < descEnd else { continue }
+            let desc = nsText.substring(with: NSRange(location: descStart, length: descEnd - descStart))
+                .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines.union(.init(charactersIn: ".")))
+            guard !desc.isEmpty else { continue }
+            blocks.append(PlanTimeBlock(timeRange: timeRange, description: desc, blockType: classifyBlock(desc)))
+        }
+        return blocks
+    }
+
+    private func extractBlock(from line: String) -> PlanTimeBlock? {
+        let patterns = [
+            #"^\*{1,2}(.+?)\*{1,2}\s*[—–\-]\s*(.+)$"#,
+            #"^(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?\s*[—–\-]\s*\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?)\s*[—–\-]\s*(.+)$"#,
+        ]
+        for pattern in patterns {
+            if let regex = try? NSRegularExpression(pattern: pattern, options: []),
+               let match = regex.firstMatch(in: line, options: [], range: NSRange(line.startIndex..., in: line)),
+               match.numberOfRanges >= 3,
+               let r1 = Range(match.range(at: 1), in: line),
+               let r2 = Range(match.range(at: 2), in: line) {
+                let time = String(line[r1]).trimmingCharacters(in: .whitespaces)
+                let desc = String(line[r2]).trimmingCharacters(in: .whitespaces)
+                return PlanTimeBlock(timeRange: time, description: desc, blockType: classifyBlock(desc))
+            }
+        }
+        for dash in ["—", "–", " - "] {
+            if let range = line.range(of: dash) {
+                let before = String(line[line.startIndex..<range.lowerBound])
+                    .trimmingCharacters(in: CharacterSet.whitespaces.union(.init(charactersIn: "*")))
+                let after = String(line[range.upperBound...]).trimmingCharacters(in: .whitespaces)
+                if looksLikeTimeBlock(before) && !after.isEmpty {
+                    return PlanTimeBlock(timeRange: before, description: after, blockType: classifyBlock(after))
+                }
+            }
+        }
+        return nil
+    }
+
+    private func extractIntro(from text: String) -> String {
+        let stripped = text.replacingOccurrences(of: "**", with: "").replacingOccurrences(of: "*", with: "")
+        guard let match = stripped.range(of: #"\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?"#, options: .regularExpression) else {
+            return ""
+        }
+        let intro = String(stripped[stripped.startIndex..<match.lowerBound])
+            .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines.union(.init(charactersIn: "!.")))
+        return intro.count > 10 ? intro : ""
+    }
+
+    private func looksLikeTimeBlock(_ line: String) -> Bool {
+        let stripped = line.replacingOccurrences(of: "*", with: "")
+        return stripped.range(of: #"\d{1,2}:\d{2}"#, options: .regularExpression) != nil
+    }
+
+    private func classifyBlock(_ description: String) -> PlanBlockType {
+        let lower = description.lowercased()
+        if lower.contains("flex") || lower.contains("buffer") || lower.contains("wrap up") {
+            return .flex
+        }
+        if lower.contains("lunch") || lower.contains("errand") || lower.contains("break") ||
+           lower.contains("pick up") || lower.contains("gym") || lower.contains("run ") ||
+           lower.contains("personal") {
+            return .errand
+        }
+        return .focus
+    }
+
+    private func accentColor(for type: PlanBlockType, eventCards: [AgentEventCard]?, description: String) -> Color {
+        if type == .calendar { return .blue }
+        if let events = eventCards {
+            let lower = description.lowercased()
+            for event in events {
+                if lower.contains(event.title.lowercased()) {
+                    return .blue
+                }
+            }
+        }
+        switch type {
+        case .focus:    return .orange
+        case .errand:   return .green
+        case .flex:     return .purple
+        default:        return .orange
+        }
+    }
+
+    private func splitTimeRange(_ range: String) -> (start: String, end: String?) {
+        for sep in ["–", "—", "-"] {
+            let parts = range.components(separatedBy: sep)
+            if parts.count == 2 {
+                let start = parts[0].trimmingCharacters(in: .whitespaces)
+                let end = parts[1].trimmingCharacters(in: .whitespaces)
+                return (start, end.isEmpty ? nil : end)
+            }
+        }
+        return (range.trimmingCharacters(in: .whitespaces), nil)
+    }
+
+    private var dayDateLabel: String {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "EEEE, MMM d"
+        return fmt.string(from: Date())
     }
 
     private func agentTaskList(_ cards: [AgentTaskCard]) -> some View {
@@ -326,30 +609,30 @@ struct CommandPaletteOverlay: View {
                 Button {
                     selectedTaskID = task.id
                 } label: {
-                    HStack(spacing: 8) {
+                    HStack(spacing: 10) {
                         Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
-                            .font(.system(size: 12))
+                            .font(.system(size: 14))
                             .foregroundStyle(task.isCompleted ? .green : Color.primary.opacity(0.2))
 
                         Text(task.title)
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(task.isCompleted ? .secondary : .primary)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(task.isCompleted ? Color.secondary : Color.primary)
                             .lineLimit(1)
 
                         Spacer()
 
                         if let date = task.whenDate ?? task.deadline {
                             Text(shortDate(date))
-                                .font(.system(size: 10, weight: .medium))
-                                .foregroundStyle(date < Calendar.current.startOfDay(for: .now) ? .red : .secondary)
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(date < Calendar.current.startOfDay(for: .now) ? Color.red : Color.secondary)
                         }
 
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 7, weight: .semibold))
+                            .font(.system(size: 8, weight: .semibold))
                             .foregroundStyle(.quaternary)
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 5)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 9)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
