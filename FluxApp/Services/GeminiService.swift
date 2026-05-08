@@ -78,7 +78,7 @@ actor GeminiService {
             "search_text": ["type": "STRING", "description": "Text to fuzzy-match an existing task"],
             "target_project": ["type": "STRING", "description": "Project name to assign/move to"],
             "target_area": ["type": "STRING", "description": "Area name to assign/move to"],
-            "date": ["type": "STRING", "description": "Date: today, tomorrow, next week, monday-sunday, or YYYY-MM-DD"],
+            "date": ["type": "STRING", "description": "Date: today, tomorrow, next week, monday-sunday, YYYY-MM-DD, or 'later' to mark as someday/maybe"],
             "filter": ["type": "STRING", "description": "For list_tasks: inbox, today, tomorrow, upcoming, open, later, done, or a search query"],
             "message": ["type": "STRING", "description": "Natural language response to show the user"],
             "subtasks": [
@@ -235,7 +235,8 @@ enum GeminiPromptBuilder {
         You help users manage their tasks through natural conversation.
 
         AVAILABLE ACTIONS:
-        - create_task: Create a new task. Set title, notes, date, target_project, target_area as needed.
+        - create_task: Create a new task. Set title, notes, date, target_project, target_area as needed. \
+        If the user says "for later", "someday", or "maybe", set date to "later" — this puts it in the Later/Someday list.
         - complete_task: Mark a task as done. Set search_text to match the task title.
         - move_task: Move a task to a different project or area. Set search_text + target_project/target_area.
         - schedule_task: Set or change a task's date. MUST set search_text AND date (YYYY-MM-DD or weekday name). \

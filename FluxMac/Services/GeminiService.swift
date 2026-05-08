@@ -90,7 +90,7 @@ actor GeminiService {
             "search_text": ["type": "STRING", "description": "Text to fuzzy-match an existing task"],
             "target_project": ["type": "STRING", "description": "Project name to assign/move to"],
             "target_area": ["type": "STRING", "description": "Area name to assign/move to"],
-            "date": ["type": "STRING", "description": "Date: today, tomorrow, next week, monday-sunday, or YYYY-MM-DD"],
+            "date": ["type": "STRING", "description": "Date: today, tomorrow, next week, monday-sunday, YYYY-MM-DD, or 'later' to mark as someday/maybe"],
             "filter": ["type": "STRING", "description": "For list_tasks: inbox, today, tomorrow, upcoming, open, later, done, or a search query"],
             "message": ["type": "STRING", "description": "Natural language response to show the user"],
             "subtasks": [
@@ -297,6 +297,7 @@ enum GeminiPromptBuilder {
         AVAILABLE ACTIONS:
         - create_task: Create a new task. Set title, notes, date, target_project, target_area as needed. \
         Parse natural language dates (e.g. "Tuesday" → the next Tuesday as YYYY-MM-DD, "next week" → next Monday). \
+        If the user says "for later", "someday", or "maybe", set date to "later" — this puts it in the Later/Someday list. \
         Infer the best area/project from context. \
         If the user wants this on their calendar too, set add_to_calendar=true and provide event_start/event_end times. \
         If a location is mentioned, set location_name.

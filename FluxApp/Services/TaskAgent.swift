@@ -245,7 +245,11 @@ final class TaskAgent {
         let title = response.title ?? "Untitled"
         var project = response.targetProject.flatMap { findProject(named: $0, in: ctx.projects) }
         var area = response.targetArea.flatMap { findArea(named: $0, in: ctx.areas) } ?? project?.area
-        let whenDate = response.date.flatMap { parseDate($0) }
+
+        // Check if this should be a "Later" (someday) task
+        let isLater = response.date?.lowercased() == "later" || response.date?.lowercased() == "someday"
+        let whenDate = isLater ? nil : response.date.flatMap { parseDate($0) }
+        let taskStatus: TaskStatus = isLater ? .someday : .active
 
         if area == nil && project == nil {
             let classification = await categorizer.categorize(
@@ -268,7 +272,7 @@ final class TaskAgent {
             title: title,
             notes: response.notes ?? "",
             whenDate: whenDate,
-            status: .active,
+            status: taskStatus,
             isInInbox: area == nil && project == nil,
             area: area,
             project: project
