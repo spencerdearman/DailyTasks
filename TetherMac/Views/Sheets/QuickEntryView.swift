@@ -129,43 +129,59 @@ struct QuickEntryView: View {
                 
                 // Inline date badges
                 if isEvening {
-                    HStack(spacing: 4) {
-                        Image(systemName: "moon.fill").font(.system(size: 11)).foregroundStyle(.indigo)
-                        Text("This Evening").font(.caption.weight(.medium)).foregroundStyle(.indigo)
+                    HStack(spacing: 6) {
+                        Image(systemName: "moon.fill")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.indigo)
+                        Text("This Evening")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(.indigo)
                     }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
-                    .background(Color.indigo.opacity(0.08), in: Capsule())
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 7)
+                    .background(Color.indigo.opacity(0.1), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 } else if let date = whenDate {
-                    HStack(spacing: 4) {
-                        Image(systemName: "calendar").font(.system(size: 11)).foregroundStyle(.secondary)
-                        Text(date.formatted(.dateTime.month(.abbreviated).day())).font(.caption.weight(.medium))
+                    HStack(spacing: 6) {
+                        Image(systemName: "calendar")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.blue)
+                        Text(date.formatted(.dateTime.month(.abbreviated).day()))
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(.blue)
                         Button {
                             whenDate = nil
                         } label: {
-                            Image(systemName: "xmark.circle.fill").font(.system(size: 10)).foregroundStyle(.tertiary)
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 10))
+                                .foregroundStyle(.blue.opacity(0.4))
                         }
                         .buttonStyle(.plain)
                     }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
-                    .background(Color.primary.opacity(0.05), in: Capsule())
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 7)
+                    .background(Color.blue.opacity(0.1), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 }
-                
+
                 if let dl = deadline {
-                    HStack(spacing: 4) {
-                        Image(systemName: "flag.fill").font(.system(size: 11)).foregroundStyle(.orange)
-                        Text(dl.formatted(.dateTime.month(.abbreviated).day())).font(.caption.weight(.medium)).foregroundStyle(.orange)
+                    HStack(spacing: 6) {
+                        Image(systemName: "flag.fill")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.orange)
+                        Text(dl.formatted(.dateTime.month(.abbreviated).day()))
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(.orange)
                         Button {
                             deadline = nil
                         } label: {
-                            Image(systemName: "xmark.circle.fill").font(.system(size: 10)).foregroundStyle(.tertiary)
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 10))
+                                .foregroundStyle(.orange.opacity(0.4))
                         }
                         .buttonStyle(.plain)
                     }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
-                    .background(Color.orange.opacity(0.08), in: Capsule())
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 7)
+                    .background(Color.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 }
             }
             .padding(.horizontal, 20)
