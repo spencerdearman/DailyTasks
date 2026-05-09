@@ -390,6 +390,7 @@ struct TaskRow: View {
                     .popover(isPresented: $showSchedulePopover, arrowEdge: .bottom) {
                         schedulePanel
                             .padding(4)
+                            .popoverBackgroundClean()
                     }
 
                     // Location popover
@@ -408,6 +409,7 @@ struct TaskRow: View {
                         LocationSearchPanel(task: task, isPresented: $showLocationPopover)
                             .frame(width: 260)
                             .padding(4)
+                            .popoverBackgroundClean()
                     }
 
                     // Tags popover
@@ -425,6 +427,7 @@ struct TaskRow: View {
                         TagPanel(task: task)
                             .frame(width: 220)
                             .padding(4)
+                            .popoverBackgroundClean()
                     }
 
                     // Subtasks toggle (inline)
@@ -445,6 +448,7 @@ struct TaskRow: View {
                         movePanel
                             .frame(width: 260)
                             .padding(4)
+                            .popoverBackgroundClean()
                     }
                 }
             }
@@ -860,7 +864,6 @@ struct TaskRow: View {
         }
         .frame(minWidth: 240)
         .padding(16)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
     
     private func areaMoveRow(_ area: Area) -> some View {

@@ -40,7 +40,6 @@ struct TagPanel: View {
                     }
             }
             .padding(8)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             
             if !filteredTags.isEmpty {
                 VStack(alignment: .leading, spacing: 2) {
@@ -68,7 +67,6 @@ struct TagPanel: View {
                     }
                 }
                 .padding(4)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
         }
     }

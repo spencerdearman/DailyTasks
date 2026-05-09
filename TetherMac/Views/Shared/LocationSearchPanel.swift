@@ -36,7 +36,6 @@ struct LocationSearchPanel: View {
                     }
             }
             .padding(8)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
 
             // Current location display
             if let name = task.locationName, !name.isEmpty, searchText.isEmpty {

@@ -95,8 +95,9 @@ struct QuickEntryView: View {
                 .buttonStyle(.plain)
                 .popover(isPresented: $showAreaPopover, arrowEdge: .bottom) {
                     areaPanel
-                        .frame(width: 220)
+                        .frame(width: 260)
                         .padding(4)
+                        .popoverBackgroundClean()
                 }
 
                 // Project popover
@@ -121,8 +122,9 @@ struct QuickEntryView: View {
                 .buttonStyle(.plain)
                 .popover(isPresented: $showProjectPopover, arrowEdge: .bottom) {
                     projectPanel
-                        .frame(width: 220)
+                        .frame(width: 260)
                         .padding(4)
+                        .popoverBackgroundClean()
                 }
                 
                 // Inline date badges
@@ -282,6 +284,7 @@ struct QuickEntryView: View {
                     .popover(isPresented: $showSchedulePopover, arrowEdge: .top) {
                         schedulePanel
                             .padding(4)
+                            .popoverBackgroundClean()
                     }
 
                     // Location popover
@@ -297,7 +300,8 @@ struct QuickEntryView: View {
                     .buttonStyle(.plain)
                     .popover(isPresented: $showLocationPopover, arrowEdge: .top) {
                         quickEntryLocationPanel
-                            .frame(width: 220)
+                            .frame(width: 260)
+                            .popoverBackgroundClean()
                     }
 
                     // Tags popover
@@ -315,6 +319,7 @@ struct QuickEntryView: View {
                         tagsPanel
                             .frame(width: 220)
                             .padding(4)
+                            .popoverBackgroundClean()
                     }
 
                     // Subtasks
@@ -574,8 +579,6 @@ struct QuickEntryView: View {
 
     private var tagsPanel: some View {
         QuickEntryTagPanel(allTags: allTags, selectedTags: $selectedTags, modelContext: modelContext)
-            .padding(12)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private func quickPickButton(icon: String, iconColor: Color, label: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
@@ -595,134 +598,155 @@ struct QuickEntryView: View {
         .buttonStyle(.plain)
     }
     
-    // MARK: - Area Panel (tag-style overlay)
+    // MARK: - Area Panel
 
     private var areaPanel: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 8) {
                 Image(systemName: "square.grid.2x2")
-                    .font(.subheadline)
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(.secondary)
                 Text("Area")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .font(.subheadline.weight(.medium))
+                Spacer()
             }
-            .padding(8)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Button {
-                    selectedAreaID = nil
-                    showAreaPopover = false
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
-                        Text("No area")
-                            .font(.subheadline)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, 4)
-                    .padding(.horizontal, 8)
-                    .contentShape(Rectangle())
+            Button {
+                selectedAreaID = nil
+                showAreaPopover = false
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: selectedAreaID == nil ? "checkmark.circle.fill" : "xmark")
+                        .font(.system(size: 12))
+                        .foregroundStyle(selectedAreaID == nil ? .green : .secondary)
+                    Text("No area")
+                        .font(.subheadline)
+                    Spacer()
                 }
-                .buttonStyle(.plain)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(selectedAreaID == nil ? Color.primary.opacity(0.08) : Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            }
+            .buttonStyle(.plain)
 
-                ForEach(areas) { area in
-                    Button {
-                        selectedAreaID = area.id
-                        showAreaPopover = false
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: area.symbolName)
-                                .font(.system(size: 11))
-                                .foregroundStyle(Color(hex: area.tintHex))
-                            Text(area.title)
-                                .font(.subheadline)
-                            Spacer()
-                            if selectedAreaID == area.id {
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 11, weight: .semibold))
-                                    .foregroundStyle(.green)
+            if !areas.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Areas")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .textCase(.uppercase)
+                        .tracking(0.5)
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(areas) { area in
+                            Button {
+                                selectedAreaID = area.id
+                                showAreaPopover = false
+                            } label: {
+                                HStack(spacing: 10) {
+                                    Image(systemName: area.symbolName)
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(Color(hex: area.tintHex))
+                                        .frame(width: 14)
+                                    Text(area.title)
+                                        .font(.subheadline)
+                                        .foregroundStyle(.primary)
+                                    Spacer()
+                                    if selectedAreaID == area.id {
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 11, weight: .semibold))
+                                            .foregroundStyle(.green)
+                                    }
+                                }
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 8)
+                                .background(selectedAreaID == area.id ? Color.primary.opacity(0.08) : Color.clear, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                             }
+                            .buttonStyle(.plain)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, 4)
-                        .padding(.horizontal, 8)
-                        .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
                 }
             }
-            .padding(4)
         }
-        .padding(12)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .frame(minWidth: 240)
+        .padding(16)
     }
 
-    // MARK: - Project Panel (tag-style overlay)
+    // MARK: - Project Panel
 
     private var projectPanel: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 8) {
                 Image(systemName: "paperplane")
-                    .font(.subheadline)
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(.secondary)
                 Text("Project")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .font(.subheadline.weight(.medium))
+                Spacer()
             }
-            .padding(8)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Button {
-                    selectedProjectID = nil
-                    showProjectPopover = false
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
-                        Text("No project")
-                            .font(.subheadline)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, 4)
-                    .padding(.horizontal, 8)
-                    .contentShape(Rectangle())
+            Button {
+                selectedProjectID = nil
+                showProjectPopover = false
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: selectedProjectID == nil ? "checkmark.circle.fill" : "xmark")
+                        .font(.system(size: 12))
+                        .foregroundStyle(selectedProjectID == nil ? .green : .secondary)
+                    Text("No project")
+                        .font(.subheadline)
+                    Spacer()
                 }
-                .buttonStyle(.plain)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(selectedProjectID == nil ? Color.primary.opacity(0.08) : Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            }
+            .buttonStyle(.plain)
 
-                ForEach(filteredProjects) { project in
-                    Button {
-                        selectedProjectID = project.id
-                        showProjectPopover = false
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "paperplane")
-                                .font(.system(size: 11))
-                                .foregroundStyle(Color(hex: project.tintHex))
-                            Text(project.title)
-                                .font(.subheadline)
-                            Spacer()
-                            if selectedProjectID == project.id {
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 11, weight: .semibold))
-                                    .foregroundStyle(.green)
+            if !filteredProjects.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Projects")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .textCase(.uppercase)
+                        .tracking(0.5)
+
+                    ScrollView(showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            ForEach(filteredProjects) { project in
+                                Button {
+                                    selectedProjectID = project.id
+                                    showProjectPopover = false
+                                } label: {
+                                    HStack(spacing: 10) {
+                                        Image(systemName: "paperplane")
+                                            .font(.system(size: 12))
+                                            .foregroundStyle(Color(hex: project.tintHex))
+                                            .frame(width: 14)
+                                        Text(project.title)
+                                            .font(.subheadline)
+                                            .foregroundStyle(.primary)
+                                        Spacer()
+                                        if selectedProjectID == project.id {
+                                            Image(systemName: "checkmark")
+                                                .font(.system(size: 11, weight: .semibold))
+                                                .foregroundStyle(.green)
+                                        }
+                                    }
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 8)
+                                    .background(selectedProjectID == project.id ? Color.primary.opacity(0.08) : Color.clear, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                }
+                                .buttonStyle(.plain)
                             }
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, 4)
-                        .padding(.horizontal, 8)
-                        .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .frame(maxHeight: 260)
                 }
             }
-            .padding(4)
         }
-        .padding(12)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .frame(minWidth: 240)
+        .padding(16)
     }
 
     private var filteredProjects: [Project] {
@@ -1005,7 +1029,6 @@ private struct QuickEntryTagPanel: View {
                     .onSubmit { createTag() }
             }
             .padding(8)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             
             if !filteredTags.isEmpty {
                 VStack(alignment: .leading, spacing: 2) {
@@ -1028,7 +1051,6 @@ private struct QuickEntryTagPanel: View {
                     }
                 }
                 .padding(4)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
         }
     }
@@ -1069,15 +1091,15 @@ private struct QuickEntryLocationPanel: View {
                     }
             }
             .padding(8)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
 
             if let name = locationName, !name.isEmpty, searchText.isEmpty {
                 HStack(spacing: 8) {
                     Image(systemName: "location.fill")
                         .font(.system(size: 12))
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(.red)
                     Text(name)
                         .font(.subheadline)
+                        .foregroundStyle(.primary)
                         .lineLimit(1)
                     Spacer()
                     Button {
@@ -1125,7 +1147,7 @@ private struct QuickEntryLocationPanel: View {
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
         }
-        .padding(8)
+        .padding(4)
     }
 
     private func selectResult(_ result: MKLocalSearchCompletion) {
