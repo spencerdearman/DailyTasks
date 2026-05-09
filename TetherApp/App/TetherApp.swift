@@ -5,6 +5,7 @@
 //  Created by Spencer Dearman.
 //
 
+import GoogleSignIn
 import SwiftData
 import SwiftUI
 
@@ -52,6 +53,12 @@ struct TetherApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(calendarStore)
+                .onAppear {
+                    calendarStore.restoreGoogleSignIn()
+                }
+                .onOpenURL { url in
+                    GIDSignIn.sharedInstance.handle(url)
+                }
         }
         .modelContainer(sharedModelContainer)
     }

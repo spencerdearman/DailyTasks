@@ -13,8 +13,11 @@ import SwiftUI
 struct SettingsSheet: View {
 
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var calendarStore: CalendarStore
     @AppStorage("tetherShowCompletedTasks") private var showCompleted = false
     @AppStorage("tetherShowTaskCounts") private var showTaskCounts = true
+    @AppStorage("tetherAppleCalendarEnabled") private var appleCalendarEnabled = true
+    @AppStorage("tetherGoogleCalendarEnabled") private var googleCalendarEnabled = true
 
     @AppStorage("geminiAPIKey") private var geminiAPIKey = ""
 
@@ -55,6 +58,74 @@ struct SettingsSheet: View {
                         .padding(.vertical, 10)
 
 
+                    }
+                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                    // Calendars section
+                    sectionHeader("Calendars")
+                    VStack(spacing: 0) {
+                        HStack {
+                            Image(systemName: "apple.logo")
+                            Text("Apple Calendar")
+                            Spacer()
+                            Toggle("", isOn: $appleCalendarEnabled)
+                                .labelsHidden()
+                                .onChange(of: appleCalendarEnabled) { calendarStore.refresh() }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+
+                        Divider().padding(.leading, 16)
+
+                        HStack {
+                            Image(systemName: "g.circle.fill")
+                            Text("Google Calendar")
+                            Spacer()
+                            Toggle("", isOn: $googleCalendarEnabled)
+                                .labelsHidden()
+                                .onChange(of: googleCalendarEnabled) { calendarStore.refresh() }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+
+                        if googleCalendarEnabled {
+                            Divider().padding(.leading, 16)
+
+                            HStack {
+                                if calendarStore.googleSignedIn {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(.green)
+                                    Text(calendarStore.googleUserEmail ?? "Connected")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                    Spacer()
+                                    Button("Sign Out") {
+                                        calendarStore.signOutGoogle()
+                                    }
+                                    .font(.subheadline.weight(.medium))
+                                } else {
+                                    Text("Not connected")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                    Spacer()
+                                    Button("Connect") {
+                                        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                                              let rootVC = scene.windows.first?.rootViewController else { return }
+                                        Task {
+                                            try? await calendarStore.signInGoogle(presenting: rootVC)
+                                        }
+                                    }
+                                    .font(.subheadline.weight(.medium))
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 5)
+                                    .background(Color.primary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                        }
                     }
                     .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 

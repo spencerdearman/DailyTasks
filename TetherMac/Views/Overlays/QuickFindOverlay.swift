@@ -15,6 +15,7 @@ struct QuickFindOverlay: View {
     let areas: [Area]
     let projects: [Project]
     let tasks: [TaskItem]
+    let events: [CalendarEvent]
     let onSelectSidebar: (SidebarSelection) -> Void
     let onSelectTask: (TaskItem) -> Void
     let onDismiss: () -> Void
@@ -78,8 +79,23 @@ struct QuickFindOverlay: View {
         }
     }
 
+    private var eventItems: [QuickFindItem] {
+        guard !query.isEmpty else { return [] }
+        let filtered = events.filter {
+            $0.title.localizedCaseInsensitiveContains(query) ||
+            ($0.location ?? "").localizedCaseInsensitiveContains(query)
+        }
+        let timeFmt = DateFormatter()
+        timeFmt.dateFormat = "E, MMM d · h:mm a"
+        return filtered.prefix(6).map { event in
+            QuickFindItem(id: "event-\(event.id)", icon: "calendar", iconColor: .red, title: event.title, subtitle: timeFmt.string(from: event.startDate)) {
+                onSelectSidebar(.today)
+            }
+        }
+    }
+
     private var allItems: [QuickFindItem] {
-        coreListItems + areaItems + projectItems + taskItems
+        coreListItems + areaItems + projectItems + taskItems + eventItems
     }
 
     private var hasResults: Bool {
@@ -150,6 +166,9 @@ struct QuickFindOverlay: View {
                                 }
                                 if !taskItems.isEmpty {
                                     quickFindSection("Tasks", items: taskItems)
+                                }
+                                if !eventItems.isEmpty {
+                                    quickFindSection("Events", items: eventItems)
                                 }
                                 if allItems.isEmpty && !query.isEmpty {
                                     Text("No results")
@@ -226,7 +245,7 @@ struct QuickFindOverlay: View {
                 Button {
                     item.action()
                 } label: {
-                    HStack(spacing: 10) {
+                    HStack(alignment: .firstTextBaseline, spacing: 10) {
                         Image(systemName: item.icon)
                             .font(.system(size: 13))
                             .foregroundStyle(item.iconColor)
@@ -234,6 +253,7 @@ struct QuickFindOverlay: View {
 
                         Text(item.title)
                             .font(.system(size: 13, weight: .medium))
+                            .lineLimit(1)
 
                         if let subtitle = item.subtitle {
                             Text(subtitle)

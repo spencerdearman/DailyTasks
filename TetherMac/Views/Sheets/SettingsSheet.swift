@@ -12,8 +12,11 @@ import SwiftUI
 /// The application settings panel with preferences and API key configuration.
 struct SettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var calendarStore: CalendarStore
     @AppStorage("tetherShowCompletedTasks") private var showCompleted = false
     @AppStorage("tetherShowTaskCounts") private var showTaskCounts = true
+    @AppStorage("tetherAppleCalendarEnabled") private var appleCalendarEnabled = true
+    @AppStorage("tetherGoogleCalendarEnabled") private var googleCalendarEnabled = true
 
     @AppStorage("geminiAPIKey") private var geminiAPIKey = ""
 
@@ -27,9 +30,13 @@ struct SettingsSheet: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
+        VStack(alignment: .leading, spacing: 0) {
             Text("Settings")
                 .font(.system(size: 24, weight: .bold))
+                .padding(.bottom, 24)
+
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 24) {
 
             VStack(spacing: 0) {
                 HStack {
@@ -60,6 +67,87 @@ struct SettingsSheet: View {
 
             }
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+            // Calendars section
+            VStack(alignment: .leading, spacing: 8) {
+                Label("Calendars", systemImage: "calendar")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+
+                VStack(spacing: 0) {
+                    HStack {
+                        Image(systemName: "apple.logo")
+                            .font(.body)
+                        Text("Apple Calendar")
+                            .font(.body)
+                        Spacer()
+                        Toggle("", isOn: $appleCalendarEnabled)
+                            .labelsHidden()
+                            .toggleStyle(.switch)
+                            .onChange(of: appleCalendarEnabled) { calendarStore.refresh() }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+
+                    Divider()
+                        .padding(.leading, 16)
+
+                    HStack {
+                        Image(systemName: "g.circle.fill")
+                            .font(.body)
+                        Text("Google Calendar")
+                            .font(.body)
+                        Spacer()
+                        Toggle("", isOn: $googleCalendarEnabled)
+                            .labelsHidden()
+                            .toggleStyle(.switch)
+                            .onChange(of: googleCalendarEnabled) { calendarStore.refresh() }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+
+                    if googleCalendarEnabled {
+                        Divider()
+                            .padding(.leading, 16)
+
+                        HStack {
+                            if calendarStore.googleSignedIn {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(.green)
+                                Text(calendarStore.googleUserEmail ?? "Connected")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                                Spacer()
+                                Button("Sign Out") {
+                                    calendarStore.signOutGoogle()
+                                }
+                                .font(.subheadline.weight(.medium))
+                                .buttonStyle(.plain)
+                            } else {
+                                Text("Not connected")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                                Button("Connect") {
+                                    guard let window = NSApplication.shared.keyWindow else { return }
+                                    Task {
+                                        try? await calendarStore.signInGoogle(presenting: window)
+                                    }
+                                }
+                                .font(.subheadline.weight(.medium))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 5)
+                                .background(Color.primary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                    }
+                }
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
 
             // Tether Agent section
             VStack(alignment: .leading, spacing: 8) {
@@ -143,7 +231,10 @@ struct SettingsSheet: View {
                     .padding(.horizontal, 4)
             }
 
-            Spacer()
+            }
+            }
+
+            Spacer(minLength: 16)
 
             HStack {
                 Spacer()

@@ -5,6 +5,7 @@
 //  Created by Spencer Dearman.
 //
 
+import GoogleSignIn
 import SwiftData
 import SwiftUI
 
@@ -54,7 +55,13 @@ struct TetherMacApp: App {
                 .environmentObject(locationService)
                 .environmentObject(weatherService)
                 .modelContainer(sharedModelContainer)
-                .onAppear { locationService.start() }
+                .onAppear {
+                    locationService.start()
+                    calendarStore.restoreGoogleSignIn()
+                }
+                .onOpenURL { url in
+                    GIDSignIn.sharedInstance.handle(url)
+                }
         }
         .defaultSize(width: 1320, height: 860)
         

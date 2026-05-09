@@ -879,6 +879,9 @@ struct AgentOverlay: View {
 
         saveUserMessage(query)
 
+        // Ensure calendar events are fresh before building the agent context
+        calendarStore.refresh()
+
         Task {
             let ctx = AgentContext(
                 modelContext: modelContext,

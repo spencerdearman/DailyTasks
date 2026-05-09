@@ -40,8 +40,9 @@ struct ContentView: View {
     @AppStorage("tetherShowCompletedTasks") private var showCompleted = false
 
     var body: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: .constant(.all)) {
             sidebar
+                .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 360)
         } detail: {
             detailContainer
         }
@@ -75,6 +76,7 @@ struct ContentView: View {
                     areas: areas,
                     projects: projects,
                     tasks: tasks,
+                    events: calendarStore.allEvents,
                     onSelectSidebar: { sel in
                         selection = sel
                         showQuickFind = false

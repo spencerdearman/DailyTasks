@@ -2,10 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>remote-notification</string>
-	</array>
 	<key>GIDClientID</key>
 	<string>307289024768-6gj2st0i154tpj2pbn84s0am6asjadoa.apps.googleusercontent.com</string>
 	<key>CFBundleURLTypes</key>

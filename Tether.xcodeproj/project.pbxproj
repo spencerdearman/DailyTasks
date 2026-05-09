@@ -7,12 +7,16 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4D3519952FAEAD9300A9E7E6 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 4D3519942FAEAD9300A9E7E6 /* GoogleSignIn */; };
+		4D3519972FAEAD9300A9E7E6 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 4D3519962FAEAD9300A9E7E6 /* GoogleSignInSwift */; };
+		4D3519992FAEB36B00A9E7E6 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 4D3519982FAEB36B00A9E7E6 /* GoogleSignIn */; };
+		4D35199B2FAEB36B00A9E7E6 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 4D35199A2FAEB36B00A9E7E6 /* GoogleSignInSwift */; };
 		4D3A98F32FA7A324001DDB61 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 4DA258D72FA29C5100DCA196 /* AppIcon.icon */; };
 		4D3A98F42FA7A324001DDB61 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 4DA258D72FA29C5100DCA196 /* AppIcon.icon */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		4D058B252F970F440065CADF /* TetherMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TetherMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4D058B252F970F440065CADF /* TetherMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = TetherMac.app; path = Tether.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4D058B392F9712AC0065CADF /* TetherApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TetherApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4DA258D72FA29C5100DCA196 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -48,6 +52,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4D3519952FAEAD9300A9E7E6 /* GoogleSignIn in Frameworks */,
+				4D3519972FAEAD9300A9E7E6 /* GoogleSignInSwift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -55,12 +61,21 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4D3519992FAEB36B00A9E7E6 /* GoogleSignIn in Frameworks */,
+				4D35199B2FAEB36B00A9E7E6 /* GoogleSignInSwift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		4D3519932FAEAD9300A9E7E6 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		4D9CB7FC2F8C41AC00F536E1 = {
 			isa = PBXGroup;
 			children = (
@@ -68,6 +83,7 @@
 				4D058B3A2F9712AC0065CADF /* TetherApp */,
 				4D9CB8042F8C41AC00F536E1 /* Products */,
 				4DA258D72FA29C5100DCA196 /* AppIcon.icon */,
+				4D3519932FAEAD9300A9E7E6 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -100,6 +116,8 @@
 			);
 			name = TetherMac;
 			packageProductDependencies = (
+				4D3519942FAEAD9300A9E7E6 /* GoogleSignIn */,
+				4D3519962FAEAD9300A9E7E6 /* GoogleSignInSwift */,
 			);
 			productName = TetherMac;
 			productReference = 4D058B252F970F440065CADF /* TetherMac.app */;
@@ -122,6 +140,8 @@
 			);
 			name = TetherApp;
 			packageProductDependencies = (
+				4D3519982FAEB36B00A9E7E6 /* GoogleSignIn */,
+				4D35199A2FAEB36B00A9E7E6 /* GoogleSignInSwift */,
 			);
 			productName = TetherApp;
 			productReference = 4D058B392F9712AC0065CADF /* TetherApp.app */;
@@ -154,6 +174,9 @@
 			);
 			mainGroup = 4D9CB7FC2F8C41AC00F536E1;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				4D35189F2FAEAC1500A9E7E6 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 4D9CB8042F8C41AC00F536E1 /* Products */;
 			projectDirPath = "";
@@ -229,6 +252,7 @@
 				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TetherMac/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Tether;
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Tether can read your calendar for Today and Upcoming, and it can schedule tasks only when you explicitly choose to put them on your calendar.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Tether displays your calendar events alongside your tasks in Today and Upcoming.";
@@ -287,6 +311,7 @@
 				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TetherMac/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Tether;
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Tether can read your calendar for Today and Upcoming, and it can schedule tasks only when you explicitly choose to put them on your calendar.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Tether displays your calendar events alongside your tasks in Today and Upcoming.";
@@ -558,6 +583,40 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		4D35189F2FAEAC1500A9E7E6 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.1.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		4D3519942FAEAD9300A9E7E6 /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4D35189F2FAEAC1500A9E7E6 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+		4D3519962FAEAD9300A9E7E6 /* GoogleSignInSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4D35189F2FAEAC1500A9E7E6 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignInSwift;
+		};
+		4D3519982FAEB36B00A9E7E6 /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4D35189F2FAEAC1500A9E7E6 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+		4D35199A2FAEB36B00A9E7E6 /* GoogleSignInSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4D35189F2FAEAC1500A9E7E6 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignInSwift;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 4D9CB7FD2F8C41AC00F536E1 /* Project object */;
 }
