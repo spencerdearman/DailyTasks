@@ -6,8 +6,11 @@
 //
 
 import GoogleSignIn
+import os
 import SwiftData
 import SwiftUI
+
+private let logger = Logger(subsystem: "com.spencerdearman.Tether", category: "CloudKit")
 
 // MARK: - TetherMacApp
 
@@ -43,6 +46,13 @@ struct TetherMacApp: App {
             SampleDataSeeder.bootstrapIfNeeded(in: container.mainContext)
             BackgroundScheduler.shared.register(with: container)
             self.sharedModelContainer = container
+
+            let ctx = container.mainContext
+            let taskCount = (try? ctx.fetchCount(FetchDescriptor<TaskItem>())) ?? -1
+            let synthCount = (try? ctx.fetchCount(FetchDescriptor<DailySynthesis>())) ?? -1
+            logger.info("☁️ [Mac] CloudKit container ready — \(taskCount) tasks, \(synthCount) syntheses")
+            logger.info("☁️ [Mac] Schema models: Area, Project, Heading, TaskItem, ChecklistItem, Tag, TaskTagAssignment, DailySynthesis, AgentConversation")
+            logger.info("☁️ [Mac] CloudKit DB: \(Self.cloudKitContainerIdentifier)")
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }

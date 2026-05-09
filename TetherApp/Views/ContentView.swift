@@ -37,16 +37,21 @@ struct ContentView: View {
     var body: some View {
         NavigationStack(path: $quickFindPath) {
             List {
-                Section("Core") {
+                Section {
                     coreLink("Inbox", systemImage: "tray.fill", selection: .inbox, count: inboxTasks.count)
                     coreLink("Today", systemImage: "sun.max.fill", selection: .today, count: todayTasks.count)
                     coreLink("Upcoming", systemImage: "calendar", selection: .upcoming, count: upcomingTasks.count)
                     coreLink("Open", systemImage: "tray.2.fill", selection: .anytime, count: anytimeTasks.count)
                     coreLink("Later", systemImage: "moon.zzz.fill", selection: .someday, count: somedayTasks.count)
                     coreLink("Done", systemImage: "checkmark.circle.fill", selection: .logbook, count: logbookTasks.count)
+                } header: {
+                    Text("Core")
+                        .font(.title3.bold())
+                        .foregroundStyle(.primary)
+                        .textCase(nil)
                 }
 
-                Section("Areas") {
+                Section {
                     ForEach(filteredAreas) { area in
                         NavigationLink(value: SidebarSelection.area(area.id)) {
                             HStack(spacing: 12) {
@@ -80,6 +85,11 @@ struct ContentView: View {
                             }
                         }
                     }
+                } header: {
+                    Text("Areas")
+                        .font(.title3.bold())
+                        .foregroundStyle(.primary)
+                        .textCase(nil)
                 }
             }
             .pullToAgent()
@@ -170,8 +180,11 @@ struct ContentView: View {
 
     private func coreLink(_ title: String, systemImage: String, selection: SidebarSelection, count: Int) -> some View {
         NavigationLink(value: selection) {
-            HStack {
-                Label(title, systemImage: systemImage)
+            HStack(spacing: 12) {
+                Image(systemName: systemImage)
+                    .foregroundStyle(.primary)
+                    .frame(width: 18)
+                Text(title)
                 Spacer()
                 if showTaskCounts {
                     Text("\(count)")

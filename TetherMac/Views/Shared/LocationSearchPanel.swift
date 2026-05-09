@@ -63,7 +63,6 @@ struct LocationSearchPanel: View {
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
-                .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
 
             // Search results
@@ -94,7 +93,6 @@ struct LocationSearchPanel: View {
                     }
                 }
                 .padding(4)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
         }
     }

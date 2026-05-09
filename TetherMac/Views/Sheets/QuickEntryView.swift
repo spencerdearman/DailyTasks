@@ -84,6 +84,7 @@ struct QuickEntryView: View {
                         Text(selectedAreaID != nil ? (areas.first(where: { $0.id == selectedAreaID })?.title ?? "Area") : "Area")
                             .font(.subheadline.weight(.medium))
                             .foregroundStyle(selectedAreaID != nil ? .primary : .secondary)
+                            .frame(minWidth: 40, alignment: .leading)
                         Image(systemName: "chevron.down")
                             .font(.system(size: 8, weight: .bold))
                             .foregroundStyle(.tertiary)
@@ -111,6 +112,7 @@ struct QuickEntryView: View {
                         Text(selectedProjectID != nil ? (filteredProjects.first(where: { $0.id == selectedProjectID })?.title ?? "Project") : "Project")
                             .font(.subheadline.weight(.medium))
                             .foregroundStyle(selectedProjectID != nil ? .primary : .secondary)
+                            .frame(minWidth: 48, alignment: .leading)
                         Image(systemName: "chevron.down")
                             .font(.system(size: 8, weight: .bold))
                             .foregroundStyle(.tertiary)
@@ -1131,7 +1133,6 @@ private struct QuickEntryLocationPanel: View {
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
-                .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
 
             if !completer.results.isEmpty && !searchText.isEmpty {
@@ -1160,7 +1161,6 @@ private struct QuickEntryLocationPanel: View {
                     }
                 }
                 .padding(4)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
         }
         .padding(4)

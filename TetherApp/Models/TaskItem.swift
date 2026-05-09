@@ -33,6 +33,9 @@ final class TaskItem {
     var reminderItemID: String?
     var sortOrder: Double = 0
     var recurrenceRule: String?
+    var locationName: String?
+    var locationLatitude: Double?
+    var locationLongitude: Double?
 
     // MARK: Relationships
 
@@ -66,6 +69,9 @@ final class TaskItem {
         reminderItemID: String? = nil,
         sortOrder: Double = 0,
         recurrenceRule: String? = nil,
+        locationName: String? = nil,
+        locationLatitude: Double? = nil,
+        locationLongitude: Double? = nil,
         area: Area? = nil,
         project: Project? = nil,
         heading: Heading? = nil
@@ -87,6 +93,9 @@ final class TaskItem {
         self.reminderItemID = reminderItemID
         self.sortOrder = sortOrder
         self.recurrenceRule = recurrenceRule
+        self.locationName = locationName
+        self.locationLatitude = locationLatitude
+        self.locationLongitude = locationLongitude
         self.area = area
         self.project = project
         self.heading = heading

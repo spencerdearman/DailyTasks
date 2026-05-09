@@ -193,10 +193,9 @@ struct TaskEditorSheet: View {
             // When row
             HStack {
                 Image(systemName: whenIcon)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(whenColor == .secondary ? Color.secondary : Color.white)
-                    .frame(width: 30, height: 30)
-                    .background(whenColor, in: Circle())
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 24)
                 Text("When")
                     .foregroundStyle(.primary)
                 Spacer()
@@ -250,7 +249,7 @@ struct TaskEditorSheet: View {
                         .foregroundStyle(.primary)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
-                        .background(Color(.systemGray5), in: Capsule())
+                        .background(Color(.tertiarySystemFill), in: Capsule())
                 }
             }
             .padding(.horizontal, 16)
@@ -260,10 +259,12 @@ struct TaskEditorSheet: View {
 
             // Deadline
             HStack {
-                Label("Deadline", systemImage: "flag.fill")
+                Image(systemName: "flag.fill")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 24)
+                Text("Deadline")
                     .foregroundStyle(.primary)
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
                 Spacer()
                 Button {
                     task.deadline = nil
@@ -287,7 +288,11 @@ struct TaskEditorSheet: View {
             // Duration
             Stepper(value: $task.calendarDurationMinutes, in: 15...480, step: 15) {
                 HStack {
-                    Label("Duration", systemImage: "timer")
+                    Image(systemName: "timer")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 24)
+                    Text("Duration")
                         .foregroundStyle(.primary)
                     Spacer()
                     Text("\(task.calendarDurationMinutes) min")
@@ -338,47 +343,106 @@ struct TaskEditorSheet: View {
 
     private var placementSection: some View {
         VStack(alignment: .leading, spacing: 0) {
+            // Area row
             HStack {
-                Label("Area", systemImage: "square.grid.2x2")
+                Image(systemName: areaIcon)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 24)
+                Text("Area")
                     .foregroundStyle(.primary)
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
                 Spacer()
-                Picker("", selection: areaBinding) {
-                    Text("Inbox").tag(UUID?.none)
-                    ForEach(areas) { area in
-                        Text(area.title).tag(Optional(area.id))
+                Menu {
+                    Button {
+                        areaBinding.wrappedValue = nil
+                    } label: {
+                        Label("Inbox", systemImage: "tray.fill")
+                        if task.area == nil {
+                            Image(systemName: "checkmark")
+                        }
                     }
+                    ForEach(areas) { area in
+                        Button {
+                            areaBinding.wrappedValue = area.id
+                        } label: {
+                            Label(area.title, systemImage: area.symbolName)
+                            if task.area?.id == area.id {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                } label: {
+                    Text(areaLabel)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.primary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color(.tertiarySystemFill), in: Capsule())
                 }
-                .labelsHidden()
-                .tint(.secondary)
-                .lineLimit(1)
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 10)
+            .padding(.vertical, 8)
 
             Divider().padding(.leading, 52)
 
+            // Project row
             HStack {
-                Label("Project", systemImage: "paperplane")
+                Image(systemName: "paperplane.fill")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 24)
+                Text("Project")
                     .foregroundStyle(.primary)
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
                 Spacer()
-                Picker("", selection: projectBinding) {
-                    Text("None").tag(UUID?.none)
-                    ForEach(filteredProjects) { project in
-                        Text(project.title).tag(Optional(project.id))
+                Menu {
+                    Button {
+                        projectBinding.wrappedValue = nil
+                    } label: {
+                        Label("None", systemImage: "minus.circle")
+                        if task.project == nil {
+                            Image(systemName: "checkmark")
+                        }
                     }
+                    ForEach(filteredProjects) { project in
+                        Button {
+                            projectBinding.wrappedValue = project.id
+                        } label: {
+                            Label(project.title, systemImage: "paperplane")
+                            if task.project?.id == project.id {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                } label: {
+                    Text(projectLabel)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.primary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color(.tertiarySystemFill), in: Capsule())
                 }
-                .labelsHidden()
-                .tint(.secondary)
-                .lineLimit(1)
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 10)
+            .padding(.vertical, 8)
         }
         .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private var areaLabel: String {
+        task.area?.title ?? "Inbox"
+    }
+
+    private var areaIcon: String {
+        task.area?.symbolName ?? "tray.fill"
+    }
+
+    private var areaIconColor: Color {
+        guard let area = task.area else { return .secondary }
+        return Color(hex: area.tintHex)
+    }
+
+    private var projectLabel: String {
+        task.project?.title ?? "None"
     }
 
     // MARK: - Delete

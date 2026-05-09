@@ -65,6 +65,7 @@ final class CalendarStore: ObservableObject {
             let restored = await googleService.restorePreviousSignIn()
             googleSignedIn = restored
             googleUserEmail = googleService.userEmail
+            print("[CalendarStore] restoreGoogleSignIn: restored=\(restored), email=\(googleUserEmail ?? "nil")")
             if restored { fetchEvents() }
         }
     }
@@ -114,15 +115,17 @@ final class CalendarStore: ObservableObject {
             }
 
             // Google Calendar
+            print("[CalendarStore] Google enabled=\(googleCalendarEnabled), signedIn=\(googleSignedIn)")
             if googleCalendarEnabled && googleSignedIn {
                 do {
                     let googleToday = try await googleService.events(from: start, to: tomorrow)
                         .filter { $0.endDate > now }
                     let googleUpcoming = try await googleService.events(from: tomorrow, to: weekAhead)
+                    print("[CalendarStore] Google today: \(googleToday.count), upcoming: \(googleUpcoming.count)")
                     allToday += googleToday
                     allUpcoming += googleUpcoming
                 } catch {
-                    // Google fetch failed — continue with Apple events only
+                    print("[CalendarStore] Google fetch error: \(error)")
                 }
             }
 

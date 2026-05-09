@@ -83,7 +83,7 @@ struct QuickEntrySheet: View {
                 VStack(alignment: .leading, spacing: 8) {
                     // Title & Notes
                     VStack(alignment: .leading, spacing: 0) {
-                        TextField("What do you need to do?", text: $title)
+                        TextField("New task", text: $title)
                             .font(.title3.weight(.semibold))
                             .padding(.horizontal, 16)
                             .padding(.vertical, 14)
@@ -161,10 +161,9 @@ struct QuickEntrySheet: View {
             // When row
             HStack {
                 Image(systemName: whenIcon)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(whenColor == .secondary ? Color.secondary : Color.white)
-                    .frame(width: 30, height: 30)
-                    .background(whenColor, in: Circle())
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 24)
                 Text("When")
                     .foregroundStyle(.primary)
                 Spacer()
@@ -214,7 +213,7 @@ struct QuickEntrySheet: View {
                         .foregroundStyle(.primary)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
-                        .background(Color(.systemGray5), in: Capsule())
+                        .background(Color(.tertiarySystemFill), in: Capsule())
                 }
             }
             .padding(.horizontal, 16)
@@ -224,10 +223,12 @@ struct QuickEntrySheet: View {
 
             // Deadline
             HStack {
-                Label("Deadline", systemImage: "flag.fill")
+                Image(systemName: "flag.fill")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 24)
+                Text("Deadline")
                     .foregroundStyle(.primary)
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
                 Spacer()
                 Button {
                     deadline = nil
@@ -250,7 +251,11 @@ struct QuickEntrySheet: View {
             // Duration
             Stepper(value: $durationMinutes, in: 15...480, step: 15) {
                 HStack {
-                    Label("Duration", systemImage: "timer")
+                    Image(systemName: "timer")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 24)
+                    Text("Duration")
                         .foregroundStyle(.primary)
                     Spacer()
                     Text("\(durationMinutes) min")
@@ -282,48 +287,112 @@ struct QuickEntrySheet: View {
 
     private var placementSection: some View {
         VStack(alignment: .leading, spacing: 0) {
+            // Area row
             HStack {
-                Label("Area", systemImage: "square.grid.2x2")
+                Image(systemName: selectedAreaIcon)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 24)
+                Text("Area")
                     .foregroundStyle(.primary)
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
                 Spacer()
-                Picker("", selection: $selectedAreaID) {
-                    Text("Inbox").tag(UUID?.none)
-                    ForEach(areas) { area in
-                        Text(area.title).tag(Optional(area.id))
+                Menu {
+                    Button {
+                        selectedAreaID = nil
+                        selectedProjectID = nil
+                    } label: {
+                        Label("Inbox", systemImage: "tray.fill")
+                        if selectedAreaID == nil {
+                            Image(systemName: "checkmark")
+                        }
                     }
+                    ForEach(areas) { area in
+                        Button {
+                            selectedAreaID = area.id
+                            selectedProjectID = nil
+                        } label: {
+                            Label(area.title, systemImage: area.symbolName)
+                            if selectedAreaID == area.id {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                } label: {
+                    Text(selectedAreaLabel)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.primary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color(.tertiarySystemFill), in: Capsule())
                 }
-                .labelsHidden()
-                .tint(.secondary)
-                .lineLimit(1)
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 10)
+            .padding(.vertical, 8)
 
-            Divider().padding(.leading, 52)
+            Divider().padding(.leading, 62)
 
+            // Project row
             HStack {
-                Label("Project", systemImage: "paperplane")
+                Image(systemName: "paperplane.fill")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 24)
+                Text("Project")
                     .foregroundStyle(.primary)
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
                 Spacer()
-                Picker("", selection: $selectedProjectID) {
-                    Text("None").tag(UUID?.none)
-                    ForEach(filteredProjects) { project in
-                        Text(project.title).tag(Optional(project.id))
+                Menu {
+                    Button {
+                        selectedProjectID = nil
+                    } label: {
+                        Label("None", systemImage: "minus.circle")
+                        if selectedProjectID == nil {
+                            Image(systemName: "checkmark")
+                        }
                     }
+                    ForEach(filteredProjects) { project in
+                        Button {
+                            selectedProjectID = project.id
+                        } label: {
+                            Label(project.title, systemImage: "paperplane")
+                            if selectedProjectID == project.id {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                } label: {
+                    Text(selectedProjectLabel)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.primary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color(.tertiarySystemFill), in: Capsule())
                 }
-                .labelsHidden()
-                .tint(.secondary)
-                .lineLimit(1)
                 .disabled(selectedAreaID == nil)
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 10)
+            .padding(.vertical, 8)
         }
         .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private var selectedAreaLabel: String {
+        guard let selectedAreaID else { return "Inbox" }
+        return areas.first(where: { $0.id == selectedAreaID })?.title ?? "Inbox"
+    }
+
+    private var selectedAreaIcon: String {
+        guard let selectedAreaID else { return "tray.fill" }
+        return areas.first(where: { $0.id == selectedAreaID })?.symbolName ?? "tray.fill"
+    }
+
+    private var selectedAreaColor: Color {
+        guard let selectedAreaID, let area = areas.first(where: { $0.id == selectedAreaID }) else { return .secondary }
+        return Color(hex: area.tintHex)
+    }
+
+    private var selectedProjectLabel: String {
+        guard let selectedProjectID else { return "None" }
+        return projects.first(where: { $0.id == selectedProjectID })?.title ?? "None"
     }
 
     // MARK: - Computed Properties

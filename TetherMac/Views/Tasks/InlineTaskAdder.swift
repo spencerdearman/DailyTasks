@@ -27,7 +27,7 @@ struct InlineTaskAdder: View {
                     .font(.subheadline)
                     .foregroundStyle(.tertiary)
                 
-                TextField("New task…", text: $title)
+                TextField("New task", text: $title)
                     .textFieldStyle(.plain)
                     .font(.subheadline)
                     .onSubmit { addTask() }
