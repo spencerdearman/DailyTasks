@@ -11,14 +11,14 @@
 		4D3519972FAEAD9300A9E7E6 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 4D3519962FAEAD9300A9E7E6 /* GoogleSignInSwift */; };
 		4D3519992FAEB36B00A9E7E6 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 4D3519982FAEB36B00A9E7E6 /* GoogleSignIn */; };
 		4D35199B2FAEB36B00A9E7E6 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 4D35199A2FAEB36B00A9E7E6 /* GoogleSignInSwift */; };
-		4D3A98F32FA7A324001DDB61 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 4DA258D72FA29C5100DCA196 /* AppIcon.icon */; };
-		4D3A98F42FA7A324001DDB61 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 4DA258D72FA29C5100DCA196 /* AppIcon.icon */; };
+		4D35199D2FAEB96000A9E7E6 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 4D35199C2FAEB96000A9E7E6 /* AppIcon.icon */; };
+		4D35199E2FAEB96000A9E7E6 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 4D35199C2FAEB96000A9E7E6 /* AppIcon.icon */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		4D058B252F970F440065CADF /* TetherMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = TetherMac.app; path = Tether.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4D058B392F9712AC0065CADF /* TetherApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TetherApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		4DA258D72FA29C5100DCA196 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
+		4D35199C2FAEB96000A9E7E6 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -82,8 +82,8 @@
 				4D058B262F970F440065CADF /* TetherMac */,
 				4D058B3A2F9712AC0065CADF /* TetherApp */,
 				4D9CB8042F8C41AC00F536E1 /* Products */,
-				4DA258D72FA29C5100DCA196 /* AppIcon.icon */,
 				4D3519932FAEAD9300A9E7E6 /* Frameworks */,
+				4D35199C2FAEB96000A9E7E6 /* AppIcon.icon */,
 			);
 			sourceTree = "<group>";
 		};
@@ -193,7 +193,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4D3A98F32FA7A324001DDB61 /* AppIcon.icon in Resources */,
+				4D35199D2FAEB96000A9E7E6 /* AppIcon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -201,7 +201,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4D3A98F42FA7A324001DDB61 /* AppIcon.icon in Resources */,
+				4D35199E2FAEB96000A9E7E6 /* AppIcon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
