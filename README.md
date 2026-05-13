@@ -1,11 +1,14 @@
-## Tether
+# Tether
 ### Author
 - **Name:** Spencer Dearman
 - **UCID:** 12340675
 - **UChicago Email:** dearmanspencer@uchicago.edu
 - **Slack Username:** Spencer Dearman
 
-# Tether — Version Summary: Detailed Changelog
+### Demo 3 (5/13)
+https://github.com/user-attachments/assets/22efdb34-9511-499f-8751-c80c3bc29ede
+
+## Tether — Version Summary: Detailed Changelog
 
 ---
 
@@ -179,10 +182,6 @@
 * **TetherMac:** Full macOS implementation with native background scheduling and window management.
 * **TetherApp:** iOS companion with touch-optimized UI and sheet-based navigation.
 * **Shared Logic:** Core models and services (Gemini, TaskAgent, Categorization) are shared across targets to ensure logic parity.
-
-
-### Demo 3 (5/13)
-https://github.com/user-attachments/assets/22efdb34-9511-499f-8751-c80c3bc29ede
 
 ### Demo 2 (5/6)
 https://github.com/user-attachments/assets/b448113c-fae2-4801-b591-c63c0eec9e08
