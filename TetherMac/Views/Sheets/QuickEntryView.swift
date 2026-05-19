@@ -35,6 +35,7 @@ struct QuickEntryView: View {
     @State private var shouldScheduleOnSave = false
     @State private var selectedTags: [Tag] = []
     
+    @State private var isLater = false
     @State private var showAreaPopover = false
     @State private var showProjectPopover = false
     @State private var showSchedulePopover = false
@@ -98,7 +99,6 @@ struct QuickEntryView: View {
                     areaPanel
                         .frame(width: 260)
                         .padding(4)
-                        .popoverBackgroundClean()
                 }
 
                 // Project popover
@@ -126,11 +126,22 @@ struct QuickEntryView: View {
                     projectPanel
                         .frame(width: 260)
                         .padding(4)
-                        .popoverBackgroundClean()
                 }
                 
                 // Inline date badges
-                if isEvening {
+                if isLater {
+                    HStack(spacing: 6) {
+                        Image(systemName: "moon.zzz.fill")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                        Text("Later")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 7)
+                    .background(Color.primary.opacity(0.08), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                } else if isEvening {
                     HStack(spacing: 6) {
                         Image(systemName: "moon.fill")
                             .font(.system(size: 11))
@@ -302,7 +313,6 @@ struct QuickEntryView: View {
                     .popover(isPresented: $showSchedulePopover, arrowEdge: .top) {
                         schedulePanel
                             .padding(4)
-                            .popoverBackgroundClean()
                     }
 
                     // Location popover
@@ -319,7 +329,6 @@ struct QuickEntryView: View {
                     .popover(isPresented: $showLocationPopover, arrowEdge: .top) {
                         quickEntryLocationPanel
                             .frame(width: 260)
-                            .popoverBackgroundClean()
                     }
 
                     // Tags popover
@@ -337,7 +346,6 @@ struct QuickEntryView: View {
                         tagsPanel
                             .frame(width: 220)
                             .padding(4)
-                            .popoverBackgroundClean()
                     }
 
                     // Subtasks
@@ -407,32 +415,32 @@ struct QuickEntryView: View {
                     quickPickButton(icon: "star.fill", iconColor: .yellow, label: "Today", isSelected: isToday) {
                         whenDate = Calendar.current.startOfDay(for: .now)
                         isEvening = false
+                        isLater = false
                     }
 
-                    quickPickButton(icon: "moon.fill", iconColor: .indigo, label: "Evening", isSelected: isEvening) {
+                    quickPickButton(icon: "moon.fill", iconColor: .indigo, label: "Tonight", isSelected: isEvening) {
                         whenDate = Calendar.current.startOfDay(for: .now)
                         isEvening = true
+                        isLater = false
                     }
 
-                    quickPickButton(icon: "clock", iconColor: .teal, label: "Later", isSelected: {
-                        guard let w = whenDate else { return false }
-                        return !Calendar.current.isDateInToday(w) && !isEvening
-                    }()) {
-                        whenDate = Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: .now))
+                    quickPickButton(icon: "moon.zzz.fill", iconColor: .secondary, label: "Later", isSelected: isLater) {
+                        isLater = true
+                        whenDate = nil
                         isEvening = false
                     }
 
-                    if whenDate != nil || isEvening {
+                    if whenDate != nil || isEvening || isLater {
                         quickPickButton(icon: "xmark", iconColor: .secondary, label: "Clear", isSelected: false) {
                             whenDate = nil
                             isEvening = false
+                            isLater = false
                         }
                     }
                 }
 
                 CalendarGrid(
                     selectedDate: deadline,
-                    accentColor: .orange,
                     onSelect: { date in
                         if showDeadlineTime, let existing = deadline {
                             let cal = Calendar.current
@@ -447,45 +455,68 @@ struct QuickEntryView: View {
                     }
                 )
 
-                HStack(spacing: 8) {
-                    Button {
-                        showDeadlineTime.toggle()
+                // Deadline controls: time toggle + clear
+                if deadline != nil {
+                    HStack(spacing: 6) {
                         if showDeadlineTime {
-                            let cal = Calendar.current
-                            if deadline == nil {
-                                deadline = cal.date(bySettingHour: 9, minute: 0, second: 0, of: .now)
-                            } else if let deadline, !dateHasExplicitTime(deadline) {
-                                self.deadline = cal.date(bySettingHour: 9, minute: 0, second: 0, of: deadline)
+                            deadlineTimeControls(deadline: deadline!)
+                        } else {
+                            Button {
+                                showDeadlineTime = true
+                                let cal = Calendar.current
+                                let hour = cal.component(.hour, from: deadline!)
+                                if hour == 0 {
+                                    deadline = cal.date(bySettingHour: 9, minute: 0, second: 0, of: deadline!)
+                                }
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "clock")
+                                        .font(.system(size: 11))
+                                    Text("Add time")
+                                        .font(.caption.weight(.medium))
+                                }
+                                .foregroundStyle(.secondary)
                             }
-                        } else if let deadline {
-                            self.deadline = Calendar.current.startOfDay(for: deadline)
+                            .buttonStyle(.plain)
                         }
+
+                        Spacer()
+
+                        if showDeadlineTime {
+                            Button {
+                                showDeadlineTime = false
+                                deadline = Calendar.current.startOfDay(for: deadline!)
+                            } label: {
+                                Text("Remove time")
+                                    .font(.caption.weight(.medium))
+                                    .foregroundStyle(.blue)
+                            }
+                            .buttonStyle(.plain)
+                        }
+
+                        Button {
+                            deadline = nil
+                            showDeadlineTime = false
+                        } label: {
+                            HStack(spacing: 3) {
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 8, weight: .bold))
+                                Text("Clear")
+                                    .font(.caption.weight(.medium))
+                            }
+                            .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                } else {
+                    Button {
+                        showDeadlineTime = true
+                        deadline = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: .now)
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "clock")
                                 .font(.system(size: 11))
-                            Text(showDeadlineTime ? "Remove time" : "Add time")
-                                .font(.caption.weight(.medium))
-                        }
-                        .foregroundStyle(showDeadlineTime ? .blue : .secondary)
-                    }
-                    .buttonStyle(.plain)
-
-                    if showDeadlineTime, let deadline {
-                        Spacer()
-                        deadlineTimeControls(deadline: deadline)
-                    }
-                }
-
-                if deadline != nil {
-                    Button {
-                        deadline = nil
-                        showDeadlineTime = false
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 10, weight: .bold))
-                            Text("Clear Deadline")
+                            Text("Add time")
                                 .font(.caption.weight(.medium))
                         }
                         .foregroundStyle(.secondary)
@@ -496,81 +527,54 @@ struct QuickEntryView: View {
                 Divider()
                     .padding(.top, 2)
 
-                DisclosureGroup(isExpanded: $showCalendarDetails) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "clock")
-                                .font(.system(size: 11))
-                                .foregroundStyle(.secondary)
-                            Text(calendarTimingDescription)
-                                .font(.caption.weight(.medium))
-                                .foregroundStyle(.secondary)
+                // Calendar section
+                calendarDurationRow
+
+                HStack(spacing: 8) {
+                    Button {
+                        if shouldScheduleOnSave {
+                            shouldScheduleOnSave = false
+                        } else {
+                            ensureCalendarStartForScheduling()
+                            shouldScheduleOnSave = true
                         }
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: shouldScheduleOnSave ? "checkmark.circle.fill" : "calendar.badge.plus")
+                                .font(.system(size: 11, weight: .medium))
+                            Text(shouldScheduleOnSave ? "Added" : "Add to Calendar")
+                                .font(.caption.weight(.semibold))
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(shouldScheduleOnSave ? Color.green : Color.accentColor, in: Capsule())
+                    }
+                    .buttonStyle(.plain)
 
-                        calendarDurationRow
+                    if shouldScheduleOnSave || (deadline != nil && dateHasExplicitTime(deadline!)) {
+                        Text(calendarSummaryText)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
 
-                        Button {
-                            if shouldScheduleOnSave {
-                                shouldScheduleOnSave = false
-                            } else {
-                                ensureCalendarStartForScheduling()
-                                shouldScheduleOnSave = true
-                                showCalendarDetails = true
-                            }
+                    Spacer()
+
+                    if shouldScheduleOnSave {
+                        Button(role: .destructive) {
+                            shouldScheduleOnSave = false
                         } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: shouldScheduleOnSave ? "checkmark.circle.fill" : "calendar.badge.plus")
-                                    .font(.system(size: 13, weight: .semibold))
-                                Text(shouldScheduleOnSave ? "Will Add to Calendar" : "Schedule on Calendar")
-                                    .font(.body.weight(.semibold))
-                                Spacer()
-                            }
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 12)
-                            .frame(maxWidth: .infinity)
-                            .background((title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !shouldScheduleOnSave ? Color.secondary : (shouldScheduleOnSave ? Color.green : Color.accentColor)), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            Text("Remove")
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(.red)
                         }
                         .buttonStyle(.plain)
-
-                        if shouldScheduleOnSave {
-                            Button(role: .destructive) {
-                                shouldScheduleOnSave = false
-                            } label: {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "calendar.badge.minus")
-                                        .font(.system(size: 12, weight: .medium))
-                                    Text("Remove from Calendar")
-                                        .font(.caption.weight(.medium))
-                                    Spacer()
-                                }
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.top, 8)
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: shouldScheduleOnSave ? "calendar.badge.clock" : "calendar.badge.plus")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(.blue)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(shouldScheduleOnSave ? "Calendar event on save" : "Add to calendar")
-                                .font(.subheadline.weight(.medium))
-                                .foregroundStyle(.primary)
-                            if shouldScheduleOnSave || (deadline != nil && dateHasExplicitTime(deadline!)) {
-                                Text(calendarSummaryText)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        Spacer()
                     }
                 }
-                .tint(.primary)
             }
         }
-        .frame(width: 304, height: 420, alignment: .top)
+        .frame(width: 304, alignment: .top)
         .padding(14)
     }
 
@@ -673,7 +677,7 @@ struct QuickEntryView: View {
                                     if selectedAreaID == area.id {
                                         Image(systemName: "checkmark")
                                             .font(.system(size: 11, weight: .semibold))
-                                            .foregroundStyle(.green)
+                                            .foregroundStyle(.primary)
                                     }
                                 }
                                 .padding(.horizontal, 10)
@@ -748,7 +752,7 @@ struct QuickEntryView: View {
                                         if selectedProjectID == project.id {
                                             Image(systemName: "checkmark")
                                                 .font(.system(size: 11, weight: .semibold))
-                                                .foregroundStyle(.green)
+                                                .foregroundStyle(.primary)
                                         }
                                     }
                                     .padding(.horizontal, 10)
@@ -972,9 +976,10 @@ struct QuickEntryView: View {
         let task = TaskItem(
             title: normalizedTitle,
             notes: normalizedNotes,
-            whenDate: resolvedWhen,
+            whenDate: isLater ? nil : resolvedWhen,
             deadline: deadline,
-            isInInbox: resolvedArea == nil && selectedProject == nil,
+            status: isLater ? .someday : .active,
+            isInInbox: !isLater && resolvedArea == nil && selectedProject == nil,
             isEvening: isEvening || routing.shouldMarkEvening,
             calendarStartAt: shouldScheduleOnSave ? calendarStartAt : nil,
             calendarDurationMinutes: calendarDurationBinding.wrappedValue,

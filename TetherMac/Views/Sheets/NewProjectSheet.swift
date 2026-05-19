@@ -22,7 +22,10 @@ struct NewProjectSheet: View {
     @State private var selectedAreaID: UUID?
     @State private var tintHex = "#2E6BC6"
     
-    private let tintOptions = ["#2E6BC6", "#62666D", "#6D7563", "#8A7D6A", "#7A7068", "#5B83B7"]
+    private let tintOptions = [
+        "#E74C3C", "#E67E22", "#F1C40F", "#2ECC71", "#3498DB", "#6C5CE7", "#9B59B6",
+        "#5B83B7", "#62666D", "#8E8E93", "#7A7068"
+    ]
     
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {

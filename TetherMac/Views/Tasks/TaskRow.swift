@@ -216,36 +216,6 @@ struct TaskRow: View {
     
     private var expandedContent: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Tag badges — directly under title
-            if !task.tagList.isEmpty {
-                FlowLayout(spacing: 6) {
-                    ForEach(task.tagList) { tag in
-                        HStack(spacing: 4) {
-                            Text(tag.title)
-                                .font(.caption.weight(.medium))
-                                .foregroundStyle(Color(hex: tag.tintHex))
-                            Button {
-                                if let assignment = task.tagAssignmentList.first(where: { $0.tag?.id == tag.id }) {
-                                    modelContext.delete(assignment)
-                                }
-                                task.updatedAt = .now
-                                try? modelContext.save()
-                            } label: {
-                                Image(systemName: "xmark")
-                                    .font(.system(size: 8, weight: .bold))
-                                    .foregroundStyle(Color(hex: tag.tintHex).opacity(0.5))
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color(hex: tag.tintHex).opacity(0.12), in: Capsule())
-                    }
-                }
-                .padding(.horizontal, 56)
-                .padding(.bottom, 6)
-            }
-
             // Notes
             VStack(alignment: .leading, spacing: 2) {
                 TextField("Notes", text: Binding(
@@ -285,7 +255,7 @@ struct TaskRow: View {
                     .buttonStyle(.plain)
                 }
             }
-            .padding(.horizontal, 56)
+            .padding(.horizontal, 54)
             
             // Subtasks section
             if !task.checklistItems.isEmpty || activeAction == .subtasks {
@@ -295,7 +265,7 @@ struct TaskRow: View {
                         .foregroundStyle(.secondary)
                         .textCase(.uppercase)
                         .tracking(0.5)
-                        .padding(.horizontal, 56)
+                        .padding(.horizontal, 54)
                         .padding(.top, 14)
                     
                     if !task.checklistItems.isEmpty {
@@ -304,7 +274,7 @@ struct TaskRow: View {
                                 ChecklistRow(item: item)
                             }
                         }
-                        .padding(.horizontal, 38)
+                        .padding(.horizontal, 36)
                     }
                     
                     // Add subtask inline
@@ -321,7 +291,7 @@ struct TaskRow: View {
                                     addSubtask()
                                 }
                         }
-                        .padding(.horizontal, 56)
+                        .padding(.horizontal, 54)
                         .padding(.top, 2)
                         .transition(.opacity)
                     }
@@ -329,7 +299,7 @@ struct TaskRow: View {
                 .padding(.bottom, 4)
             }
             
-            // Bottom bar: breadcrumb on left, action buttons on right
+            // Bottom bar: breadcrumb on left, tags + action buttons on right
             HStack(spacing: 0) {
                 // Left: breadcrumb
                 if let area = task.area {
@@ -340,7 +310,7 @@ struct TaskRow: View {
                         Text(area.title)
                             .font(.caption.weight(.medium))
                             .foregroundStyle(Color(hex: area.tintHex))
-                        
+
                         if let project = task.project {
                             Text("›")
                                 .font(.caption)
@@ -351,13 +321,13 @@ struct TaskRow: View {
                         }
                     }
                 }
-                
+
                 Spacer()
-                
+
                 // Date / evening badge + deadline
                 HStack(spacing: 8) {
                     dateLabel
-                    
+
                     if let deadline = task.deadline {
                         HStack(spacing: 3) {
                             Image(systemName: "flag.fill")
@@ -369,10 +339,41 @@ struct TaskRow: View {
                     }
                 }
                 .font(.caption.weight(.medium))
-                
+
                 Spacer()
                     .frame(maxWidth: 16)
-                
+
+                // Inline tags
+                if !task.tagList.isEmpty {
+                    HStack(spacing: 4) {
+                        ForEach(task.tagList) { tag in
+                            HStack(spacing: 4) {
+                                Text(tag.title)
+                                    .font(.caption.weight(.medium))
+                                    .foregroundStyle(Color(hex: tag.tintHex))
+                                Button {
+                                    if let assignment = task.tagAssignmentList.first(where: { $0.tag?.id == tag.id }) {
+                                        modelContext.delete(assignment)
+                                    }
+                                    task.updatedAt = .now
+                                    try? modelContext.save()
+                                } label: {
+                                    Image(systemName: "xmark")
+                                        .font(.system(size: 8, weight: .bold))
+                                        .foregroundStyle(Color(hex: tag.tintHex).opacity(0.5))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color(hex: tag.tintHex).opacity(0.12), in: Capsule())
+                        }
+                    }
+
+                    Spacer()
+                        .frame(maxWidth: 8)
+                }
+
                 // Right: action buttons
                 HStack(spacing: 2) {
                     // Schedule popover (combined when + deadline)
@@ -390,7 +391,6 @@ struct TaskRow: View {
                     .popover(isPresented: $showSchedulePopover, arrowEdge: .bottom) {
                         schedulePanel
                             .padding(4)
-                            .popoverBackgroundClean()
                     }
 
                     // Location popover
@@ -409,7 +409,6 @@ struct TaskRow: View {
                         LocationSearchPanel(task: task, isPresented: $showLocationPopover)
                             .frame(width: 260)
                             .padding(4)
-                            .popoverBackgroundClean()
                     }
 
                     // Tags popover
@@ -427,7 +426,6 @@ struct TaskRow: View {
                         TagPanel(task: task)
                             .frame(width: 220)
                             .padding(4)
-                            .popoverBackgroundClean()
                     }
 
                     // Subtasks toggle (inline)
@@ -448,11 +446,10 @@ struct TaskRow: View {
                         movePanel
                             .frame(width: 260)
                             .padding(4)
-                            .popoverBackgroundClean()
                     }
                 }
             }
-            .padding(.horizontal, 56)
+            .padding(.horizontal, 54)
             .padding(.top, 12)
             .padding(.bottom, 8)
         }
@@ -550,7 +547,7 @@ struct TaskRow: View {
                         try? modelContext.save()
                     }
 
-                    scheduleQuickButton(icon: "moon.fill", iconColor: .indigo, label: "Evening", isSelected: isEvening) {
+                    scheduleQuickButton(icon: "moon.fill", iconColor: .indigo, label: "Tonight", isSelected: isEvening) {
                         task.whenDate = Calendar.current.startOfDay(for: .now)
                         task.isEvening = true
                         task.status = .active
@@ -825,7 +822,7 @@ struct TaskRow: View {
                 HStack(spacing: 10) {
                     Image(systemName: task.isInInbox ? "checkmark.circle.fill" : "tray")
                         .font(.system(size: 12))
-                        .foregroundStyle(task.isInInbox ? .green : .secondary)
+                        .foregroundStyle(task.isInInbox ? .primary : .secondary)
                     Text("Inbox")
                         .font(.subheadline)
                     Spacer()
@@ -884,7 +881,7 @@ struct TaskRow: View {
                 if isSelected {
                     Image(systemName: "checkmark")
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.green)
+                        .foregroundStyle(.primary)
                 }
             }
             .padding(.horizontal, 10)
@@ -893,10 +890,10 @@ struct TaskRow: View {
         }
         .buttonStyle(.plain)
     }
-    
+
     private func projectMoveRow(_ project: Project, in area: Area) -> some View {
         let isSelected = task.project?.id == project.id
-        
+
         return Button {
             moveToProject(project, in: area)
         } label: {
@@ -912,7 +909,7 @@ struct TaskRow: View {
                 if isSelected {
                     Image(systemName: "checkmark")
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.green)
+                        .foregroundStyle(.primary)
                 }
             }
             .padding(.horizontal, 10)

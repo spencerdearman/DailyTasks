@@ -18,7 +18,10 @@ struct TaskSection: View {
     @Binding var expandedTaskID: UUID?
     @Binding var completingTaskIDs: Set<UUID>
     let onToggle: (TaskItem) -> Void
-    
+
+    @Query(sort: \Area.sortOrder) private var allAreas: [Area]
+    @Query(sort: \Project.sortOrder) private var allProjects: [Project]
+
     private enum MoveDirection { case up, down }
     
     var body: some View {
@@ -55,6 +58,59 @@ struct TaskSection: View {
                             }
                         )
                         .contextMenu {
+                            Button {
+                                onToggle(task)
+                            } label: {
+                                Label(task.isCompleted ? "Mark Incomplete" : "Mark Complete",
+                                      systemImage: task.isCompleted ? "circle" : "checkmark.circle")
+                            }
+
+                            Divider()
+
+                            // Move to area/project
+                            Menu {
+                                Button {
+                                    task.area = nil
+                                    task.project = nil
+                                    task.heading = nil
+                                    task.isInInbox = true
+                                    task.updatedAt = .now
+                                    try? modelContext.save()
+                                } label: {
+                                    Label("Inbox", systemImage: "tray")
+                                }
+
+                                Divider()
+
+                                ForEach(allAreas) { area in
+                                    Button {
+                                        task.area = area
+                                        task.project = nil
+                                        task.heading = nil
+                                        task.isInInbox = false
+                                        task.updatedAt = .now
+                                        try? modelContext.save()
+                                    } label: {
+                                        Label(area.title, systemImage: area.symbolName)
+                                    }
+
+                                    ForEach(allProjects.filter { $0.area?.id == area.id }) { project in
+                                        Button {
+                                            task.area = area
+                                            task.project = project
+                                            task.heading = nil
+                                            task.isInInbox = false
+                                            task.updatedAt = .now
+                                            try? modelContext.save()
+                                        } label: {
+                                            Label("  \(project.title)", systemImage: "paperplane")
+                                        }
+                                    }
+                                }
+                            } label: {
+                                Label("Move to…", systemImage: "arrow.turn.right.up")
+                            }
+
                             if index > 0 {
                                 Button {
                                     withAnimation(.easeInOut(duration: 0.2)) {
@@ -73,7 +129,9 @@ struct TaskSection: View {
                                     Label("Move Down", systemImage: "arrow.down")
                                 }
                             }
+
                             Divider()
+
                             Button(role: .destructive) {
                                 withAnimation(.easeOut(duration: 0.25)) {
                                     if expandedTaskID == task.id { expandedTaskID = nil }

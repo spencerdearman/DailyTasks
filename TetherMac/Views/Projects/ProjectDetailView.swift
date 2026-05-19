@@ -166,16 +166,59 @@ struct ProjectDetailView: View {
                 }
             }
         }
-        .alert("Rename Project", isPresented: $showRenameAlert) {
-            TextField("Project name", text: $renameText)
-            Button("Cancel", role: .cancel) {}
-            Button("Rename") {
-                let newTitle = renameText.trimmingCharacters(in: .whitespacesAndNewlines)
-                if !newTitle.isEmpty {
-                    project.title = newTitle
-                    try? modelContext.save()
+        .sheet(isPresented: $showRenameAlert) {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("Rename Project")
+                    .font(.system(size: 20, weight: .bold))
+                    .padding(.bottom, 16)
+
+                VStack(spacing: 0) {
+                    TextField("Project name", text: $renameText)
+                        .textFieldStyle(.plain)
+                        .font(.body)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                }
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                Spacer(minLength: 16)
+
+                HStack {
+                    Spacer()
+                    Button {
+                        showRenameAlert = false
+                    } label: {
+                        Text("Cancel")
+                            .font(.body.weight(.medium))
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 8)
+                            .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .keyboardShortcut(.cancelAction)
+
+                    Button {
+                        let newTitle = renameText.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !newTitle.isEmpty {
+                            project.title = newTitle
+                            try? modelContext.save()
+                        }
+                        showRenameAlert = false
+                    } label: {
+                        Text("Rename")
+                            .font(.body.weight(.medium))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 8)
+                            .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .keyboardShortcut(.defaultAction)
                 }
             }
+            .padding(24)
+            .frame(width: 360, height: 180)
+            .background(.ultraThinMaterial)
         }
         .alert("Delete Project?", isPresented: $showDeleteConfirm) {
             Button("Cancel", role: .cancel) {}

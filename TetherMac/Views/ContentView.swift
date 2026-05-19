@@ -10,6 +10,22 @@ import SwiftData
 import SwiftUI
 import UniformTypeIdentifiers
 
+// MARK: - SidebarWidthKey
+
+private struct SidebarWidthKey: PreferenceKey {
+    static let defaultValue: CGFloat = 260
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
+// MARK: - SidebarItemTarget
+
+enum SidebarItemTarget {
+    case area(Area)
+    case project(Project)
+}
+
 // MARK: - ContentView
 
 /// The root view of the app, containing the navigation sidebar and detail views.
@@ -32,12 +48,20 @@ struct ContentView: View {
     @State private var expandedTaskID: UUID?
     @State private var completingTaskIDs: Set<UUID> = []
     @State private var showQuickFind = false
+    @State private var showAddMenu = false
+    @State private var showAddMenuLabels = false
+    @State private var showSidebarRename = false
+    @State private var sidebarRenameText = ""
+    @State private var sidebarRenameTarget: SidebarItemTarget?
+    @State private var showSidebarDeleteConfirm = false
+    @State private var sidebarDeleteTarget: SidebarItemTarget?
     @State private var showAgent = false
     @State private var showSynthesis = false
     @State private var currentSynthesis: DailySynthesis?
     @AppStorage("geminiAPIKey") private var geminiAPIKey = ""
     @AppStorage("tetherShowTaskCounts") private var showTaskCounts = true
     @AppStorage("tetherShowCompletedTasks") private var showCompleted = false
+    @State private var sidebarWidth: CGFloat = 260
 
     var body: some View {
         NavigationSplitView(columnVisibility: .constant(.all)) {
@@ -186,6 +210,8 @@ struct ContentView: View {
     
     // MARK: - Sidebar
     
+    private var isCompactSidebar: Bool { sidebarWidth < 200 }
+
     private var sidebar: some View {
         List(selection: $selection) {
             // Find + Agent buttons
@@ -196,16 +222,18 @@ struct ContentView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "magnifyingglass")
                             .font(.system(size: 12, weight: .medium))
-                        Text("Find")
-                            .font(.system(size: 13, weight: .medium))
-                            .lineLimit(1)
-                            .layoutPriority(1)
-                        Spacer(minLength: 2)
-                        HStack(spacing: 1) {
-                            keycapBadge("⌘")
-                            keycapBadge("F")
+                        if !isCompactSidebar {
+                            Text("Find")
+                                .font(.system(size: 13, weight: .medium))
+                                .lineLimit(1)
+                                .layoutPriority(1)
+                            Spacer(minLength: 2)
+                            HStack(spacing: 1) {
+                                keycapBadge("⌘")
+                                keycapBadge("F")
+                            }
+                            .fixedSize()
                         }
-                        .fixedSize()
                     }
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 10)
@@ -224,16 +252,18 @@ struct ContentView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "sparkles")
                             .font(.system(size: 12, weight: .medium))
-                        Text("Agent")
-                            .font(.system(size: 13, weight: .medium))
-                            .lineLimit(1)
-                            .layoutPriority(1)
-                        Spacer(minLength: 2)
-                        HStack(spacing: 1) {
-                            keycapBadge("⌘")
-                            keycapBadge("A")
+                        if !isCompactSidebar {
+                            Text("Agent")
+                                .font(.system(size: 13, weight: .medium))
+                                .lineLimit(1)
+                                .layoutPriority(1)
+                            Spacer(minLength: 2)
+                            HStack(spacing: 1) {
+                                keycapBadge("⌘")
+                                keycapBadge("A")
+                            }
+                            .fixedSize()
                         }
-                        .fixedSize()
                     }
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 10)
@@ -260,15 +290,45 @@ struct ContentView: View {
                 ForEach(filteredAreas) { area in
                     // Area row — tapping navigates to area detail
                     NavigationLink(value: SidebarSelection.area(area.id)) {
-                        HStack(spacing: 10) {
+                        if isCompactSidebar {
                             Image(systemName: area.symbolName)
                                 .foregroundStyle(Color(hex: area.tintHex))
-                            Text(area.title)
-                            Spacer()
-                            if showTaskCounts {
-                                Text("\(area.activeTaskCount)")
-                                    .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity)
+                        } else {
+                            HStack(spacing: 10) {
+                                Image(systemName: area.symbolName)
+                                    .foregroundStyle(Color(hex: area.tintHex))
+                                Text(area.title)
+                                Spacer()
+                                if showTaskCounts {
+                                    Text("\(area.activeTaskCount)")
+                                        .foregroundStyle(.secondary)
+                                }
                             }
+                        }
+                    }
+                    .contextMenu {
+                        Button {
+                            sidebarRenameTarget = .area(area)
+                            sidebarRenameText = area.title
+                            showSidebarRename = true
+                        } label: {
+                            Label("Rename Area", systemImage: "pencil")
+                        }
+
+                        Button {
+                            showNewProjectSheet = true
+                        } label: {
+                            Label("New Project in \(area.title)", systemImage: "plus")
+                        }
+
+                        Divider()
+
+                        Button(role: .destructive) {
+                            sidebarDeleteTarget = .area(area)
+                            showSidebarDeleteConfirm = true
+                        } label: {
+                            Label("Delete Area", systemImage: "trash")
                         }
                     }
                     .dropDestination(for: String.self) { items, _ in
@@ -278,15 +338,38 @@ struct ContentView: View {
                     // Projects under the area (indented)
                     ForEach(filteredProjects(in: area)) { project in
                         NavigationLink(value: SidebarSelection.project(project.id)) {
-                            HStack(spacing: 10) {
+                            if isCompactSidebar {
                                 Image(systemName: "paperplane")
-                                Text(project.title)
-                                    .lineLimit(1)
-                                Spacer()
-                                if showTaskCounts {
-                                    Text("\(project.activeTaskCount)")
-                                        .foregroundStyle(.secondary)
+                                    .frame(maxWidth: .infinity)
+                            } else {
+                                HStack(spacing: 10) {
+                                    Image(systemName: "paperplane")
+                                    Text(project.title)
+                                        .lineLimit(1)
+                                    Spacer()
+                                    if showTaskCounts {
+                                        Text("\(project.activeTaskCount)")
+                                            .foregroundStyle(.secondary)
+                                    }
                                 }
+                            }
+                        }
+                        .contextMenu {
+                            Button {
+                                sidebarRenameTarget = .project(project)
+                                sidebarRenameText = project.title
+                                showSidebarRename = true
+                            } label: {
+                                Label("Rename Project", systemImage: "pencil")
+                            }
+
+                            Divider()
+
+                            Button(role: .destructive) {
+                                sidebarDeleteTarget = .project(project)
+                                showSidebarDeleteConfirm = true
+                            } label: {
+                                Label("Delete Project", systemImage: "trash")
                             }
                         }
                         .padding(.leading, 20)
@@ -301,14 +384,19 @@ struct ContentView: View {
                 Section("Projects") {
                     ForEach(unassignedProjects) { project in
                         NavigationLink(value: SidebarSelection.project(project.id)) {
-                            HStack(spacing: 10) {
+                            if isCompactSidebar {
                                 Image(systemName: "paperplane")
-                                Text(project.title)
-                                    .lineLimit(1)
-                                Spacer()
-                                if showTaskCounts {
-                                    Text("\(project.activeTaskCount)")
-                                        .foregroundStyle(.secondary)
+                                    .frame(maxWidth: .infinity)
+                            } else {
+                                HStack(spacing: 10) {
+                                    Image(systemName: "paperplane")
+                                    Text(project.title)
+                                        .lineLimit(1)
+                                    Spacer()
+                                    if showTaskCounts {
+                                        Text("\(project.activeTaskCount)")
+                                            .foregroundStyle(.secondary)
+                                    }
                                 }
                             }
                         }
@@ -318,49 +406,66 @@ struct ContentView: View {
         }
         .scrollContentBackground(.hidden)
         .background(.ultraThinMaterial)
-        .safeAreaInset(edge: .bottom) {
-            HStack {
-                Menu {
-                    Button {
-                        showNewProjectSheet = true
-                    } label: {
-                        Label("New Project", systemImage: "list.bullet")
-                    }
-                    
-                    Divider()
-                    
-                    Button {
-                        showNewAreaSheet = true
-                    } label: {
-                        Label("New Area", systemImage: "square.grid.2x2")
-                    }
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "plus")
-                        Text("New List")
-                    }
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.primary)
-                }
-                .menuStyle(.borderlessButton)
-                .menuIndicator(.hidden)
-                .fixedSize()
-                
-                Spacer()
-                
-                Button {
-                    showSettingsSheet = true
-                } label: {
-                    Label("Settings", systemImage: "gear")
-                        .labelStyle(.iconOnly)
-                        .font(.body.weight(.medium))
-                }
-                .buttonStyle(.plain)
+        .background {
+            GeometryReader { geo in
+                Color.clear.preference(key: SidebarWidthKey.self, value: geo.size.width)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .glassEffect(.regular, in: .rect(cornerRadius: 16))
-            .padding(10)
+        }
+        .onPreferenceChange(SidebarWidthKey.self) { sidebarWidth = $0 }
+        .alert("Rename", isPresented: $showSidebarRename) {
+            TextField("Name", text: $sidebarRenameText)
+            Button("Cancel", role: .cancel) {}
+            Button("Rename") {
+                let newTitle = sidebarRenameText.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !newTitle.isEmpty else { return }
+                switch sidebarRenameTarget {
+                case .area(let area):
+                    area.title = newTitle
+                case .project(let project):
+                    project.title = newTitle
+                case .none: break
+                }
+                try? modelContext.save()
+            }
+        }
+        .alert("Delete?", isPresented: $showSidebarDeleteConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                switch sidebarDeleteTarget {
+                case .area(let area):
+                    selection = .inbox
+                    modelContext.delete(area)
+                case .project(let project):
+                    selection = .inbox
+                    modelContext.delete(project)
+                case .none: break
+                }
+                try? modelContext.save()
+            }
+        } message: {
+            switch sidebarDeleteTarget {
+            case .area:
+                Text("This will delete the area and unassign all its tasks. This cannot be undone.")
+            case .project:
+                Text("This will delete the project and unassign all its tasks. This cannot be undone.")
+            case .none:
+                Text("Are you sure?")
+            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            Button {
+                showSettingsSheet = true
+            } label: {
+                Image(systemName: "gear")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 48, height: 48)
+            }
+            .buttonStyle(.plain)
+            .glassEffect(.regular, in: .circle)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 14)
+            .padding(.bottom, 10)
         }
     }
     
@@ -369,33 +474,81 @@ struct ContentView: View {
     private var detailContainer: some View {
         detailContent
             .safeAreaInset(edge: .bottom) {
-                HStack(spacing: 0) {
-                    detailFooterTab(systemImage: "plus", label: "New") {
-                        showQuickEntrySheet = true
-                    }
-                    detailFooterTab(systemImage: "calendar", label: "Today") {
-                        selection = .today
-                    }
-                }
-                .padding(.top, 10)
-                .padding(.bottom, 8)
-                .padding(.horizontal, 20)
-                .frame(maxWidth: 200)
-                .glassEffect(.regular, in: .capsule)
-                .padding(.bottom, 12)
+                detailAddBar
+                    .padding(.bottom, 12)
             }
     }
-    
-    private func detailFooterTab(systemImage: String, label: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            VStack(spacing: 2) {
-                Image(systemName: systemImage)
+
+    private var detailAddBar: some View {
+        // Single container — fixed height, width animates between circle and pill
+        ZStack {
+            // Plus icon — visible when collapsed
+            Image(systemName: "plus")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .opacity(showAddMenu ? 0 : 1)
+                .scaleEffect(showAddMenu ? 0.5 : 1)
+
+            // Expanded buttons — visible when open
+            HStack(spacing: 12) {
+                addBarButton(icon: "checkmark.circle", label: "Task") {
+                    showQuickEntrySheet = true
+                }
+                addBarButton(icon: "square.grid.2x2", label: "Area") {
+                    showNewAreaSheet = true
+                }
+                addBarButton(icon: "paperplane", label: "Project") {
+                    showNewProjectSheet = true
+                }
+            }
+            .padding(.horizontal, 12)
+            .opacity(showAddMenu ? 1 : 0)
+            .scaleEffect(showAddMenu ? 1 : 0.6)
+        }
+        .frame(width: showAddMenu ? 240 : 48, height: 48)
+        .glassEffect(.regular, in: .capsule)
+        .contentShape(.capsule)
+        .onTapGesture {
+            if !showAddMenu {
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.8)) {
+                    showAddMenu = true
+                }
+                withAnimation(.easeOut(duration: 0.15).delay(0.18)) {
+                    showAddMenuLabels = true
+                }
+            }
+        }
+        .onHover { hovering in
+            if !hovering && showAddMenu {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                    if showAddMenu {
+                        withAnimation(.easeIn(duration: 0.08)) {
+                            showAddMenuLabels = false
+                        }
+                        withAnimation(.spring(response: 0.28, dampingFraction: 0.85).delay(0.05)) {
+                            showAddMenu = false
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func addBarButton(icon: String, label: String, action: @escaping () -> Void) -> some View {
+        Button {
+            showAddMenuLabels = false
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) { showAddMenu = false }
+            action()
+        } label: {
+            VStack(spacing: 3) {
+                Image(systemName: icon)
                     .font(.system(size: 16, weight: .medium))
                 Text(label)
                     .font(.system(size: 10, weight: .medium))
+                    .opacity(showAddMenuLabels ? 1 : 0)
             }
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity)
+            .foregroundStyle(.primary)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -505,28 +658,36 @@ struct ContentView: View {
         return active + completed
     }
     private var todayTasks: [TaskItem] {
-        let start = Calendar.current.startOfDay(for: .now)
+        let cal = Calendar.current
+        let start = cal.startOfDay(for: .now)
         let active = activeTasks.filter {
             guard let date = $0.whenDate else { return false }
-            return Calendar.current.isDate(date, inSameDayAs: start) && !$0.isEvening
+            // Include today's non-evening tasks + any overdue tasks (past whenDate)
+            let isToday = cal.isDate(date, inSameDayAs: start)
+            let isOverdue = date < start
+            return (isToday || isOverdue) && !$0.isEvening
         }
         guard showCompleted else { return active }
         let completed = completedTasks.filter {
             guard let date = $0.whenDate else { return false }
-            return Calendar.current.isDate(date, inSameDayAs: start) && !$0.isEvening
+            return cal.isDate(date, inSameDayAs: start) && !$0.isEvening
         }
         return active + completed
     }
     private var eveningTasks: [TaskItem] {
-        let start = Calendar.current.startOfDay(for: .now)
+        let cal = Calendar.current
+        let start = cal.startOfDay(for: .now)
         let active = activeTasks.filter {
             guard let date = $0.whenDate else { return false }
-            return Calendar.current.isDate(date, inSameDayAs: start) && $0.isEvening
+            // Include today's evening tasks + any overdue evening tasks
+            let isToday = cal.isDate(date, inSameDayAs: start)
+            let isOverdue = date < start
+            return (isToday || isOverdue) && $0.isEvening
         }
         guard showCompleted else { return active }
         let completed = completedTasks.filter {
             guard let date = $0.whenDate else { return false }
-            return Calendar.current.isDate(date, inSameDayAs: start) && $0.isEvening
+            return cal.isDate(date, inSameDayAs: start) && $0.isEvening
         }
         return active + completed
     }
@@ -545,9 +706,9 @@ struct ContentView: View {
         return active + completed
     }
     private var anytimeTasks: [TaskItem] {
-        let active = activeTasks.filter { !$0.isInInbox && $0.whenDate == nil }
+        let active = activeTasks.filter { !$0.isInInbox && $0.whenDate == nil && $0.status != .someday }
         guard showCompleted else { return active }
-        let completed = completedTasks.filter { !$0.isInInbox && $0.whenDate == nil }
+        let completed = completedTasks.filter { !$0.isInInbox && $0.whenDate == nil && $0.status != .someday }
         return active + completed
     }
     private var somedayTasks: [TaskItem] { tasks.filter { $0.status == .someday } }
@@ -635,12 +796,17 @@ struct ContentView: View {
     
     private func navLink(_ title: String, systemImage: String, selection: SidebarSelection, count: Int) -> some View {
         NavigationLink(value: selection) {
-            HStack {
-                Label(title, systemImage: systemImage)
-                Spacer()
-                if showTaskCounts {
-                    Text("\(count)")
-                        .foregroundStyle(.secondary)
+            if isCompactSidebar {
+                Image(systemName: systemImage)
+                    .frame(maxWidth: .infinity)
+            } else {
+                HStack {
+                    Label(title, systemImage: systemImage)
+                    Spacer()
+                    if showTaskCounts {
+                        Text("\(count)")
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
         }

@@ -27,7 +27,10 @@ struct NewAreaSheet: View {
         "house.fill", "graduationcap.fill", "figure.run",
         "dollarsign.circle.fill", "paintbrush.fill"
     ]
-    private let tintOptions = ["#5B83B7", "#62666D", "#6D7563", "#8A7D6A", "#7A7068", "#2E6BC6"]
+    private let tintOptions = [
+        "#E74C3C", "#E67E22", "#F1C40F", "#2ECC71", "#3498DB", "#6C5CE7", "#9B59B6",
+        "#5B83B7", "#62666D", "#8E8E93", "#7A7068"
+    ]
     
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
