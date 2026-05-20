@@ -55,18 +55,6 @@ struct AreaDetailView: View {
                         }
                     }
 
-                // Loose tasks (not assigned to any project)
-                if !looseTasks.isEmpty {
-                    TaskSection(
-                        title: "Tasks",
-                        tasks: looseTasks,
-                        expandedTaskID: $expandedTaskID,
-                        completingTaskIDs: $completingTaskIDs
-                    ) { task in
-                        toggleTask(task)
-                    }
-                }
-                
                 // Projects overview
                 if !sortedProjects.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
@@ -134,6 +122,18 @@ struct AreaDetailView: View {
                         ) { task in
                             toggleTask(task)
                         }
+                    }
+                }
+
+                // Loose tasks (not assigned to any project)
+                if !looseTasks.isEmpty {
+                    TaskSection(
+                        title: "Tasks",
+                        tasks: looseTasks,
+                        expandedTaskID: $expandedTaskID,
+                        completingTaskIDs: $completingTaskIDs
+                    ) { task in
+                        toggleTask(task)
                     }
                 }
             }

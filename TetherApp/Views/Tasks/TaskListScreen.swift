@@ -119,7 +119,6 @@ struct TaskListScreen: View {
                 suggestionResultTimestamp = nil
             }
         }
-        .pullToAgent()
         .background(AppBackground())
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
@@ -158,8 +157,7 @@ struct TaskListScreen: View {
 
     private var agentWorkingBanner: some View {
         HStack(spacing: 10) {
-            Image(systemName: "sparkles")
-                .font(.system(size: 13, weight: .medium))
+            TetherIcon(size: 20)
                 .foregroundStyle(.secondary)
                 .symbolEffect(.pulse, isActive: true)
 
@@ -260,8 +258,7 @@ struct InlineSuggestionResultCard: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 6) {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 10, weight: .semibold))
+                    TetherIcon(size: 16)
                         .foregroundStyle(LinearGradient(
                             colors: [Color(red: 0.35, green: 0.28, blue: 0.72), Color(red: 0.50, green: 0.40, blue: 0.92)],
                             startPoint: .leading, endPoint: .trailing

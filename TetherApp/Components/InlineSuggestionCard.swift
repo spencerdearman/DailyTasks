@@ -59,8 +59,7 @@ struct InlineSuggestionCard: View {
                     let t = timeline.date.timeIntervalSinceReferenceDate
                     let phase = sin(t * 0.5) * 0.5 + 0.5
 
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 14, weight: .medium))
+                    TetherIcon(size: 20)
                         .foregroundStyle(
                             LinearGradient(
                                 colors: [AgentPalette.mid, AgentPalette.bright, AgentPalette.accent],
@@ -85,9 +84,7 @@ struct InlineSuggestionCard: View {
                 Button(action: onAccept) {
                     HStack(spacing: 5) {
                         if isProcessing {
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 9, weight: .semibold))
-                                .symbolEffect(.variableColor.iterative, isActive: true)
+                            TetherIcon(size: 14)
                         }
                         Text(isProcessing ? "Working..." : suggestion.actionLabel)
                             .font(.subheadline.weight(.semibold))

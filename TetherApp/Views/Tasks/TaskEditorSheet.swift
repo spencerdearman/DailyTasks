@@ -276,11 +276,25 @@ struct TaskEditorSheet: View {
                                 .foregroundStyle(.tertiary)
                         }
                     }
+                    DatePicker("", selection: deadlineBinding, displayedComponents: .date)
+                        .labelsHidden()
+                        .fixedSize()
                 }
 
-                DatePicker("", selection: deadlineBinding, displayedComponents: [.date, .hourAndMinute])
-                    .labelsHidden()
-                    .padding(.leading, 36)
+                if task.deadline != nil {
+                    HStack {
+                        Image(systemName: "clock")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 24)
+                        Text("Time")
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        DatePicker("", selection: deadlineBinding, displayedComponents: .hourAndMinute)
+                            .labelsHidden()
+                            .fixedSize()
+                    }
+                }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)

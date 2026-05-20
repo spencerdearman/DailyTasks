@@ -30,12 +30,6 @@ struct AgentOverlay: View {
     @State private var responses: [AgentResult] = []
     @State private var showPanel = false
     @State private var currentConversation: AgentConversation?
-    @State private var hoveredPipIndex: Int?
-    @State private var selectedPipIndex: Int?
-    @State private var showPips = false
-    @State private var isHoveringHistoryPip = false
-    @State private var isHoveringHistoryList = false
-    @State private var historyDismissTask: Task<Void, Never>?
     @State private var showHistoryListStable = false
     // resultContentHeight removed — scroll view fills available space
     @FocusState private var isFocused: Bool
@@ -74,73 +68,50 @@ struct AgentOverlay: View {
                 .animation(.easeOut(duration: 0.2), value: showPanel)
 
             // Right-side panel — glassy, rounded, floating
-            VStack(spacing: 0) {
-                // Header
-                HStack {
-                    Text("Tether Agent")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.primary.opacity(0.85))
-                        .frame(maxWidth: .infinity)
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 14)
-                .padding(.bottom, 10)
+            GeometryReader { geo in
+                let panelHeight = geo.size.height - 18 // 9pt padding top + bottom
 
-                Divider().opacity(0.12).padding(.horizontal, 12)
+                VStack(spacing: 0) {
+                    // Header
+                    panelHeader
 
-                // Chat area
-                ZStack {
-                    if showHistoryList {
-                        historyListView
-                            .frame(maxHeight: .infinity, alignment: .top)
-                            .onHover { hovering in
-                                isHoveringHistoryList = hovering
-                                updateHistoryVisibility()
-                            }
-                    } else if hasContent {
-                        resultArea
-                            .frame(maxHeight: .infinity, alignment: .top)
-                    } else {
-                        // Empty state — centered shimmer title
-                        AgentShimmerTitle()
+                    Divider().opacity(0.12).padding(.horizontal, 12)
+
+                    // Chat area — use safeAreaInset so searchBar is pinned to bottom
+                    ScrollView {
+                        if showHistoryList {
+                            historyContent
+                        } else if hasContent {
+                            resultContent
+                        } else {
+                            AgentShimmerTitle()
+                                .frame(height: panelHeight - 120)
+                        }
+                    }
+                    .scrollIndicatorsFlash(onAppear: false)
+                    .scrollContentBackground(.hidden)
+                    .safeAreaInset(edge: .bottom) {
+                        searchBar
                     }
                 }
-                .frame(maxHeight: .infinity)
-                .mask(
-                    VStack(spacing: 0) {
-                        LinearGradient(
-                            colors: [.clear, .black],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                        .frame(height: 12)
-                        Color.black
-                    }
-                )
-                .animation(nil, value: showHistoryList)
-
-                ghostPreview
-
-                // Input at bottom
-                searchBar
+                .frame(width: 400, height: panelHeight)
+                .clipped()
+                .glassEffect(.regular.interactive(false), in: .rect(cornerRadius: 18))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .strokeBorder(Color.primary.opacity(0.12), lineWidth: 0.5)
+                        .allowsHitTesting(false)
+                }
+                .shadow(color: .black.opacity(0.18), radius: 24, x: -5, y: 5)
+                .shadow(color: .black.opacity(0.08), radius: 3, x: 0, y: 1)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
+                .padding(9)
             }
-            .frame(width: 340)
-            .frame(maxHeight: .infinity)
-            .glassEffect(.regular, in: .rect(cornerRadius: 18))
-            .overlay {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(Color.primary.opacity(0.12), lineWidth: 0.5)
-                    .allowsHitTesting(false)
-            }
-            .shadow(color: .black.opacity(0.18), radius: 24, x: -5, y: 5)
-            .shadow(color: .black.opacity(0.08), radius: 3, x: 0, y: 1)
-            .padding(.horizontal, 9)
-            .padding(.vertical, 9)
-            .offset(x: showPanel ? 0 : 420)
+            .ignoresSafeArea()
+            .offset(x: showPanel ? 0 : 480)
             .animation(.spring(response: 0.4, dampingFraction: 0.85), value: showPanel)
             .zIndex(1)
         }
-        .ignoresSafeArea()
         .onAppear {
             pruneOldConversations()
             withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
@@ -148,11 +119,6 @@ struct AgentOverlay: View {
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 isFocused = true
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                withAnimation(.easeOut(duration: 0.3)) {
-                    showPips = true
-                }
             }
         }
         .onKeyPress(.escape) {
@@ -165,6 +131,117 @@ struct AgentOverlay: View {
         !responses.isEmpty || agent.isProcessing
     }
 
+    // MARK: - Panel Header
+
+    private var panelHeader: some View {
+        HStack {
+            if !recentConversations.isEmpty {
+                Button {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                        showHistoryListStable.toggle()
+                    }
+                } label: {
+                    Image(systemName: showHistoryList ? "xmark" : "clock")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.primary.opacity(0.85))
+                        .frame(width: 32, height: 32)
+                        .background(.ultraThinMaterial, in: Circle())
+                        .overlay(Circle().strokeBorder(Color.primary.opacity(0.1), lineWidth: 0.5))
+                }
+                .buttonStyle(.borderless)
+            } else {
+                Color.clear.frame(height: 26)
+            }
+
+            Spacer()
+
+            Text(showHistoryList ? "History" : "Tether Agent")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(.primary.opacity(0.85))
+
+            Spacer()
+
+            Color.clear.frame(width: 26, height: 26)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 14)
+        .padding(.bottom, 10)
+    }
+
+    // MARK: - History Content (inline for single ScrollView)
+
+    private var historyContent: some View {
+        LazyVStack(spacing: 0) {
+            ForEach(Array(recentConversations.enumerated()), id: \.element.id) { index, conversation in
+                Button {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                        showHistoryListStable = false
+                    }
+                    loadConversation(fromAll: conversation)
+                } label: {
+                    HStack {
+                        Text(conversation.firstQuery)
+                            .font(.system(size: 14, weight: .regular))
+                            .foregroundStyle(.primary.opacity(0.75))
+                            .lineLimit(1)
+
+                        Spacer()
+
+                        Text(relativeTime(conversation.updatedAt))
+                            .font(.system(size: 12, weight: .regular))
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 10)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
+                if index < recentConversations.count - 1 {
+                    Divider()
+                        .padding(.horizontal, 20)
+                        .opacity(0.3)
+                }
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    // MARK: - Result Content (inline for single ScrollView)
+
+    private var resultContent: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(responses.enumerated()), id: \.element.id) { index, result in
+                if index > 0 {
+                    Divider()
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 6)
+                }
+                RevealView {
+                    resultView(result)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .id(result.id)
+            }
+
+            if agent.isProcessing {
+                thinkingView
+                    .id("thinking")
+            }
+
+            if !responses.isEmpty && !agent.isProcessing {
+                Text("AI can make mistakes.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.top, 4)
+                    .padding(.bottom, 2)
+            }
+
+        }
+        .padding(.bottom, 16)
+    }
+
     // MARK: - Search Bar
 
     private var searchBar: some View {
@@ -175,18 +252,15 @@ struct AgentOverlay: View {
                 TextField("Ask anything...", text: $input, axis: .vertical)
                     .textFieldStyle(.plain)
                     .font(.system(size: 14))
-                    .lineLimit(1...6)
+                    .lineLimit(1...4)
                     .focused($isFocused)
-                    .onSubmit { submit() }
-                    .fixedSize(horizontal: false, vertical: true)
-
-                if !recentConversations.isEmpty && input.isEmpty {
-                    scrubberPips
-                        .opacity(showPips ? (hasContent ? 0.3 : 1) : 0)
-                        .animation(.easeOut(duration: 0.2), value: hasContent)
-                        .animation(.easeOut(duration: 0.3), value: showPips)
-                        .transition(.opacity)
-                }
+                    .onKeyPress(.return, phases: .down) { event in
+                        if event.modifiers.contains(.shift) {
+                            return .ignored
+                        }
+                        submit()
+                        return .handled
+                    }
 
                 VStack {
                     Spacer(minLength: 0)
@@ -227,68 +301,7 @@ struct AgentOverlay: View {
 
     // MARK: - Result Area
 
-    private var resultArea: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(responses.enumerated()), id: \.element.id) { index, result in
-                        if index > 0 {
-                            Divider()
-                                .padding(.horizontal, 20)
-                                .padding(.vertical, 6)
-                        }
-                        RevealView {
-                            resultView(result)
-                        }
-                        .id(result.id)
-                    }
 
-                    if agent.isProcessing {
-                        thinkingView
-                            .id("thinking")
-                    }
-
-                    if !responses.isEmpty && !agent.isProcessing {
-                        Text("AI can make mistakes.")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding(.top, 4)
-                            .padding(.bottom, 2)
-                    }
-                }
-                .padding(.bottom, 10)
-            }
-            .scrollIndicatorsFlash(onAppear: false)
-            .scrollContentBackground(.hidden)
-            .onChange(of: responses.count) {
-                // Delay so RevealView animation has started and content has height
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    if let last = responses.last {
-                        withAnimation(.easeInOut(duration: 0.5)) {
-                            proxy.scrollTo(last.id, anchor: .top)
-                        }
-                    }
-                }
-            }
-            .onChange(of: agent.isProcessing) {
-                if agent.isProcessing {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                        withAnimation(.easeInOut(duration: 0.4)) {
-                            proxy.scrollTo("thinking", anchor: .bottom)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private struct ResultContentHeightKey: PreferenceKey {
-        static var defaultValue: CGFloat = 0
-        static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-            value = max(value, nextValue())
-        }
-    }
 
     // MARK: - Result View
 
@@ -584,182 +597,12 @@ struct AgentOverlay: View {
         date < Calendar.current.startOfDay(for: .now)
     }
 
-    // MARK: - Temporal Scrubber
-
-    /// The 3 quick-access conversations (middle pips).
-    private var quickAccessConversations: [AgentConversation] {
-        Array(recentConversations.prefix(3))
-    }
-
-    /// Whether there are more conversations beyond the 3 quick-access ones.
-    private var hasMoreHistory: Bool {
-        recentConversations.count > 3
-    }
-
     private var showHistoryList: Bool {
         showHistoryListStable
     }
 
-    private func updateHistoryVisibility() {
-        let shouldShow = isHoveringHistoryPip || isHoveringHistoryList
-        if shouldShow {
-            historyDismissTask?.cancel()
-            historyDismissTask = nil
-            if !showHistoryListStable {
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                    showHistoryListStable = true
-                }
-            }
-        } else {
-            historyDismissTask?.cancel()
-            historyDismissTask = Task {
-                try? await Task.sleep(for: .milliseconds(200))
-                guard !Task.isCancelled else { return }
-                await MainActor.run {
-                    if !isHoveringHistoryPip && !isHoveringHistoryList {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                            showHistoryListStable = false
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private var scrubberPips: some View {
-        HStack(spacing: 0) {
-            // Pip 1: "New chat" — leftmost, always highlighted when active
-            Button { startNewConversation() } label: {
-                Circle()
-                    .fill(selectedPipIndex == nil ? Color.primary.opacity(0.5) : Color.primary.opacity(0.15))
-                    .frame(width: selectedPipIndex == nil ? 6.5 : 5.5, height: selectedPipIndex == nil ? 6.5 : 5.5)
-                    .frame(width: 20, height: 20)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.borderless)
-            .onHover { hovering in
-                withAnimation(.easeOut(duration: 0.15)) {
-                    hoveredPipIndex = hovering ? -1 : nil
-                }
-            }
-
-            // Pips 2-4: Quick access (up to 3 recent conversations)
-            ForEach(Array(quickAccessConversations.enumerated()), id: \.element.id) { index, _ in
-                Button { loadConversation(at: index) } label: {
-                    Circle()
-                        .fill(selectedPipIndex == index ? Color.primary.opacity(0.5) : Color.primary.opacity(hoveredPipIndex == index ? 0.3 : 0.15))
-                        .frame(width: selectedPipIndex == index ? 6.5 : 5.5, height: selectedPipIndex == index ? 6.5 : 5.5)
-                        .frame(width: 20, height: 20)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.borderless)
-                .onHover { hovering in
-                    withAnimation(.easeOut(duration: 0.15)) {
-                        hoveredPipIndex = hovering ? index : nil
-                    }
-                }
-            }
-
-            // Pip 5: "History" — tap to toggle full history
-            if hasMoreHistory || !recentConversations.isEmpty {
-                Image(systemName: "clock.arrow.trianglehead.counterclockwise.rotate.90")
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(showHistoryList ? Color.accentColor.opacity(0.8) : Color.primary.opacity(isHoveringHistoryPip ? 0.4 : 0.2))
-                    .frame(width: 20, height: 20)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        historyDismissTask?.cancel()
-                        historyDismissTask = nil
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                            showHistoryListStable.toggle()
-                        }
-                    }
-                    .onHover { hovering in
-                        isHoveringHistoryPip = hovering
-                        if hovering { hoveredPipIndex = -2 }
-                        if !showHistoryListStable {
-                            updateHistoryVisibility()
-                        }
-                    }
-            }
-        }
-        .animation(.easeOut(duration: 0.15), value: selectedPipIndex)
-        .animation(.easeOut(duration: 0.15), value: hoveredPipIndex)
-        .animation(.easeOut(duration: 0.15), value: isHoveringHistoryPip)
-    }
-
-    @ViewBuilder
-    private var ghostPreview: some View {
-        if let idx = hoveredPipIndex, idx >= 0, idx < quickAccessConversations.count, !showHistoryList {
-            let conversation = quickAccessConversations[idx]
-            HStack {
-                Text(conversation.firstQuery)
-                    .lineLimit(1)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text(relativeTime(conversation.updatedAt))
-                    .foregroundStyle(.quaternary)
-            }
-            .font(.system(size: 15, weight: .light))
-            .padding(.horizontal, 18)
-            .padding(.top, 5)
-            .padding(.bottom, 10)
-            .transition(.opacity)
-            .animation(.easeOut(duration: 0.2), value: hoveredPipIndex)
-        }
-    }
-
     // MARK: - History List
 
-    private var historyListView: some View {
-        ScrollView(showsIndicators: false) {
-            LazyVStack(spacing: 0) {
-                ForEach(Array(recentConversations.enumerated()), id: \.element.id) { index, conversation in
-                    Button {
-                        isHoveringHistoryPip = false
-                        isHoveringHistoryList = false
-                        historyDismissTask?.cancel()
-                        showHistoryListStable = false
-                        loadConversation(fromAll: conversation)
-                    } label: {
-                        HStack {
-                            Text(conversation.firstQuery)
-                                .font(.system(size: 15, weight: .light))
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-
-                            Spacer()
-
-                            Text(relativeTime(conversation.updatedAt))
-                                .font(.system(size: 13, weight: .light))
-                                .foregroundStyle(.quaternary)
-                        }
-                        .padding(.horizontal, 18)
-                        .padding(.vertical, 10)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.borderless)
-
-                    if index < recentConversations.count - 1 {
-                        Divider()
-                            .padding(.horizontal, 20)
-                            .opacity(0.3)
-                    }
-                }
-            }
-            .padding(.vertical, 4)
-        }
-        .frame(maxHeight: 400)
-        .mask(
-            VStack(spacing: 0) {
-                LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
-                    .frame(height: 6)
-                Color.black
-                LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
-                    .frame(height: 4)
-            }
-        )
-    }
 
     private func loadConversation(fromAll conversation: AgentConversation) {
         print("[AgentOverlay] loadConversation(fromAll: \(conversation.firstQuery)), messages count: \(conversation.decodeMessages().count)")
@@ -793,29 +636,13 @@ struct AgentOverlay: View {
         withAnimation(.easeInOut(duration: 0.3)) {
             responses = results
             currentConversation = conversation
-            // Find which quick-access index, if any
-            if let qIdx = quickAccessConversations.firstIndex(where: { $0.id == conversation.id }) {
-                selectedPipIndex = qIdx
-            } else {
-                selectedPipIndex = nil
-            }
         }
         input = ""
-    }
-
-    private func loadConversation(at index: Int) {
-        print("[AgentOverlay] loadConversation(at: \(index)), quickAccess count: \(quickAccessConversations.count)")
-        guard index < quickAccessConversations.count else {
-            print("[AgentOverlay] Index out of bounds!")
-            return
-        }
-        loadConversation(fromAll: quickAccessConversations[index])
     }
 
     private func startNewConversation() {
         withAnimation(.easeInOut(duration: 0.3)) {
             responses = []
-            selectedPipIndex = nil
             currentConversation = nil
         }
         input = ""
@@ -921,11 +748,6 @@ struct AgentOverlay: View {
 
         let query = trimmed
         input = ""
-
-        // If starting fresh (no selected pip), clear selection
-        if selectedPipIndex != nil && currentConversation == nil {
-            selectedPipIndex = nil
-        }
 
         saveUserMessage(query)
 
@@ -1162,25 +984,26 @@ private struct RevealView<Content: View>: View {
 
     var body: some View {
         content
-            .opacity(reveal)
-            .mask(
-                GeometryReader { geo in
+            .opacity(Double(reveal))
+            .offset(y: (1 - reveal) * 6)
+            .mask {
+                if reveal >= 1.0 {
+                    Color.black
+                } else {
                     LinearGradient(
                         stops: [
                             .init(color: .black, location: 0),
-                            .init(color: .black, location: min(reveal * 1.2, 1.0)),
-                            .init(color: .clear, location: min(reveal * 1.2 + 0.15, 1.0)),
-                            .init(color: .clear, location: 1),
+                            .init(color: .black, location: reveal),
+                            .init(color: .clear, location: min(reveal + 0.2, 1.0)),
                         ],
                         startPoint: .top,
                         endPoint: .bottom
                     )
-                    .frame(height: geo.size.height)
                 }
-            )
+            }
             .onAppear {
-                withAnimation(.easeOut(duration: 0.4)) {
-                    reveal = 1
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.85)) {
+                    reveal = 1.0
                 }
             }
     }
@@ -1188,43 +1011,36 @@ private struct RevealView<Content: View>: View {
 
 // MARK: - Agent Shimmer Title
 
-/// A centered "Tether Agent" label with an animated gradient shimmer.
+/// A centered "Tether Agent" label with an Apple Intelligence–style animated gradient.
 struct AgentShimmerTitle: View {
-    @State private var animating = false
+    @State private var animate = false
 
-    private static let deep = Color(red: 0.18, green: 0.12, blue: 0.45)
-    private static let mid = Color(red: 0.30, green: 0.22, blue: 0.65)
-    private static let lavender = Color(red: 0.45, green: 0.35, blue: 0.80)
-    private static let bright = Color(red: 0.55, green: 0.42, blue: 0.92)
-    private static let accent = Color(red: 0.38, green: 0.58, blue: 1.0)
+    // Soft pastel palette — two full cycles so the text is always covered
+    private let gradientColors: [Color] = [
+        .purple.opacity(0.5), .pink.opacity(0.45), .orange.opacity(0.4),
+        .yellow.opacity(0.35), .mint.opacity(0.4), .cyan.opacity(0.45),
+        .blue.opacity(0.45), .purple.opacity(0.5), .pink.opacity(0.45),
+        .orange.opacity(0.4), .yellow.opacity(0.35), .mint.opacity(0.4),
+        .cyan.opacity(0.45), .blue.opacity(0.45), .purple.opacity(0.5),
+    ]
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 60)) { timeline in
-            let t = timeline.date.timeIntervalSinceReferenceDate
-            // Smooth sine-based phase that never jumps
-            let slow = sin(t * 0.4) * 0.5 + 0.5  // 0→1→0 over ~15s
-            let drift = sin(t * 0.25) * 0.3        // gentle vertical drift
-
-            Text("Tether Agent")
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [
-                            Self.deep,
-                            Self.mid,
-                            Self.lavender,
-                            Self.bright,
-                            Self.accent,
-                            Self.bright,
-                            Self.lavender,
-                            Self.mid,
-                            Self.deep,
-                        ],
-                        startPoint: UnitPoint(x: -0.3 + CGFloat(slow) * 1.6, y: 0.2 + CGFloat(drift)),
-                        endPoint: UnitPoint(x: 0.7 + CGFloat(slow) * 0.6, y: 0.8 - CGFloat(drift))
-                    )
-                )
+        ZStack {
+            LinearGradient(
+                gradient: Gradient(colors: gradientColors),
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+            .frame(width: 380, height: 80)
+            .offset(x: animate ? -80 : 80)
+            .animation(.linear(duration: 8).repeatForever(autoreverses: true), value: animate)
+            .mask {
+                Text("Tether Agent")
+                    .font(.system(size: 22, weight: .bold))
+            }
         }
+        .clipped()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onAppear { animate = true }
     }
 }

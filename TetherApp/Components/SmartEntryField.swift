@@ -43,8 +43,7 @@ struct SmartEntryField: View {
         VStack(alignment: .leading, spacing: 0) {
             // Natural language input
             HStack(spacing: 10) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 14, weight: .medium))
+                TetherIcon(size: 20)
                     .foregroundStyle(.tertiary)
 
                 TextField("What do you need to do?", text: $rawInput, axis: .vertical)

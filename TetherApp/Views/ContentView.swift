@@ -29,6 +29,7 @@ struct ContentView: View {
     @State private var overlayMode: OverlayMode = .none
     @State private var showSettings = false
     @State private var agentActivity = AgentActivityService()
+    @State private var showingAgent = false
     @AppStorage("tetherShowTaskCounts") private var showTaskCounts = true
     @AppStorage("tetherShowCompletedTasks") private var showCompleted = false
     @State private var quickFindPath: [SidebarSelection] = []
@@ -93,7 +94,6 @@ struct ContentView: View {
                         .textCase(nil)
                 }
             }
-            .pullToAgent()
             .scrollIndicators(.hidden)
             .navigationTitle("Tether")
             .scrollContentBackground(.hidden)
@@ -152,29 +152,19 @@ struct ContentView: View {
         .tint(.primary)
         .environment(\.overlayMode, $overlayMode)
         .environment(\.agentActivity, agentActivity)
-        .overlay {
-            if overlayMode == .agent {
-                CommandPaletteOverlay(
-                    mode: $overlayMode,
-                    areas: areas,
-                    projects: projects,
-                    tasks: tasks,
-                    onSelectSidebar: { sel in
-                        overlayMode = .none
-                        quickFindPath = [sel]
-                    },
-                    onSelectTask: { task in
-                        overlayMode = .none
-                        if let project = task.project {
-                            quickFindPath = [.project(project.id)]
-                        } else if let area = task.area {
-                            quickFindPath = [.area(area.id)]
-                        } else if task.isInInbox {
-                            quickFindPath = [.inbox]
-                        }
-                    }
-                )
+        .overlay(alignment: .bottomTrailing) {
+            Button { showingAgent = true } label: {
+                TetherIcon(size: 32)
+                    .foregroundStyle(.primary)
+                    .frame(width: 52, height: 52)
             }
+            .buttonStyle(.plain)
+            .glassEffect(.regular.interactive(), in: .circle)
+            .padding(.trailing, 12)
+            .padding(.bottom, 12)
+        }
+        .sheet(isPresented: $showingAgent) {
+            AgentSheet()
         }
     }
 
@@ -381,8 +371,7 @@ struct PullToAgent: ViewModifier {
 
     private var pullIndicator: some View {
         VStack(spacing: 4) {
-            Image(systemName: "sparkles")
-                .font(.system(size: 18, weight: .medium))
+            TetherIcon(size: 26)
                 .foregroundStyle(Color.secondary)
                 .scaleEffect(0.6 + progress * 0.4)
 

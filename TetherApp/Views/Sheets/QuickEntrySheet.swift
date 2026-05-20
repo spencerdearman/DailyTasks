@@ -127,8 +127,7 @@ struct QuickEntrySheet: View {
                             }
                         } label: {
                             HStack(spacing: 5) {
-                                Image(systemName: "sparkles")
-                                    .font(.system(size: 11, weight: .medium))
+                                TetherIcon(size: 16)
                                 Text("Use smart entry")
                                     .font(.footnote.weight(.medium))
                             }
@@ -288,26 +287,42 @@ struct QuickEntrySheet: View {
             Divider().padding(.leading, 52)
 
             // Deadline
-            HStack {
-                Image(systemName: "flag.fill")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 24)
-                Text("Deadline")
-                    .foregroundStyle(.primary)
-                Spacer()
-                Button {
-                    deadline = nil
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.tertiary)
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: "flag.fill")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 24)
+                    Text("Deadline")
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    Button {
+                        deadline = nil
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.tertiary)
+                    }
+                    .opacity(deadline != nil ? 1 : 0)
+                    .allowsHitTesting(deadline != nil)
+                    DatePicker("", selection: deadlineBinding, displayedComponents: .date)
+                        .labelsHidden()
+                        .fixedSize()
                 }
-                .opacity(deadline != nil ? 1 : 0)
-                .allowsHitTesting(deadline != nil)
 
-                DatePicker("", selection: deadlineBinding, displayedComponents: [.date, .hourAndMinute])
-                    .labelsHidden()
-                    .fixedSize()
+                if deadline != nil {
+                    HStack {
+                        Image(systemName: "clock")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 24)
+                        Text("Time")
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        DatePicker("", selection: deadlineBinding, displayedComponents: .hourAndMinute)
+                            .labelsHidden()
+                            .fixedSize()
+                    }
+                }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)

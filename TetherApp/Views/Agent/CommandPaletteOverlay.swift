@@ -300,8 +300,7 @@ struct CommandPaletteOverlay: View {
                     isAgentFocused = true
                 }
             } label: {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 13, weight: .medium))
+                TetherIcon(size: 20)
                     .foregroundStyle(.secondary.opacity(0.6))
             }
             .buttonStyle(.plain)

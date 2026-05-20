@@ -35,6 +35,7 @@ struct AgentSheet: View {
     @State private var currentConversation: AgentConversation?
     @State private var selectedPipIndex: Int?
     @State private var appliedPlanResultIDs: Set<UUID> = []
+    @State private var showingHistory = false
     @FocusState private var isFocused: Bool
 
     // MARK: Result Model
@@ -76,37 +77,58 @@ struct AgentSheet: View {
     // MARK: Body
 
     var body: some View {
-        NavigationStack {
+        NavigationView {
             VStack(spacing: 0) {
-                if responses.isEmpty && !agent.isProcessing && !isSynthesizing {
+                if showingHistory {
+                    conversationHistoryList
+                } else if responses.isEmpty && !agent.isProcessing && !isSynthesizing {
                     emptyState
                 } else {
                     resultsList
                 }
-            }
-            .safeAreaInset(edge: .bottom) {
-                VStack(spacing: 0) {
-                    Divider()
+
+                if !showingHistory {
                     inputBar
                 }
-                .background(.clear)
             }
+            .background(.thickMaterial)
+            .navigationTitle(showingHistory ? "History" : "Tether Agent")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 14, weight: .semibold))
+                ToolbarItem(placement: .cancellationAction) {
+                    if showingHistory {
+                        Button { withAnimation { showingHistory = false } } label: {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 14, weight: .semibold))
+                        }
+                    } else {
+                        Button { dismiss() } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 14, weight: .semibold))
+                        }
                     }
                 }
-                ToolbarItem(placement: .principal) {
-                    Text("Tether Agent")
-                        .font(.system(size: 17, weight: .semibold))
+                ToolbarItem(placement: .primaryAction) {
+                    if showingHistory {
+                        Button {
+                            withAnimation {
+                                showingHistory = false
+                            }
+                            startNewConversation()
+                        } label: {
+                            Image(systemName: "plus")
+                                .font(.system(size: 14, weight: .semibold))
+                        }
+                    } else {
+                        Button { withAnimation { showingHistory = true } } label: {
+                            Label("History", systemImage: "clock.arrow.circlepath")
+                                .labelStyle(.iconOnly)
+                        }
+                    }
                 }
             }
-            .toolbarBackgroundVisibility(.hidden, for: .navigationBar)
         }
-        .presentationBackground(.ultraThinMaterial)
+        .presentationBackground(.thickMaterial)
         .onAppear {
             pruneOldConversations()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
@@ -139,7 +161,8 @@ struct AgentSheet: View {
 
     private var emptyState: some View {
         AgentShimmerTitleIOS()
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+            .padding(.leading, 20)
     }
 
     // MARK: - Results
@@ -166,11 +189,29 @@ struct AgentSheet: View {
                 .padding(.vertical, 8)
             }
             .onChange(of: responses.count) {
-                if let last = responses.last {
+                scrollToBottom(proxy)
+            }
+            .onChange(of: agent.isProcessing) {
+                if agent.isProcessing {
                     withAnimation(.easeOut(duration: 0.3)) {
-                        proxy.scrollTo(last.id, anchor: .bottom)
+                        proxy.scrollTo("thinking", anchor: .bottom)
                     }
                 }
+            }
+            .onChange(of: isSynthesizing) {
+                if isSynthesizing {
+                    withAnimation(.easeOut(duration: 0.3)) {
+                        proxy.scrollTo("thinking", anchor: .bottom)
+                    }
+                }
+            }
+        }
+    }
+
+    private func scrollToBottom(_ proxy: ScrollViewProxy) {
+        if let last = responses.last {
+            withAnimation(.easeOut(duration: 0.3)) {
+                proxy.scrollTo(last.id, anchor: .bottom)
             }
         }
     }
@@ -750,7 +791,8 @@ struct AgentSheet: View {
 
     private var thinkingView: some View {
         ThinkingShimmer()
-            .frame(maxWidth: .infinity, alignment: .center)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 18)
             .padding(.vertical, 16)
     }
 
@@ -758,40 +800,36 @@ struct AgentSheet: View {
 
     private var inputBar: some View {
         VStack(spacing: 0) {
-            if !historyPips.isEmpty {
-                scrubberPips
-                    .opacity(hasActiveContent ? 0.3 : 1)
-                    .animation(.easeOut(duration: 0.2), value: hasActiveContent)
-                    .padding(.top, 6)
-                    .padding(.bottom, 2)
-            }
-
             HStack(spacing: 10) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 15, weight: .medium))
+                TetherIcon(size: 28)
                     .foregroundStyle(.tertiary)
-                    .symbolEffect(.pulse, isActive: agent.isProcessing || isSynthesizing)
+                    .opacity(agent.isProcessing || isSynthesizing ? 0.5 : 1)
+                    .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: agent.isProcessing || isSynthesizing)
 
-                TextField("Ask Tether anything...", text: $input)
+                TextField("Ask anything...", text: $input)
                     .font(.body)
                     .focused($isFocused)
                     .onSubmit { submit() }
                     .textFieldStyle(.plain)
 
-                if agent.isProcessing || isSynthesizing {
-                    ProgressView()
-                        .controlSize(.small)
-                } else if !input.isEmpty {
-                    Button { submit() } label: {
-                        Image(systemName: "arrow.up.circle.fill")
-                            .font(.system(size: 28))
-                            .foregroundStyle(.primary)
+                ZStack {
+                    if agent.isProcessing || isSynthesizing {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else if !input.isEmpty {
+                        Button { submit() } label: {
+                            Image(systemName: "arrow.up.circle.fill")
+                                .font(.system(size: 28))
+                                .foregroundStyle(.primary)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
+                .frame(width: 30, height: 30)
             }
+            .frame(height: 44)
             .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.vertical, 4)
         }
     }
 
@@ -1386,6 +1424,48 @@ struct AgentSheet: View {
         return arr.isEmpty ? nil : arr
     }
 
+    // MARK: - Conversation History List (inline)
+
+    private var conversationHistoryList: some View {
+        List {
+            if recentConversations.isEmpty {
+                ContentUnavailableView("No Conversations Yet",
+                    systemImage: "clock",
+                    description: Text("Your recent agent conversations will appear here."))
+                    .listRowBackground(Color.clear)
+            } else {
+                ForEach(recentConversations) { conversation in
+                    Button {
+                        let pipIndex = historyPips.firstIndex(where: { $0.id == conversation.id })
+                        if let pipIndex {
+                            loadConversation(at: pipIndex)
+                        }
+                        withAnimation { showingHistory = false }
+                    } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(conversation.firstQuery)
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundStyle(.primary)
+                                .lineLimit(2)
+
+                            Text(conversation.updatedAt, style: .relative)
+                                .font(.system(size: 12))
+                                .foregroundStyle(.tertiary)
+                            + Text(" ago")
+                                .font(.system(size: 12))
+                                .foregroundStyle(.tertiary)
+                        }
+                        .padding(.vertical, 2)
+                    }
+                    .buttonStyle(.plain)
+                    .listRowBackground(Color.white.opacity(0.04))
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+    }
+
     // MARK: - Helpers
 
     private func markdownString(_ text: String) -> AttributedString {
@@ -1467,37 +1547,32 @@ struct AgentSheet: View {
 // MARK: - Agent Shimmer Title (iOS)
 
 struct AgentShimmerTitleIOS: View {
-    private static let deep = Color(red: 0.30, green: 0.25, blue: 0.60)
-    private static let mid = Color(red: 0.45, green: 0.38, blue: 0.80)
-    private static let lavender = Color(red: 0.60, green: 0.50, blue: 0.95)
-    private static let bright = Color(red: 0.70, green: 0.60, blue: 1.0)
-    private static let accent = Color(red: 0.55, green: 0.72, blue: 1.0)
+    @State private var animate = false
+
+    // Soft pastel palette — two full cycles so the text is always covered
+    private let gradientColors: [Color] = [
+        .purple.opacity(0.5), .pink.opacity(0.45), .orange.opacity(0.4),
+        .yellow.opacity(0.35), .mint.opacity(0.4), .cyan.opacity(0.45),
+        .blue.opacity(0.45), .purple.opacity(0.5), .pink.opacity(0.45),
+        .orange.opacity(0.4), .yellow.opacity(0.35), .mint.opacity(0.4),
+        .cyan.opacity(0.45), .blue.opacity(0.45), .purple.opacity(0.5),
+    ]
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 60)) { timeline in
-            let t = timeline.date.timeIntervalSinceReferenceDate
-            let slow = sin(t * 0.4) * 0.5 + 0.5
-            let drift = sin(t * 0.25) * 0.3
-
-            Text("Tether Agent")
-                .font(.system(size: 26, weight: .semibold))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [
-                            Self.deep,
-                            Self.mid,
-                            Self.lavender,
-                            Self.bright,
-                            Self.accent,
-                            Self.bright,
-                            Self.lavender,
-                            Self.mid,
-                            Self.deep,
-                        ],
-                        startPoint: UnitPoint(x: -0.3 + CGFloat(slow) * 1.6, y: 0.2 + CGFloat(drift)),
-                        endPoint: UnitPoint(x: 0.7 + CGFloat(slow) * 0.6, y: 0.8 - CGFloat(drift))
-                    )
-                )
+        ZStack {
+            LinearGradient(
+                gradient: Gradient(colors: gradientColors),
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+            .frame(width: 600, height: 80)
+            .offset(x: animate ? -150 : 150)
+            .animation(.linear(duration: 8).repeatForever(autoreverses: true), value: animate)
+            .mask {
+                Text("Tether Agent")
+                    .font(.system(size: 26, weight: .bold))
+            }
         }
+        .onAppear { animate = true }
     }
 }

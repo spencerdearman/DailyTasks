@@ -69,7 +69,6 @@ struct ProjectScreen: View {
             }
             .padding(20)
         }
-        .pullToAgent()
         .background(AppBackground())
         .navigationTitle(project.title)
         .navigationBarTitleDisplayMode(.inline)

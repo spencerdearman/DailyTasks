@@ -133,7 +133,7 @@ struct SettingsSheet: View {
                     .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
                     // Tether Agent section
-                    Label("Tether Agent", systemImage: "sparkles")
+                    Label { Text("Tether Agent") } icon: { TetherIcon(size: 20) }
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
                         .padding(.leading, 4)
