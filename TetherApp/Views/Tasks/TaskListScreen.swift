@@ -224,9 +224,9 @@ struct InlineSuggestionResultCard: View {
 
     private static let agentGradient = LinearGradient(
         colors: [
-            Color(red: 0.35, green: 0.28, blue: 0.72).opacity(0.4),
-            Color(red: 0.50, green: 0.40, blue: 0.92).opacity(0.25),
-            Color(red: 0.45, green: 0.65, blue: 1.0).opacity(0.3)
+            AgentPalette.mid.opacity(0.4),
+            AgentPalette.bright.opacity(0.25),
+            AgentPalette.accent.opacity(0.3)
         ],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
@@ -246,8 +246,8 @@ struct InlineSuggestionResultCard: View {
                 .fill(
                     LinearGradient(
                         colors: barShimmerActive
-                            ? [Color(red: 0.45, green: 0.65, blue: 1.0).opacity(0.7), Color(red: 0.50, green: 0.40, blue: 0.92).opacity(0.5)]
-                            : [Color(red: 0.35, green: 0.28, blue: 0.72).opacity(0.4), Color(red: 0.50, green: 0.40, blue: 0.92).opacity(0.35)],
+                            ? [AgentPalette.accent.opacity(0.7), AgentPalette.bright.opacity(0.5)]
+                            : [AgentPalette.mid.opacity(0.4), AgentPalette.bright.opacity(0.35)],
                         startPoint: .top,
                         endPoint: .bottom
                     )
@@ -259,16 +259,10 @@ struct InlineSuggestionResultCard: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 6) {
                     TetherIcon(size: 16)
-                        .foregroundStyle(LinearGradient(
-                            colors: [Color(red: 0.35, green: 0.28, blue: 0.72), Color(red: 0.50, green: 0.40, blue: 0.92)],
-                            startPoint: .leading, endPoint: .trailing
-                        ))
-                    Text("AGENT")
+                        .foregroundStyle(AgentPalette.gradient)
+                    Text("TETHER AGENT")
                         .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(LinearGradient(
-                            colors: [Color(red: 0.35, green: 0.28, blue: 0.72), Color(red: 0.50, green: 0.40, blue: 0.92)],
-                            startPoint: .leading, endPoint: .trailing
-                        ))
+                        .foregroundStyle(AgentPalette.gradient)
                 }
 
                 Text(markdownRendered(message))

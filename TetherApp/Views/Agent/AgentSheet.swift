@@ -1549,13 +1549,13 @@ struct AgentSheet: View {
 struct AgentShimmerTitleIOS: View {
     @State private var animate = false
 
-    // Soft pastel palette — two full cycles so the text is always covered
+    // Blue-purple palette matching the agent color scheme
     private let gradientColors: [Color] = [
-        .purple.opacity(0.5), .pink.opacity(0.45), .orange.opacity(0.4),
-        .yellow.opacity(0.35), .mint.opacity(0.4), .cyan.opacity(0.45),
-        .blue.opacity(0.45), .purple.opacity(0.5), .pink.opacity(0.45),
-        .orange.opacity(0.4), .yellow.opacity(0.35), .mint.opacity(0.4),
-        .cyan.opacity(0.45), .blue.opacity(0.45), .purple.opacity(0.5),
+        AgentPalette.deep, AgentPalette.mid, AgentPalette.lavender,
+        AgentPalette.bright, AgentPalette.periwinkle, AgentPalette.accent,
+        AgentPalette.sky, AgentPalette.accent, AgentPalette.periwinkle,
+        AgentPalette.bright, AgentPalette.lavender, AgentPalette.mid,
+        AgentPalette.deep,
     ]
 
     var body: some View {

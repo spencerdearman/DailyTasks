@@ -25,6 +25,7 @@ struct SettingsSheet: View {
 
     @State private var validationState: ValidationState = .idle
     @State private var showResetConfirm = false
+    @State private var showClearConfirm = false
 
     private enum ValidationState: Equatable {
         case idle
@@ -193,6 +194,23 @@ struct SettingsSheet: View {
                     sectionHeader("Data")
                     VStack(spacing: 0) {
                         Button(role: .destructive) {
+                            showClearConfirm = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "trash")
+                                    .font(.system(size: 16, weight: .medium))
+                                Text("Clear All Data")
+                                Spacer()
+                            }
+                            .foregroundStyle(.red)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                        }
+                        .buttonStyle(.plain)
+
+                        Divider().padding(.leading, 16)
+
+                        Button(role: .destructive) {
                             showResetConfirm = true
                         } label: {
                             HStack {
@@ -209,7 +227,7 @@ struct SettingsSheet: View {
                     }
                     .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-                    Text("Deletes all tasks, projects, and areas, then loads demo content.")
+                    Text("Clear removes all data. Reset removes all data then loads demo content.")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                         .padding(.horizontal, 4)
@@ -237,7 +255,37 @@ struct SettingsSheet: View {
             } message: {
                 Text("This will permanently delete all your tasks, projects, and areas, then load sample data.")
             }
+            .confirmationDialog("Clear all data?", isPresented: $showClearConfirm, titleVisibility: .visible) {
+                Button("Clear All Data", role: .destructive) {
+                    clearAllData()
+                }
+            } message: {
+                Text("This will permanently delete all your tasks, projects, areas, and agent conversations. This cannot be undone.")
+            }
         }
+    }
+
+    // MARK: - Clear All Data
+
+    private func clearAllData() {
+        let tasks = (try? modelContext.fetch(FetchDescriptor<TaskItem>())) ?? []
+        let assignments = (try? modelContext.fetch(FetchDescriptor<TaskTagAssignment>())) ?? []
+        let checklists = (try? modelContext.fetch(FetchDescriptor<ChecklistItem>())) ?? []
+        let headings = (try? modelContext.fetch(FetchDescriptor<Heading>())) ?? []
+        let projects = (try? modelContext.fetch(FetchDescriptor<Project>())) ?? []
+        let areas = (try? modelContext.fetch(FetchDescriptor<Area>())) ?? []
+        let tags = (try? modelContext.fetch(FetchDescriptor<Tag>())) ?? []
+        let conversations = (try? modelContext.fetch(FetchDescriptor<AgentConversation>())) ?? []
+
+        for item in checklists { modelContext.delete(item) }
+        for item in assignments { modelContext.delete(item) }
+        for item in tasks { modelContext.delete(item) }
+        for item in headings { modelContext.delete(item) }
+        for item in projects { modelContext.delete(item) }
+        for item in areas { modelContext.delete(item) }
+        for item in tags { modelContext.delete(item) }
+        for item in conversations { modelContext.delete(item) }
+        try? modelContext.save()
     }
 
     // MARK: - Reset & Reseed

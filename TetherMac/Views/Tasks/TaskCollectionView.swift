@@ -235,10 +235,12 @@ struct TaskCollectionView: View {
                 calendarEvents: calendarStore.allEvents
             )
 
-            // Bypass Gemini for categorization — call directly for reliability
+            // Bypass Gemini for known actions — call directly for reliability
             let response: AgentResponse
             if suggestion.kind == .unsortedInbox {
                 response = await suggestionAgent.categorizeInbox(apiKey: apiKey, context: ctx)
+            } else if suggestion.kind == .heavyDay {
+                response = suggestionAgent.planDay(filter: "today", context: ctx)
             } else {
                 response = await suggestionAgent.process(
                     suggestion.agentPrompt,

@@ -797,6 +797,13 @@ final class TaskAgent {
         return response
     }
 
+    /// Public entry point for directly triggering plan-day (e.g. from inline suggestions).
+    func planDay(filter: String, context: AgentContext) -> AgentResponse {
+        let response = buildPlanDayResponse(message: "Here's your plan for \(filter):", filter: filter, ctx: context)
+        lastResponse = response
+        return response
+    }
+
     private func doCategorizeInbox(message: String, ctx: AgentContext) async -> AgentResponse {
         let apiKey = UserDefaults.standard.string(forKey: "geminiAPIKey") ?? ""
         let inboxTasks = ctx.tasks.filter { $0.status == .active && $0.isInInbox }

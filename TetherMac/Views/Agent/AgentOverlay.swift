@@ -77,26 +77,29 @@ struct AgentOverlay: View {
 
                     Divider().opacity(0.12).padding(.horizontal, 12)
 
-                    // Chat area — use safeAreaInset so searchBar is pinned to bottom
-                    ScrollView {
-                        if showHistoryList {
-                            historyContent
-                        } else if hasContent {
-                            resultContent
-                        } else {
-                            AgentShimmerTitle()
-                                .frame(height: panelHeight - 120)
-                        }
-                    }
-                    .scrollIndicatorsFlash(onAppear: false)
-                    .scrollContentBackground(.hidden)
-                    .safeAreaInset(edge: .bottom) {
+                    // Chat area
+                    if showHistoryList {
+                        historyContent
                         searchBar
+                    } else {
+                        ScrollView {
+                            if hasContent {
+                                resultContent
+                            } else {
+                                AgentShimmerTitle()
+                                    .frame(height: panelHeight - 120)
+                            }
+                        }
+                        .scrollIndicatorsFlash(onAppear: false)
+                        .scrollContentBackground(.hidden)
+                        .safeAreaInset(edge: .bottom) {
+                            searchBar
+                        }
                     }
                 }
                 .frame(width: 400, height: panelHeight)
                 .clipped()
-                .glassEffect(.regular.interactive(false), in: .rect(cornerRadius: 18))
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                 .overlay {
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
                         .strokeBorder(Color.primary.opacity(0.12), lineWidth: 0.5)
@@ -104,6 +107,12 @@ struct AgentOverlay: View {
                 }
                 .shadow(color: .black.opacity(0.18), radius: 24, x: -5, y: 5)
                 .shadow(color: .black.opacity(0.08), radius: 3, x: 0, y: 1)
+                .background(alignment: .center) {
+                    Color.clear
+                        .frame(width: 400, height: panelHeight)
+                        .glassEffect(.regular, in: .rect(cornerRadius: 18))
+                        .accessibilityHidden(true)
+                }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
                 .padding(9)
             }
@@ -168,43 +177,34 @@ struct AgentOverlay: View {
         .padding(.bottom, 10)
     }
 
-    // MARK: - History Content (inline for single ScrollView)
+    // MARK: - History Content
 
     private var historyContent: some View {
-        LazyVStack(spacing: 0) {
-            ForEach(Array(recentConversations.enumerated()), id: \.element.id) { index, conversation in
-                Button {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                        showHistoryListStable = false
-                    }
-                    loadConversation(fromAll: conversation)
-                } label: {
-                    HStack {
-                        Text(conversation.firstQuery)
-                            .font(.system(size: 14, weight: .regular))
-                            .foregroundStyle(.primary.opacity(0.75))
-                            .lineLimit(1)
+        List(recentConversations) { conversation in
+            HStack {
+                Text(conversation.firstQuery)
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundStyle(.primary.opacity(0.75))
+                    .lineLimit(1)
 
-                        Spacer()
+                Spacer()
 
-                        Text(relativeTime(conversation.updatedAt))
-                            .font(.system(size: 12, weight: .regular))
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.horizontal, 18)
-                    .padding(.vertical, 10)
-                    .contentShape(Rectangle())
+                Text(relativeTime(conversation.updatedAt))
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.vertical, 6)
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+            .onTapGesture {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                    showHistoryListStable = false
                 }
-                .buttonStyle(.plain)
-
-                if index < recentConversations.count - 1 {
-                    Divider()
-                        .padding(.horizontal, 20)
-                        .opacity(0.3)
-                }
+                loadConversation(fromAll: conversation)
             }
         }
-        .padding(.vertical, 4)
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
     }
 
     // MARK: - Result Content (inline for single ScrollView)
@@ -249,6 +249,7 @@ struct AgentOverlay: View {
             Divider().opacity(0.12).padding(.horizontal, 12)
 
             HStack(alignment: .bottom, spacing: 10) {
+
                 TextField("Ask anything...", text: $input, axis: .vertical)
                     .textFieldStyle(.plain)
                     .font(.system(size: 14))

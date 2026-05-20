@@ -154,14 +154,14 @@ struct ContentView: View {
         .environment(\.agentActivity, agentActivity)
         .overlay(alignment: .bottomTrailing) {
             Button { showingAgent = true } label: {
-                TetherIcon(size: 32)
+                TetherIcon(size: 36)
                     .foregroundStyle(.primary)
-                    .frame(width: 52, height: 52)
+                    .frame(width: 58, height: 58)
             }
             .buttonStyle(.plain)
             .glassEffect(.regular.interactive(), in: .circle)
             .padding(.trailing, 12)
-            .padding(.bottom, 12)
+            .padding(.bottom, 2)
         }
         .sheet(isPresented: $showingAgent) {
             AgentSheet()
