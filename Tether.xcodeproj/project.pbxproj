@@ -16,7 +16,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		4D058B252F970F440065CADF /* TetherMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = TetherMac.app; path = Tether.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4D058B252F970F440065CADF /* Tether.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tether.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4D058B392F9712AC0065CADF /* TetherApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TetherApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4D35199C2FAEB96000A9E7E6 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -29,11 +29,21 @@
 			);
 			target = 4D058B382F9712AC0065CADF /* TetherApp */;
 		};
+		4D8F64522FBD680C0007B0B9 /* Exceptions for "TetherMac" folder in "TetherMac" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 4D058B242F970F440065CADF /* TetherMac */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		4D058B262F970F440065CADF /* TetherMac */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				4D8F64522FBD680C0007B0B9 /* Exceptions for "TetherMac" folder in "TetherMac" target */,
+			);
 			path = TetherMac;
 			sourceTree = "<group>";
 		};
@@ -90,7 +100,7 @@
 		4D9CB8042F8C41AC00F536E1 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				4D058B252F970F440065CADF /* TetherMac.app */,
+				4D058B252F970F440065CADF /* Tether.app */,
 				4D058B392F9712AC0065CADF /* TetherApp.app */,
 			);
 			name = Products;
@@ -120,7 +130,7 @@
 				4D3519962FAEAD9300A9E7E6 /* GoogleSignInSwift */,
 			);
 			productName = TetherMac;
-			productReference = 4D058B252F970F440065CADF /* TetherMac.app */;
+			productReference = 4D058B252F970F440065CADF /* Tether.app */;
 			productType = "com.apple.product-type.application";
 		};
 		4D058B382F9712AC0065CADF /* TetherApp */ = {
@@ -155,7 +165,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2640;
-				LastUpgradeCheck = 2640;
+				LastUpgradeCheck = 2650;
 				TargetAttributes = {
 					4D058B242F970F440065CADF = {
 						CreatedOnToolsVersion = 26.4.1;
@@ -235,6 +245,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = T64WR5HWCN;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -294,6 +305,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = T64WR5HWCN;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -470,6 +482,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = T64WR5HWCN;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -493,6 +506,7 @@
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -532,6 +546,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = T64WR5HWCN;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -548,6 +563,7 @@
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 			};
 			name = Release;

@@ -28,6 +28,7 @@ struct ContentView: View {
     @State private var showingNewArea = false
     @State private var overlayMode: OverlayMode = .none
     @State private var showSettings = false
+    @State private var agentActivity = AgentActivityService()
     @AppStorage("tetherShowTaskCounts") private var showTaskCounts = true
     @AppStorage("tetherShowCompletedTasks") private var showCompleted = false
     @State private var quickFindPath: [SidebarSelection] = []
@@ -150,8 +151,9 @@ struct ContentView: View {
         }
         .tint(.primary)
         .environment(\.overlayMode, $overlayMode)
+        .environment(\.agentActivity, agentActivity)
         .overlay {
-            if overlayMode != .none {
+            if overlayMode == .agent {
                 CommandPaletteOverlay(
                     mode: $overlayMode,
                     areas: areas,

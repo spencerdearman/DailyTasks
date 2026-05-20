@@ -38,6 +38,22 @@ struct AreaDetailView: View {
                 Text(area.title)
                     .font(.system(size: 34, weight: .bold))
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .contextMenu {
+                        Button {
+                            renameText = area.title
+                            showRenameAlert = true
+                        } label: {
+                            Label("Rename", systemImage: "pencil")
+                        }
+
+                        Divider()
+
+                        Button(role: .destructive) {
+                            showDeleteConfirm = true
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
 
                 // Loose tasks (not assigned to any project)
                 if !looseTasks.isEmpty {
@@ -123,26 +139,7 @@ struct AreaDetailView: View {
             }
             .padding(28)
         }
-        .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
-                Button {
-                    renameText = area.title
-                    showRenameAlert = true
-                } label: {
-                    Image(systemName: "pencil")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.secondary)
-                }
-
-                Button(role: .destructive) {
-                    showDeleteConfirm = true
-                } label: {
-                    Image(systemName: "trash")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
+        .toolbar { ToolbarItem { Spacer() } }  // empty toolbar to avoid default items
         .sheet(isPresented: $showRenameAlert) {
             VStack(alignment: .leading, spacing: 0) {
                 Text("Rename Area")

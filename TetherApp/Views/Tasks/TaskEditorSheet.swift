@@ -258,27 +258,29 @@ struct TaskEditorSheet: View {
             Divider().padding(.leading, 52)
 
             // Deadline
-            HStack {
-                Image(systemName: "flag.fill")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 24)
-                Text("Deadline")
-                    .foregroundStyle(.primary)
-                Spacer()
-                Button {
-                    task.deadline = nil
-                    task.updatedAt = .now
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.tertiary)
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: "flag.fill")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 24)
+                    Text("Deadline")
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    if task.deadline != nil {
+                        Button {
+                            task.deadline = nil
+                            task.updatedAt = .now
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
                 }
-                .opacity(task.deadline != nil ? 1 : 0)
-                .allowsHitTesting(task.deadline != nil)
 
                 DatePicker("", selection: deadlineBinding, displayedComponents: [.date, .hourAndMinute])
                     .labelsHidden()
-                    .fixedSize()
+                    .padding(.leading, 36)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)

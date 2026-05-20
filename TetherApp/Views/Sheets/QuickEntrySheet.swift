@@ -43,6 +43,9 @@ struct QuickEntrySheet: View {
     @State private var isSyncingCalendarEvent = false
     @State private var calendarSyncMessage: String?
     @State private var calendarSyncError = false
+    @State private var smartInput = ""
+    @State private var parsedEntry: ParsedEntry?
+    @State private var useSmartEntry = true
 
     // MARK: - Computed
 
@@ -77,35 +80,92 @@ struct QuickEntrySheet: View {
 
     // MARK: - Body
 
+    private var smartCanSave: Bool {
+        guard let entry = parsedEntry else { return false }
+        return !entry.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
-                    // Title & Notes
-                    VStack(alignment: .leading, spacing: 0) {
-                        TextField("New task", text: $title)
-                            .font(.title3.weight(.semibold))
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 14)
+                    if useSmartEntry {
+                        // Smart NL entry + toggle inside one card
+                        VStack(alignment: .leading, spacing: 0) {
+                            SmartEntryField(
+                                rawInput: $smartInput,
+                                parsed: $parsedEntry,
+                                areas: areas,
+                                projects: projects
+                            )
 
-                        Divider().padding(.leading, 16)
-
-                        TextField("Notes", text: $notes, axis: .vertical)
-                            .font(.body)
+                            // Manual fields toggle — inside the card
+                            Button {
+                                applyParsedToManualFields()
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    useSmartEntry = false
+                                }
+                            } label: {
+                                HStack(spacing: 5) {
+                                    Image(systemName: "slider.horizontal.3")
+                                        .font(.system(size: 11, weight: .medium))
+                                    Text("Edit details manually")
+                                        .font(.footnote.weight(.medium))
+                                }
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 10)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    } else {
+                        // Switch back to smart entry
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                useSmartEntry = true
+                            }
+                        } label: {
+                            HStack(spacing: 5) {
+                                Image(systemName: "sparkles")
+                                    .font(.system(size: 11, weight: .medium))
+                                Text("Use smart entry")
+                                    .font(.footnote.weight(.medium))
+                            }
                             .foregroundStyle(.secondary)
-                            .lineLimit(2...8)
                             .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
+                            .padding(.vertical, 10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+
+                        // Title & Notes
+                        VStack(alignment: .leading, spacing: 0) {
+                            TextField("New task", text: $title)
+                                .font(.title3.weight(.semibold))
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 14)
+
+                            Divider().padding(.leading, 16)
+
+                            TextField("Notes", text: $notes, axis: .vertical)
+                                .font(.body)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(2...8)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 12)
+                        }
+                        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                        // Schedule
+                        sectionHeader("Schedule")
+                        scheduleCard
+
+                        // Organize
+                        sectionHeader("Organize")
+                        placementSection
                     }
-                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-
-                    // Schedule
-                    sectionHeader("Schedule")
-                    scheduleCard
-
-                    // Organize
-                    sectionHeader("Organize")
-                    placementSection
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
@@ -123,12 +183,16 @@ struct QuickEntrySheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
-                        saveTask()
+                        if useSmartEntry {
+                            saveSmartTask()
+                        } else {
+                            saveTask()
+                        }
                     } label: {
                         Image(systemName: "checkmark")
                             .font(.system(size: 14, weight: .semibold))
                     }
-                    .disabled(!canSave)
+                    .disabled(useSmartEntry ? !smartCanSave : !canSave)
                 }
             }
             .onAppear(perform: applyDefaultSelection)
@@ -141,6 +205,8 @@ struct QuickEntrySheet: View {
                 Text(calendarSyncMessage ?? "")
             }
         }
+        .presentationDetents(useSmartEntry ? [.medium, .large] : [.large])
+        .presentationDragIndicator(.visible)
     }
 
     // MARK: - Section Header
@@ -437,6 +503,51 @@ struct QuickEntrySheet: View {
         default:
             break
         }
+    }
+
+    /// Copies parsed NL fields into the manual form fields.
+    private func applyParsedToManualFields() {
+        guard let entry = parsedEntry else { return }
+        title = entry.title
+        notes = entry.notes
+        whenDate = entry.whenDate
+        deadline = entry.deadline
+        isEvening = entry.isEvening
+        status = entry.status
+        if let aName = entry.areaName {
+            selectedAreaID = areas.first(where: { $0.title.lowercased() == aName.lowercased() })?.id
+        }
+        if let pName = entry.projectName {
+            selectedProjectID = projects.first(where: { $0.title.lowercased() == pName.lowercased() })?.id
+        }
+    }
+
+    /// Saves a task from the smart entry parsed result.
+    private func saveSmartTask() {
+        guard let entry = parsedEntry else { return }
+        let project = entry.projectName.flatMap { name in
+            projects.first(where: { $0.title.lowercased() == name.lowercased() })
+        }
+        let area = entry.areaName.flatMap { name in
+            areas.first(where: { $0.title.lowercased() == name.lowercased() })
+        } ?? project?.area
+
+        let task = TaskItem(
+            title: entry.title.trimmingCharacters(in: .whitespacesAndNewlines),
+            notes: entry.notes,
+            whenDate: entry.whenDate,
+            deadline: entry.deadline,
+            status: entry.status,
+            isInInbox: area == nil && project == nil,
+            isEvening: entry.isEvening,
+            calendarStartAt: entry.timeOfDay,
+            sortOrder: Double((project?.taskList.count ?? area?.taskList.count ?? 0)),
+            area: area,
+            project: project
+        )
+        modelContext.insert(task)
+        try? modelContext.save()
+        dismiss()
     }
 
     private func saveTask() {

@@ -34,6 +34,7 @@ struct AgentSheet: View {
     @State private var selectedTaskID: UUID?
     @State private var currentConversation: AgentConversation?
     @State private var selectedPipIndex: Int?
+    @State private var appliedPlanResultIDs: Set<UUID> = []
     @FocusState private var isFocused: Bool
 
     // MARK: Result Model
@@ -48,8 +49,10 @@ struct AgentSheet: View {
         let isPlanDay: Bool
         var synthesis: SynthesisData?
         let pendingDeletion: EventDeletion?
+        let affectedTaskIDs: [UUID]
+        var subtasksApplied: Bool = false
 
-        init(query: String, text: String, taskCards: [AgentTaskCard]? = nil, eventCards: [AgentEventCard]? = nil, subtasks: [String]? = nil, isPlanDay: Bool = false, synthesis: SynthesisData? = nil, pendingDeletion: EventDeletion? = nil) {
+        init(query: String, text: String, taskCards: [AgentTaskCard]? = nil, eventCards: [AgentEventCard]? = nil, subtasks: [String]? = nil, isPlanDay: Bool = false, synthesis: SynthesisData? = nil, pendingDeletion: EventDeletion? = nil, affectedTaskIDs: [UUID] = []) {
             self.query = query
             self.text = text
             self.taskCards = taskCards
@@ -58,6 +61,7 @@ struct AgentSheet: View {
             self.isPlanDay = isPlanDay
             self.synthesis = synthesis
             self.pendingDeletion = pendingDeletion
+            self.affectedTaskIDs = affectedTaskIDs
         }
     }
 
@@ -79,12 +83,14 @@ struct AgentSheet: View {
                 } else {
                     resultsList
                 }
-
-                Divider()
-
-                inputBar
             }
-            .navigationTitle("Agent")
+            .safeAreaInset(edge: .bottom) {
+                VStack(spacing: 0) {
+                    Divider()
+                    inputBar
+                }
+                .background(.clear)
+            }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -93,8 +99,14 @@ struct AgentSheet: View {
                             .font(.system(size: 14, weight: .semibold))
                     }
                 }
+                ToolbarItem(placement: .principal) {
+                    Text("Tether Agent")
+                        .font(.system(size: 17, weight: .semibold))
+                }
             }
+            .toolbarBackgroundVisibility(.hidden, for: .navigationBar)
         }
+        .presentationBackground(.ultraThinMaterial)
         .onAppear {
             pruneOldConversations()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
@@ -126,47 +138,8 @@ struct AgentSheet: View {
     // MARK: - Empty State
 
     private var emptyState: some View {
-        VStack(spacing: 16) {
-            Spacer()
-
-            Image(systemName: "sparkles")
-                .font(.system(size: 36))
-                .foregroundStyle(.tertiary)
-
-            Text("Ask Tether anything")
-                .font(.headline)
-                .foregroundStyle(.secondary)
-
-            VStack(alignment: .leading, spacing: 8) {
-                suggestionChip("Plan my day")
-                suggestionChip("What's on my plate today?")
-                suggestionChip("Add a task to buy groceries")
-                suggestionChip("Show my inbox")
-            }
-
-            Spacer()
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private func suggestionChip(_ text: String) -> some View {
-        Button {
-            input = text
-            submit()
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "arrow.up.right")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.tertiary)
-                Text(text)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(Color.primary.opacity(0.05), in: Capsule())
-        }
-        .buttonStyle(.plain)
+        AgentShimmerTitleIOS()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - Results
@@ -181,7 +154,7 @@ struct AgentSheet: View {
                                 .padding(.horizontal, 20)
                                 .padding(.vertical, 6)
                         }
-                        resultView(result)
+                        resultView(result, index: index)
                             .id(result.id)
                     }
 
@@ -204,7 +177,7 @@ struct AgentSheet: View {
 
     // MARK: - Result View
 
-    private func resultView(_ result: AgentResult) -> some View {
+    private func resultView(_ result: AgentResult, index: Int) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             // Query chip
             HStack(spacing: 5) {
@@ -227,12 +200,12 @@ struct AgentSheet: View {
             } else if let deletion = result.pendingDeletion {
                 deletionResultContent(result, deletion: deletion)
             } else {
-                standardResultContent(result)
+                standardResultContent(result, index: index)
             }
         }
     }
 
-    private func standardResultContent(_ result: AgentResult) -> some View {
+    private func standardResultContent(_ result: AgentResult, index: Int) -> some View {
         let hasCards = result.taskCards != nil || result.eventCards != nil
         let displayText = cleanMessage(result.text, hasCards: hasCards)
 
@@ -260,7 +233,7 @@ struct AgentSheet: View {
             }
 
             if let subtasks = result.subtasks, !subtasks.isEmpty {
-                subtaskList(subtasks)
+                subtaskList(subtasks, resultIndex: index)
                     .padding(.horizontal, 12)
                     .padding(.bottom, 4)
             }
@@ -346,6 +319,11 @@ struct AgentSheet: View {
                     .padding(.horizontal, 12)
                     .padding(.bottom, 4)
             }
+
+            // Apply plan button
+            applyPlanButton(for: result)
+                .padding(.horizontal, 12)
+                .padding(.bottom, 8)
         }
     }
 
@@ -388,6 +366,11 @@ struct AgentSheet: View {
                     .padding(.horizontal, 12)
                     .padding(.bottom, 4)
             }
+
+            // Apply plan button
+            applyPlanButton(for: result)
+                .padding(.horizontal, 12)
+                .padding(.bottom, 8)
         }
     }
 
@@ -631,13 +614,16 @@ struct AgentSheet: View {
 
     // MARK: - Subtask List
 
-    private func subtaskList(_ subtasks: [String]) -> some View {
-        VStack(spacing: 1) {
+    private func subtaskList(_ subtasks: [String], resultIndex: Int) -> some View {
+        let result = responses[resultIndex]
+        let applied = result.subtasksApplied
+
+        return VStack(spacing: 0) {
             ForEach(Array(subtasks.enumerated()), id: \.offset) { _, subtask in
                 HStack(spacing: 8) {
-                    Image(systemName: "circle")
+                    Image(systemName: applied ? "checkmark.circle.fill" : "circle")
                         .font(.system(size: 13))
-                        .foregroundStyle(.secondary.opacity(0.25))
+                        .foregroundStyle(applied ? .green : .secondary.opacity(0.25))
                     Text(subtask)
                         .font(.system(size: 12))
                         .foregroundStyle(.primary.opacity(0.75))
@@ -647,9 +633,117 @@ struct AgentSheet: View {
                 .padding(.vertical, 5)
                 .padding(.horizontal, 10)
             }
+
+            if !applied && !result.affectedTaskIDs.isEmpty {
+                Divider().padding(.horizontal, 10).opacity(0.3)
+
+                Button {
+                    applySubtasks(subtasks, toTaskID: result.affectedTaskIDs.first!, resultIndex: resultIndex)
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 12))
+                        Text("Apply as checklist items")
+                            .font(.system(size: 12, weight: .semibold))
+                    }
+                    .foregroundStyle(.blue)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                }
+                .buttonStyle(.plain)
+            } else if applied {
+                HStack(spacing: 4) {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 9, weight: .bold))
+                    Text("Added to task")
+                        .font(.system(size: 11, weight: .medium))
+                }
+                .foregroundStyle(.green)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+            }
         }
         .padding(.vertical, 2)
         .background(Color.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private func applySubtasks(_ subtasks: [String], toTaskID taskID: UUID, resultIndex: Int) {
+        guard let task = tasks.first(where: { $0.id == taskID }) else { return }
+        let existingCount = task.checklistItems.count
+        for (i, title) in subtasks.enumerated() {
+            let item = ChecklistItem(
+                title: title,
+                sortOrder: Double(existingCount + i),
+                task: task
+            )
+            modelContext.insert(item)
+        }
+        try? modelContext.save()
+
+        withAnimation(.easeOut(duration: 0.25)) {
+            responses[resultIndex].subtasksApplied = true
+        }
+    }
+
+    // MARK: - Apply Plan
+
+    @ViewBuilder
+    private func applyPlanButton(for result: AgentResult) -> some View {
+        let applied = appliedPlanResultIDs.contains(result.id)
+        let hasUnscheduledTasks = result.affectedTaskIDs.contains(where: { id in
+            tasks.first(where: { $0.id == id })?.whenDate == nil
+        })
+
+        if applied {
+            HStack(spacing: 5) {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.green)
+                Text("Plan applied — tasks scheduled for today")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.green)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+        } else if hasUnscheduledTasks {
+            Button {
+                applyPlan(result)
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "calendar.badge.plus")
+                        .font(.system(size: 12, weight: .medium))
+                    Text("Apply plan — schedule tasks for today")
+                        .font(.system(size: 12, weight: .semibold))
+                }
+                .foregroundStyle(.blue)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(Color.blue.opacity(0.08), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private func applyPlan(_ result: AgentResult) {
+        let today = Calendar.current.startOfDay(for: .now)
+        var scheduled = 0
+
+        for taskID in result.affectedTaskIDs {
+            guard let task = tasks.first(where: { $0.id == taskID }) else { continue }
+            if task.whenDate == nil && task.status == .active {
+                task.whenDate = today
+                task.updatedAt = .now
+                scheduled += 1
+            }
+        }
+
+        if scheduled > 0 {
+            try? modelContext.save()
+        }
+
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+            appliedPlanResultIDs.insert(result.id)
+        }
     }
 
     // MARK: - Thinking
@@ -755,7 +849,8 @@ struct AgentSheet: View {
                     eventCards: response.eventCards,
                     subtasks: response.subtasks,
                     isPlanDay: response.isPlanDay,
-                    pendingDeletion: response.pendingDeletion
+                    pendingDeletion: response.pendingDeletion,
+                    affectedTaskIDs: response.affectedTaskIDs
                 )
 
                 withAnimation(.easeOut(duration: 0.25)) {
@@ -1366,5 +1461,43 @@ struct AgentSheet: View {
 
     private func isOverdue(_ date: Date) -> Bool {
         date < Calendar.current.startOfDay(for: .now)
+    }
+}
+
+// MARK: - Agent Shimmer Title (iOS)
+
+struct AgentShimmerTitleIOS: View {
+    private static let deep = Color(red: 0.30, green: 0.25, blue: 0.60)
+    private static let mid = Color(red: 0.45, green: 0.38, blue: 0.80)
+    private static let lavender = Color(red: 0.60, green: 0.50, blue: 0.95)
+    private static let bright = Color(red: 0.70, green: 0.60, blue: 1.0)
+    private static let accent = Color(red: 0.55, green: 0.72, blue: 1.0)
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 60)) { timeline in
+            let t = timeline.date.timeIntervalSinceReferenceDate
+            let slow = sin(t * 0.4) * 0.5 + 0.5
+            let drift = sin(t * 0.25) * 0.3
+
+            Text("Tether Agent")
+                .font(.system(size: 26, weight: .semibold))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [
+                            Self.deep,
+                            Self.mid,
+                            Self.lavender,
+                            Self.bright,
+                            Self.accent,
+                            Self.bright,
+                            Self.lavender,
+                            Self.mid,
+                            Self.deep,
+                        ],
+                        startPoint: UnitPoint(x: -0.3 + CGFloat(slow) * 1.6, y: 0.2 + CGFloat(drift)),
+                        endPoint: UnitPoint(x: 0.7 + CGFloat(slow) * 0.6, y: 0.8 - CGFloat(drift))
+                    )
+                )
+        }
     }
 }

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 // MARK: - SettingsSheet
 
@@ -13,6 +14,7 @@ import SwiftUI
 struct SettingsSheet: View {
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var calendarStore: CalendarStore
     @AppStorage("tetherShowCompletedTasks") private var showCompleted = false
     @AppStorage("tetherShowTaskCounts") private var showTaskCounts = true
@@ -22,6 +24,7 @@ struct SettingsSheet: View {
     @AppStorage("geminiAPIKey") private var geminiAPIKey = ""
 
     @State private var validationState: ValidationState = .idle
+    @State private var showResetConfirm = false
 
     private enum ValidationState: Equatable {
         case idle
@@ -185,6 +188,31 @@ struct SettingsSheet: View {
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                         .padding(.horizontal, 4)
+
+                    // Data section
+                    sectionHeader("Data")
+                    VStack(spacing: 0) {
+                        Button(role: .destructive) {
+                            showResetConfirm = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "arrow.counterclockwise")
+                                    .font(.system(size: 16, weight: .medium))
+                                Text("Reset & Load Sample Data")
+                                Spacer()
+                            }
+                            .foregroundStyle(.red)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                    Text("Deletes all tasks, projects, and areas, then loads demo content.")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .padding(.horizontal, 4)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
@@ -202,7 +230,39 @@ struct SettingsSheet: View {
                     }
                 }
             }
+            .confirmationDialog("Reset all data?", isPresented: $showResetConfirm, titleVisibility: .visible) {
+                Button("Reset & Load Sample Data", role: .destructive) {
+                    resetAndReseed()
+                }
+            } message: {
+                Text("This will permanently delete all your tasks, projects, and areas, then load sample data.")
+            }
         }
+    }
+
+    // MARK: - Reset & Reseed
+
+    private func resetAndReseed() {
+        // Delete all data in dependency order
+        let tasks = (try? modelContext.fetch(FetchDescriptor<TaskItem>())) ?? []
+        let assignments = (try? modelContext.fetch(FetchDescriptor<TaskTagAssignment>())) ?? []
+        let checklists = (try? modelContext.fetch(FetchDescriptor<ChecklistItem>())) ?? []
+        let headings = (try? modelContext.fetch(FetchDescriptor<Heading>())) ?? []
+        let projects = (try? modelContext.fetch(FetchDescriptor<Project>())) ?? []
+        let areas = (try? modelContext.fetch(FetchDescriptor<Area>())) ?? []
+        let tags = (try? modelContext.fetch(FetchDescriptor<Tag>())) ?? []
+
+        for item in checklists { modelContext.delete(item) }
+        for item in assignments { modelContext.delete(item) }
+        for item in tasks { modelContext.delete(item) }
+        for item in headings { modelContext.delete(item) }
+        for item in projects { modelContext.delete(item) }
+        for item in areas { modelContext.delete(item) }
+        for item in tags { modelContext.delete(item) }
+        try? modelContext.save()
+
+        // Reseed
+        SampleDataSeeder.bootstrapIfNeeded(in: modelContext)
     }
 
     // MARK: - Section Header

@@ -27,6 +27,7 @@ struct CommandPaletteOverlay: View {
     // MARK: - Environment
 
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.agentActivity) private var agentActivity
     @AppStorage("geminiAPIKey") private var apiKey = ""
 
     // MARK: - State
@@ -79,46 +80,18 @@ struct CommandPaletteOverlay: View {
 
     var body: some View {
         ZStack {
-            // Dimmed background
-            Color.black.opacity(showPanel ? 0.3 : 0)
-                .ignoresSafeArea()
-                .onTapGesture { dismiss() }
-                .animation(.spring(response: 0.35, dampingFraction: 0.75), value: showPanel)
+            if mode == .agent {
+                // Agent — full-screen, no dimmed bg needed (material covers everything)
+                agentFullScreen
+            } else {
+                // Find — dimmed background + compact floating panel
+                Color.black.opacity(showPanel ? 0.3 : 0)
+                    .ignoresSafeArea()
+                    .onTapGesture { dismiss() }
+                    .animation(.spring(response: 0.35, dampingFraction: 0.75), value: showPanel)
 
-            // Panel
-            VStack(spacing: 0) {
-                // Content area — animated expansion
-                if mode == .find && findHasResults {
-                    findResults
-                        .transition(.opacity)
-                } else if mode == .agent && hasAgentContent {
-                    agentResults
-                        .transition(.opacity)
-                }
-
-                if hasVisibleContent {
-                    Divider().opacity(0.3).padding(.horizontal, 12)
-                        .transition(.opacity)
-                }
-
-                // Input bar at bottom with integrated mode toggle
-                inputBar
+                findFloatingPanel
             }
-            .contentShape(Rectangle())
-            .onTapGesture { /* absorb taps on panel so they don't dismiss */ }
-            .glassEffect(.regular, in: .rect(cornerRadius: 22))
-            .shadow(color: .black.opacity(0.3), radius: 30, y: 10)
-            .scaleEffect(showPanel ? 1 : 0.92)
-            .opacity(showPanel ? 1 : 0)
-            .offset(y: showPanel ? 0 : -12)
-            .padding(.horizontal, 16)
-            .padding(.top, 56)
-            .frame(maxHeight: .infinity, alignment: .top)
-            .animation(.spring(response: 0.38, dampingFraction: 0.72), value: mode)
-            .animation(.spring(response: 0.38, dampingFraction: 0.72), value: hasAgentContent)
-            .animation(.spring(response: 0.38, dampingFraction: 0.72), value: findHasResults)
-            .animation(.spring(response: 0.3, dampingFraction: 0.8), value: agent.isProcessing)
-            .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isSynthesizing)
         }
         .onAppear {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
@@ -140,47 +113,173 @@ struct CommandPaletteOverlay: View {
         }
     }
 
-    // (Tab bar removed — mode toggle is integrated into the input bar)
+    // MARK: - Find Floating Panel (compact, top)
 
-    // MARK: - Input Bar with Integrated Mode Toggle
+    private var findFloatingPanel: some View {
+        VStack(spacing: 0) {
+            if findHasResults {
+                findResults
+                    .transition(.opacity)
+            }
 
-    private var inputBar: some View {
-        HStack(spacing: 10) {
-            // Leading icon — tap to toggle mode
-            Button {
-                withAnimation(.easeInOut(duration: 0.25)) {
-                    mode = mode == .find ? .agent : .find
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    if mode == .find { isFindFocused = true }
-                    else { isAgentFocused = true }
-                }
-            } label: {
-                Image(systemName: mode == .find ? "magnifyingglass" : "sparkles")
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(Color.secondary)
-                    .symbolEffect(.pulse, isActive: mode == .agent && (agent.isProcessing || isSynthesizing))
-                    .contentTransition(.symbolEffect(.replace))
+            if findHasResults {
+                Divider().opacity(0.3).padding(.horizontal, 12)
+                    .transition(.opacity)
+            }
+
+            inputBar
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { /* absorb taps */ }
+        .glassEffect(.regular, in: .rect(cornerRadius: 22))
+        .shadow(color: .black.opacity(0.3), radius: 30, y: 10)
+        .scaleEffect(showPanel ? 1 : 0.92)
+        .opacity(showPanel ? 1 : 0)
+        .offset(y: showPanel ? 0 : -12)
+        .padding(.horizontal, 16)
+        .padding(.top, 56)
+        .frame(maxHeight: .infinity, alignment: .top)
+        .animation(.spring(response: 0.38, dampingFraction: 0.72), value: findHasResults)
+    }
+
+    // MARK: - Agent Full-Screen Overlay
+
+    private var agentFullScreen: some View {
+        VStack(spacing: 0) {
+            // Header bar
+            agentPanelHeader
+
+            Divider().opacity(0.15)
+
+            // Chat content — scrollable, pushes up with keyboard
+            if hasAgentContent {
+                agentResults
+            } else {
+                agentEmptyState
+            }
+
+            Spacer(minLength: 0)
+
+            // Input bar pinned to bottom, above keyboard
+            agentPanelInput
+                .background(.ultraThinMaterial)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background {
+            // Solid translucent background — not see-through like glassEffect
+            Rectangle()
+                .fill(.regularMaterial)
+                .ignoresSafeArea()
+        }
+        .offset(y: showPanel ? 0 : 40)
+        .opacity(showPanel ? 1 : 0)
+        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: showPanel)
+        .animation(.spring(response: 0.38, dampingFraction: 0.75), value: hasAgentContent)
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: agent.isProcessing)
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isSynthesizing)
+    }
+
+    // MARK: - Agent Panel Header
+
+    private var agentPanelHeader: some View {
+        HStack(spacing: 12) {
+            Button { dismiss() } label: {
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
 
-            // Text field — morphs between modes
-            if mode == .find {
-                TextField("Find", text: $findQuery)
+            Spacer()
+
+            Text("Tether Agent")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.primary)
+
+            Spacer()
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 14)
+    }
+
+    // MARK: - Agent Panel Empty State
+
+    private var agentEmptyState: some View {
+        VStack(spacing: 12) {
+            Spacer()
+
+            AgentShimmerTitleIOS()
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Agent Panel Input
+
+    private var agentPanelInput: some View {
+        VStack(spacing: 0) {
+            Divider().opacity(0.15)
+
+            HStack(spacing: 10) {
+                TextField("", text: $agentInput, prompt: Text("Ask anything...")
+                    .foregroundColor(.secondary.opacity(0.6)))
                     .textFieldStyle(.plain)
-                    .font(.system(size: 17, weight: .light))
-                    .focused($isFindFocused)
-            } else {
-                TextField("", text: $agentInput, prompt: Text("Agent").foregroundColor(Color.secondary))
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 17, weight: .light))
+                    .font(.system(size: 16))
                     .focused($isAgentFocused)
                     .onSubmit { submitAgent() }
-            }
 
-            // Trailing accessory — fixed frame to prevent layout shift
+                ZStack {
+                    if agent.isProcessing || isSynthesizing {
+                        ProgressView()
+                            .controlSize(.small)
+                            .transition(.opacity)
+                    } else if !agentInput.isEmpty {
+                        Button { submitAgent() } label: {
+                            Image(systemName: "arrow.up.circle.fill")
+                                .font(.system(size: 26))
+                                .foregroundStyle(.primary)
+                        }
+                        .buttonStyle(.plain)
+                        .transition(.scale.combined(with: .opacity))
+                    }
+                }
+                .frame(width: 30, height: 26)
+                .animation(.easeOut(duration: 0.12), value: agentInput.isEmpty)
+                .animation(.easeOut(duration: 0.12), value: agent.isProcessing)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+        }
+    }
+
+    // MARK: - Find Input Bar
+
+    private var inputBar: some View {
+        HStack(spacing: 10) {
+            // Leading icon — tap to switch to Agent
+            Button {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    mode = .agent
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    isAgentFocused = true
+                }
+            } label: {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Color.secondary)
+            }
+            .buttonStyle(.plain)
+
+            TextField("Find", text: $findQuery)
+                .textFieldStyle(.plain)
+                .font(.system(size: 17, weight: .light))
+                .focused($isFindFocused)
+
+            // Trailing accessory
             ZStack {
-                if mode == .find && !findQuery.isEmpty {
+                if !findQuery.isEmpty {
                     Button { findQuery = "" } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 14))
@@ -188,30 +287,30 @@ struct CommandPaletteOverlay: View {
                     }
                     .buttonStyle(.plain)
                     .transition(.opacity)
-                } else if mode == .agent && (agent.isProcessing || isSynthesizing) {
-                    ProgressView()
-                        .controlSize(.small)
-                        .transition(.opacity)
-                } else if mode == .agent && !agentInput.isEmpty {
-                    Button { submitAgent() } label: {
-                        Image(systemName: "arrow.up.circle.fill")
-                            .font(.system(size: 20))
-                            .foregroundStyle(.primary.opacity(0.5))
-                    }
-                    .buttonStyle(.plain)
-                    .transition(.scale.combined(with: .opacity))
                 }
             }
             .frame(width: 28, height: 22)
-            .animation(.easeOut(duration: 0.12), value: agentInput.isEmpty)
-            .animation(.easeOut(duration: 0.12), value: agent.isProcessing)
+
+            // Agent shortcut button
+            Button {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    mode = .agent
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    isAgentFocused = true
+                }
+            } label: {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.secondary.opacity(0.6))
+            }
+            .buttonStyle(.plain)
         }
         .frame(height: 44)
         .padding(.horizontal, 16)
         .contentShape(Rectangle())
         .onTapGesture {
-            if mode == .find { isFindFocused = true }
-            else { isAgentFocused = true }
+            isFindFocused = true
         }
     }
 
@@ -817,6 +916,34 @@ struct CommandPaletteOverlay: View {
         }
     }
 
+    // MARK: - Auto-Navigate to Affected Task
+
+    private func navigateToTask(_ task: TaskItem) {
+        // Determine which sidebar section this task belongs to
+        let targetSection: SidebarSelection
+        if task.isInInbox {
+            targetSection = .inbox
+        } else if let date = task.whenDate, Calendar.current.isDateInToday(date) {
+            targetSection = .today
+        } else if let project = task.project {
+            targetSection = .project(project.id)
+        } else if let area = task.area {
+            targetSection = .area(area.id)
+        } else if task.status == .someday {
+            targetSection = .someday
+        } else {
+            targetSection = .anytime
+        }
+
+        // Dismiss agent overlay and navigate after a beat
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            dismiss()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                onSelectSidebar(targetSection)
+            }
+        }
+    }
+
     // MARK: - Task Selection
 
     private var selectedTaskBinding: Binding<TaskItem?> {
@@ -841,6 +968,8 @@ struct CommandPaletteOverlay: View {
         agentInput = ""
 
         let isPlanQuery = detectPlanQuery(query)
+
+        agentActivity.isWorking = true
 
         Task {
             let calEvents: [CalendarEvent]
@@ -876,7 +1005,18 @@ struct CommandPaletteOverlay: View {
                         pendingDeletion: response.pendingDeletion
                     ))
                 }
+                // Broadcast affected tasks for glow animation
+                agentActivity.markTouched(response.affectedTaskIDs)
+                agentActivity.lastMessage = response.message
+
+                // Auto-navigate to show the affected task
+                if let firstID = response.affectedTaskIDs.first,
+                   let task = tasks.first(where: { $0.id == firstID }) {
+                    navigateToTask(task)
+                }
             }
+
+            agentActivity.isWorking = false
         }
     }
 
@@ -945,6 +1085,8 @@ struct CommandPaletteOverlay: View {
                     )
                 ))
             }
+            agentActivity.markTouched(allRelevant.map(\.id))
+            agentActivity.lastMessage = result.greeting
         } catch {
             let response = await agent.process(query, apiKey: apiKey, context: ctx)
             withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
@@ -957,6 +1099,8 @@ struct CommandPaletteOverlay: View {
                     isPlanDay: response.isPlanDay
                 ))
             }
+            agentActivity.markTouched(response.affectedTaskIDs)
+            agentActivity.lastMessage = response.message
         }
     }
 

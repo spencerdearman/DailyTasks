@@ -16,6 +16,7 @@ struct TaskCard: View {
     // MARK: - Environment
 
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.agentActivity) private var agentActivity
 
     // MARK: - Properties
 
@@ -25,10 +26,13 @@ struct TaskCard: View {
     // MARK: - State
 
     @State private var isCompleting = false
+    @State private var glowOpacity: Double = 0
+    @State private var shimmerOffset: CGFloat = -0.5
 
     // MARK: - Computed Properties
 
     private var isDone: Bool { isCompleting || task.isCompleted }
+    private var isAgentHighlighted: Bool { agentActivity.touchedIDs.contains(task.id) }
 
     // MARK: - Body
 
@@ -72,10 +76,87 @@ struct TaskCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .opacity(isCompleting ? 0.5 : 1.0)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay {
+            // Agent glow border
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: [
+                            Color.blue.opacity(0.6),
+                            Color.purple.opacity(0.4),
+                            Color.blue.opacity(0.6),
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 2
+                )
+                .opacity(glowOpacity)
+                .shadow(color: .blue.opacity(glowOpacity * 0.4), radius: 8, y: 2)
+        }
+        .overlay {
+            // Shimmer sweep
+            GeometryReader { geo in
+                let width = geo.size.width
+                LinearGradient(
+                    colors: [
+                        .clear,
+                        Color.white.opacity(0.15),
+                        Color.white.opacity(0.25),
+                        Color.white.opacity(0.15),
+                        .clear,
+                    ],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+                .frame(width: width * 0.4)
+                .offset(x: shimmerOffset * width)
+                .allowsHitTesting(false)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .opacity(glowOpacity > 0 ? 1 : 0)
+        }
+        .onChange(of: isAgentHighlighted) { _, highlighted in
+            if highlighted {
+                playHighlightAnimation()
+            } else {
+                withAnimation(.easeOut(duration: 0.4)) {
+                    glowOpacity = 0
+                }
+            }
+        }
+        .onAppear {
+            if isAgentHighlighted {
+                playHighlightAnimation()
+            }
+        }
         .contextMenu {
             Button(task.isCompleted ? "Mark Incomplete" : "Mark Complete") {
                 toggleTask()
             }
+        }
+    }
+
+    // MARK: - Highlight Animation
+
+    private func playHighlightAnimation() {
+        // Reset
+        shimmerOffset = -0.5
+        glowOpacity = 0
+
+        // Glow in
+        withAnimation(.easeOut(duration: 0.4)) {
+            glowOpacity = 0.8
+        }
+
+        // Shimmer sweep
+        withAnimation(.easeInOut(duration: 1.0).delay(0.1)) {
+            shimmerOffset = 1.5
+        }
+
+        // Glow out
+        withAnimation(.easeInOut(duration: 1.5).delay(1.5)) {
+            glowOpacity = 0
         }
     }
 

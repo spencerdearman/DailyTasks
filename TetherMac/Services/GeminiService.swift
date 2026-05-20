@@ -83,7 +83,7 @@ actor GeminiService {
                 "enum": [
                     "create_task", "complete_task", "move_task", "schedule_task",
                     "defer_task", "list_tasks", "decompose_task", "plan_day",
-                    "reschedule_overdue", "create_event", "delete_event",
+                    "reschedule_overdue", "categorize_inbox", "create_event", "delete_event",
                     "propose_reschedule", "query", "chat"
                 ]
             ],
@@ -131,7 +131,7 @@ actor GeminiService {
                             "enum": [
                                 "create_task", "complete_task", "move_task", "schedule_task",
                                 "defer_task", "list_tasks", "decompose_task", "plan_day",
-                                "reschedule_overdue", "create_event", "propose_reschedule",
+                                "reschedule_overdue", "categorize_inbox", "create_event", "propose_reschedule",
                                 "query", "chat"
                             ]
                         ],
@@ -350,6 +350,8 @@ enum GeminiPromptBuilder {
         CRITICAL: Each time block MUST be on a separate line (use \\n). Do NOT put multiple blocks in one paragraph. \
         Start with a brief 1-sentence summary, then the time blocks. Be specific about WHY you suggest each slot. \
         Include overdue items prominently.
+        - categorize_inbox: Automatically categorize all inbox tasks into their best-matching areas and projects using AI. \
+        Use this when the user asks to organize, sort, or categorize their inbox.
         - reschedule_overdue: Find overdue tasks and suggest new dates in the message.
         - create_event: Add a calendar event. You MUST set event_title, event_start, and event_end. \
         event_start and event_end MUST be ISO 8601 format: YYYY-MM-DDTHH:mm:ss. \

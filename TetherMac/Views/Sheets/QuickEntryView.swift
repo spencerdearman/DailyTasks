@@ -21,6 +21,7 @@ struct QuickEntryView: View {
     
     let defaultSelection: SidebarSelection?
     
+    @State private var smartInput = ""
     @State private var title = ""
     @State private var notes = ""
     @State private var selectedAreaID: UUID?
@@ -51,14 +52,38 @@ struct QuickEntryView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Title
-            TextField("New task…", text: $title)
-                .textFieldStyle(.plain)
-                .font(.title3.weight(.medium))
+            // Smart NL input
+            HStack(spacing: 8) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.tertiary)
+
+                TextField("Describe your task…", text: $smartInput)
+                    .textFieldStyle(.plain)
+                    .font(.title3.weight(.medium))
+                    .onSubmit { applySmartInput() }
+                    .onChange(of: smartInput) { _, newValue in
+                        scheduleSmartParse(newValue)
+                    }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, 4)
+
+            // Show parsed title if different from input
+            if !title.isEmpty && title != smartInput {
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.turn.down.right")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(.quaternary)
+                    Text(title)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.secondary)
+                }
                 .padding(.horizontal, 20)
-                .padding(.top, 20)
-                .padding(.bottom, 12)
-            
+                .padding(.bottom, 4)
+            }
+
             // Notes
             TextField("Notes", text: $notes, axis: .vertical)
                 .font(.body)
@@ -67,7 +92,7 @@ struct QuickEntryView: View {
                 .lineLimit(3...6)
                 .padding(.horizontal, 20)
                 .frame(minHeight: 60)
-            
+
             Divider()
                 .padding(.horizontal, 20)
                 .padding(.vertical, 8)
@@ -778,6 +803,228 @@ struct QuickEntryView: View {
         return projects
     }
     
+    // MARK: - Smart Parse
+
+    @State private var smartParseTask: Task<Void, Never>?
+
+    private func scheduleSmartParse(_ input: String) {
+        smartParseTask?.cancel()
+        smartParseTask = Task {
+            try? await Task.sleep(for: .milliseconds(200))
+            guard !Task.isCancelled else { return }
+
+            let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else {
+                await MainActor.run { title = "" }
+                return
+            }
+
+            let parsed = smartParse(trimmed)
+            await MainActor.run {
+                title = parsed.title
+                if let date = parsed.whenDate { whenDate = date }
+                if let dl = parsed.deadline { deadline = dl }
+                if parsed.isEvening { isEvening = true; whenDate = Calendar.current.startOfDay(for: .now) }
+                if let time = parsed.timeOfDay { calendarStartAt = time }
+                if let areaName = parsed.areaName {
+                    selectedAreaID = areas.first(where: { $0.title.lowercased() == areaName.lowercased() })?.id
+                }
+                if let projName = parsed.projectName {
+                    selectedProjectID = projects.first(where: { $0.title.lowercased() == projName.lowercased() })?.id
+                }
+            }
+
+            // Refine with categorization service if no area/project matched locally
+            let apiKey = UserDefaults.standard.string(forKey: "geminiAPIKey") ?? ""
+            if !apiKey.isEmpty && parsed.areaName == nil && parsed.projectName == nil {
+                let categorizer = CategorizationService()
+                let result = await categorizer.categorize(
+                    title: parsed.title,
+                    notes: "",
+                    areas: areas.map { (name: $0.title, description: $0.notes) },
+                    projects: projects.map { (name: $0.title, areaName: $0.area?.title) },
+                    apiKey: apiKey
+                )
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    if let a = result.area {
+                        selectedAreaID = areas.first(where: { $0.title.lowercased() == a.lowercased() })?.id
+                    }
+                    if let p = result.project {
+                        selectedProjectID = projects.first(where: { $0.title.lowercased() == p.lowercased() })?.id
+                    }
+                }
+            }
+        }
+    }
+
+    private func applySmartInput() {
+        // The parse already ran via onChange — just ensure title is set
+        if title.isEmpty {
+            title = smartInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+    }
+
+    private func smartParse(_ input: String) -> (title: String, whenDate: Date?, deadline: Date?, timeOfDay: Date?, isEvening: Bool, areaName: String?, projectName: String?) {
+        let lower = input.lowercased()
+        var t = input
+        var whenDate: Date?
+        var deadline: Date?
+        var timeOfDay: Date?
+        var isEvening = false
+        var areaName: String?
+        var projectName: String?
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: .now)
+
+        // Date extraction
+        if lower.contains("this evening") || lower.contains("tonight") {
+            isEvening = true; whenDate = today
+            t = t.replacingOccurrences(of: "this evening", with: "", options: .caseInsensitive)
+                .replacingOccurrences(of: "tonight", with: "", options: .caseInsensitive)
+        } else if lower.contains("tomorrow") {
+            whenDate = cal.date(byAdding: .day, value: 1, to: today)
+            t = t.replacingOccurrences(of: "tomorrow", with: "", options: .caseInsensitive)
+        } else if lower.contains("today") {
+            whenDate = today
+            t = t.replacingOccurrences(of: "today", with: "", options: .caseInsensitive)
+        } else if lower.contains("next week") {
+            whenDate = cal.date(byAdding: .weekOfYear, value: 1, to: today)
+            t = t.replacingOccurrences(of: "next week", with: "", options: .caseInsensitive)
+        }
+
+        // Weekdays
+        let weekdays = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
+        for (idx, day) in weekdays.enumerated() {
+            if lower.contains(day) {
+                let target = idx + 1
+                let current = cal.component(.weekday, from: today)
+                let ahead = (target - current + 7) % 7
+                whenDate = cal.date(byAdding: .day, value: ahead == 0 ? 7 : ahead, to: today)
+                if let r = t.range(of: day, options: .caseInsensitive) { t.removeSubrange(r) }
+                t = t.replacingOccurrences(of: "on ", with: " ", options: .caseInsensitive)
+                break
+            }
+        }
+
+        // Time extraction
+        let timePatterns: [(String, Bool)] = [
+            (#"\bat\s+(\d{1,2}):(\d{2})\s*(am|pm|AM|PM)"#, true),
+            (#"\bat\s+(\d{1,2})\s*(am|pm|AM|PM)"#, false),
+            (#"(\d{1,2}):(\d{2})\s*(am|pm|AM|PM)"#, true),
+            (#"(\d{1,2})\s*(am|pm|AM|PM)\b"#, false),
+        ]
+        for (pattern, hasMins) in timePatterns {
+            if let regex = try? NSRegularExpression(pattern: pattern),
+               let match = regex.firstMatch(in: t, range: NSRange(t.startIndex..., in: t)) {
+                let hourR = Range(match.range(at: 1), in: t)!
+                var hour = Int(t[hourR]) ?? 0
+                let minute: Int
+                if hasMins, let minR = Range(match.range(at: 2), in: t) {
+                    minute = Int(t[minR]) ?? 0
+                    let ampmR = Range(match.range(at: 3), in: t)!
+                    if String(t[ampmR]).lowercased() == "pm" && hour < 12 { hour += 12 }
+                    if String(t[ampmR]).lowercased() == "am" && hour == 12 { hour = 0 }
+                } else {
+                    minute = 0
+                    let ampmR = Range(match.range(at: 2), in: t)!
+                    if String(t[ampmR]).lowercased() == "pm" && hour < 12 { hour += 12 }
+                    if String(t[ampmR]).lowercased() == "am" && hour == 12 { hour = 0 }
+                }
+                let base = whenDate ?? today
+                timeOfDay = cal.date(bySettingHour: hour, minute: minute, second: 0, of: base)
+                if whenDate == nil { whenDate = today }
+                if let r = Range(match.range, in: t) { t.removeSubrange(r) }
+                break
+            }
+        }
+
+        // "morning" / "afternoon"
+        if timeOfDay == nil {
+            let base = whenDate ?? today
+            if lower.contains("morning") {
+                timeOfDay = cal.date(bySettingHour: 9, minute: 0, second: 0, of: base)
+                t = t.replacingOccurrences(of: "in the morning", with: "", options: .caseInsensitive)
+                    .replacingOccurrences(of: "morning", with: "", options: .caseInsensitive)
+            } else if lower.contains("afternoon") {
+                timeOfDay = cal.date(bySettingHour: 14, minute: 0, second: 0, of: base)
+                t = t.replacingOccurrences(of: "in the afternoon", with: "", options: .caseInsensitive)
+                    .replacingOccurrences(of: "afternoon", with: "", options: .caseInsensitive)
+            }
+        }
+
+        // Deadline
+        if let byRange = lower.range(of: #"\bby\s+(tomorrow|today|next week|\w+day)"#, options: .regularExpression) {
+            let byStr = String(lower[byRange]).replacingOccurrences(of: "by ", with: "")
+            if byStr == "tomorrow" { deadline = cal.date(byAdding: .day, value: 1, to: today) }
+            else if byStr == "today" { deadline = today }
+            else if byStr == "next week" { deadline = cal.date(byAdding: .weekOfYear, value: 1, to: today) }
+            if let r = t.range(of: #"\bby\s+(tomorrow|today|next week|\w+day)"#, options: [.regularExpression, .caseInsensitive]) {
+                t.removeSubrange(r)
+            }
+        }
+
+        // Urgency words
+        for word in ["urgent", "asap", "important", "critical", "emergency"] {
+            t = t.replacingOccurrences(of: word, with: "", options: .caseInsensitive)
+        }
+        t = t.replacingOccurrences(of: #"\b(it(?:'s| is)\s+)?really\s*"#, with: "", options: [.regularExpression, .caseInsensitive])
+
+        // Project/Area extraction
+        for prep in ["for ", "in "] {
+            if let range = t.lowercased().range(of: prep, options: .backwards) {
+                let after = String(t.lowercased()[range.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
+                if let proj = projects.first(where: { after.contains($0.title.lowercased()) }) {
+                    projectName = proj.title; areaName = proj.area?.title
+                    if let r = t.range(of: prep + proj.title, options: .caseInsensitive) { t.removeSubrange(r) }
+                    break
+                }
+                if let area = areas.first(where: { after.contains($0.title.lowercased()) }) {
+                    areaName = area.title
+                    if let r = t.range(of: prep + area.title, options: .caseInsensitive) { t.removeSubrange(r) }
+                    break
+                }
+            }
+        }
+
+        // Distill title
+        // Strip leading filler
+        let fillers = [
+            #"^i\s+(?:need|want|have|got|should|must|gotta)\s+(?:to\s+)?"#,
+            #"^i(?:'ve| have)\s+(?:got\s+)?(?:a|an|the|my)\s+"#,
+            #"^(?:i\s+)?(?:need|want|have)\s+(?:a|an|the|my)\s+"#,
+            #"^remind\s+me\s+(?:to\s+)?"#,
+            #"^(?:add|create)\s+(?:a\s+)?(?:task\s+(?:to|for)\s+)?"#,
+            #"^(?:please|pls)\s+"#,
+            #"^(?:don't\s+forget\s+(?:to\s+)?)"#,
+        ]
+        for pattern in fillers {
+            if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
+               let match = regex.firstMatch(in: t, range: NSRange(t.startIndex..., in: t)),
+               let r = Range(match.range, in: t) { t.removeSubrange(r); break }
+        }
+        // Strip trailing filler
+        let trailingFillers = [
+            #"\s+(?:that\s+)?(?:i\s+)?(?:really\s+)?(?:need|have|want|got)\s+to\s+(?:get\s+)?(?:done|do|finish|complete).*$"#,
+            #"\s+(?:in\s+the\s+)?(?:morning|afternoon|evening)$"#,
+            #"\s+(?:as\s+soon\s+as\s+possible|asap)$"#,
+        ]
+        for pattern in trailingFillers {
+            if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
+               let match = regex.firstMatch(in: t, range: NSRange(t.startIndex..., in: t)),
+               let r = Range(match.range, in: t) { t.removeSubrange(r) }
+        }
+        t = t.replacingOccurrences(of: #"^(?:a|an|the|my)\s+"#, with: "", options: [.regularExpression, .caseInsensitive])
+        t = t.replacingOccurrences(of: #"^[\s,;:\-–—]+|[\s,;:\-–—]+$"#, with: "", options: .regularExpression)
+        t = t.replacingOccurrences(of: #"\s{2,}"#, with: " ", options: .regularExpression).trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Capitalize
+        if let first = t.first, first.isLowercase { t = first.uppercased() + t.dropFirst() }
+        if t.isEmpty { t = input.trimmingCharacters(in: .whitespacesAndNewlines) }
+
+        return (t, whenDate, deadline, timeOfDay, isEvening, areaName, projectName)
+    }
+
     private func configureDefaults() {
         guard let defaultSelection else { return }
         switch defaultSelection {

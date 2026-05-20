@@ -72,7 +72,7 @@ actor GeminiService {
                 "enum": [
                     "create_task", "complete_task", "move_task", "schedule_task",
                     "defer_task", "list_tasks", "decompose_task", "plan_day",
-                    "reschedule_overdue", "create_event", "delete_event",
+                    "reschedule_overdue", "categorize_inbox", "create_event", "delete_event",
                     "query", "chat",
                 ],
             ],
@@ -281,6 +281,8 @@ enum GeminiPromptBuilder {
         or a project/area name, or a search query.
         - decompose_task: Break a goal into subtasks. Set title (the goal) and subtasks (array of subtask titles).
         - plan_day: Suggest a prioritized plan. Set filter to "today" or "tomorrow" based on what the user asks. Default to "today" if unspecified.
+        - categorize_inbox: Automatically categorize all inbox tasks into their best-matching areas and projects using AI. \
+        Use this when the user asks to organize, sort, or categorize their inbox.
         - reschedule_overdue: Find overdue tasks and suggest new dates.
         - create_event: Add a calendar event. You MUST set event_title, event_start, and event_end. \
         event_start and event_end MUST be ISO 8601 format: YYYY-MM-DDTHH:mm:ss. \

@@ -13,11 +13,14 @@ import SwiftUI
 /// A titled group of task rows with reordering and deletion support.
 struct TaskSection: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.agentActivity) private var agentActivity
     let title: String
     let tasks: [TaskItem]
     @Binding var expandedTaskID: UUID?
     @Binding var completingTaskIDs: Set<UUID>
     let onToggle: (TaskItem) -> Void
+    /// Task IDs recently affected by the agent — shown with a highlight animation.
+    var agentHighlightIDs: Set<UUID> = []
 
     @Query(sort: \Area.sortOrder) private var allAreas: [Area]
     @Query(sort: \Project.sortOrder) private var allProjects: [Project]
@@ -37,6 +40,8 @@ struct TaskSection: View {
             
             VStack(spacing: 0) {
                 ForEach(Array(tasks.enumerated()), id: \.element.id) { index, task in
+                    let isHighlighted = agentHighlightIDs.contains(task.id)
+
                     VStack(spacing: 0) {
                         TaskRow(
                             task: task,
@@ -149,10 +154,16 @@ struct TaskSection: View {
                                 .padding(.leading, 46)
                         }
                     }
+                    .modifier(AgentGlowModifier(
+                        isHighlighted: isHighlighted || agentActivity.touchedIDs.contains(task.id),
+                        isFirst: index == 0,
+                        isLast: index == tasks.count - 1
+                    ))
                 }
             }
             .padding(.vertical, 6)
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
     }
     
@@ -176,6 +187,100 @@ struct TaskSection: View {
     }
 }
 
+
+// MARK: - AgentGlowModifier
+
+/// Applies an inline highlight when a task is affected by the agent.
+/// Uses plain Rectangle fills — the parent container's `.clipShape` handles corner rounding.
+struct AgentGlowModifier: ViewModifier {
+    let isHighlighted: Bool
+    var isFirst: Bool = false
+    var isLast: Bool = false
+
+    @State private var glowOpacity: Double = 0
+    @State private var shimmerOffset: CGFloat = -0.5
+
+    func body(content: Content) -> some View {
+        content
+            // Background tint — extends into parent's 6pt padding for first/last rows
+            .background {
+                Rectangle()
+                    .fill(Color(red: 0.38, green: 0.30, blue: 0.80).opacity(0.07 * glowOpacity))
+                    .padding(.top, isFirst ? -6 : 0)
+                    .padding(.bottom, isLast ? -6 : 0)
+                    .allowsHitTesting(false)
+            }
+            // Left accent bar
+            .overlay(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.48, green: 0.52, blue: 0.95).opacity(0.7),  // periwinkle
+                                Color(red: 0.30, green: 0.22, blue: 0.65).opacity(0.6), // violet
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .frame(width: 3)
+                    .padding(.vertical, 5)
+                    .padding(.leading, 8)
+                    .opacity(glowOpacity)
+                    .allowsHitTesting(false)
+            }
+            // Shimmer sweep — plain rect, clipped by parent
+            .overlay {
+                GeometryReader { geo in
+                    let width = geo.size.width
+                    LinearGradient(
+                        colors: [
+                            .clear,
+                            Color(red: 0.45, green: 0.45, blue: 0.90).opacity(0.04),
+                            Color(red: 0.45, green: 0.45, blue: 0.90).opacity(0.08),
+                            Color(red: 0.45, green: 0.45, blue: 0.90).opacity(0.04),
+                            .clear,
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    .frame(width: width * 0.4)
+                    .offset(x: shimmerOffset * width)
+                    .allowsHitTesting(false)
+                }
+                .padding(.top, isFirst ? -6 : 0)
+                .padding(.bottom, isLast ? -6 : 0)
+                .clipped()
+                .opacity(glowOpacity > 0 ? 1 : 0)
+            }
+            .onChange(of: isHighlighted) { _, highlighted in
+                if highlighted {
+                    playAnimation()
+                } else {
+                    withAnimation(.easeOut(duration: 0.4)) {
+                        glowOpacity = 0
+                    }
+                }
+            }
+            .onAppear {
+                if isHighlighted { playAnimation() }
+            }
+    }
+
+    private func playAnimation() {
+        shimmerOffset = -0.5
+        glowOpacity = 0
+        withAnimation(.easeOut(duration: 0.4)) {
+            glowOpacity = 1.0
+        }
+        withAnimation(.easeInOut(duration: 0.8).delay(0.15)) {
+            shimmerOffset = 1.5
+        }
+        withAnimation(.easeInOut(duration: 1.2).delay(2.0)) {
+            glowOpacity = 0
+        }
+    }
+}
 
 // MARK: - TaskActionMode
 

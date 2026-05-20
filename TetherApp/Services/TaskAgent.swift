@@ -96,7 +96,7 @@ final class TaskAgent {
     /// Actions that mutate tasks (vs read-only actions like list/query/chat).
     private static let mutatingActions: Set<String> = [
         "create_task", "complete_task", "move_task", "schedule_task",
-        "defer_task", "create_event", "decompose_task"
+        "defer_task", "create_event", "decompose_task", "categorize_inbox"
     ]
 
     func process(_ input: String, apiKey: String, context: AgentContext) async -> AgentResponse {
@@ -272,7 +272,14 @@ final class TaskAgent {
                 message: message, ctx: ctx
             )
         case "decompose_task":
-            return AgentResponse(message: message, subtasks: response.subtasks)
+            // Try to find the task being decomposed so we can attach subtasks later
+            let searchText = response.searchText ?? response.title ?? ""
+            let active = ctx.tasks.filter { $0.status == .active }
+            let matchedTask = bestMatch(for: searchText, in: active)
+            let ids = matchedTask.map { [$0.id] } ?? []
+            return AgentResponse(message: message, affectedTaskIDs: ids, subtasks: response.subtasks)
+        case "categorize_inbox":
+            return await doCategorizeInbox(message: message, ctx: ctx)
         case "plan_day":
             return buildPlanDayResponse(message: message, filter: response.filter, ctx: ctx)
         case "reschedule_overdue":
@@ -533,7 +540,13 @@ final class TaskAgent {
                 .sorted { ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast) }
                 .prefix(10))
         default:
-            if let project = findProject(named: filter, in: ctx.projects) {
+            // Try parsing as a date first (e.g. "2026-05-23" or "May 23")
+            if let targetDate = parseDate(filter) {
+                filtered = active.filter {
+                    guard let d = $0.effectiveDate else { return false }
+                    return calendar.isDate(d, inSameDayAs: targetDate)
+                }
+            } else if let project = findProject(named: filter, in: ctx.projects) {
                 filtered = project.taskList.filter { !$0.isCompleted }
             } else if let area = findArea(named: filter, in: ctx.areas) {
                 let areaTasks = ctx.tasks.filter { $0.area?.id == area.id || $0.project?.area?.id == area.id }
@@ -570,6 +583,124 @@ final class TaskAgent {
             AgentTaskCard(id: task.id, title: task.title, project: task.project?.title, area: task.area?.title, whenDate: task.whenDate, deadline: task.deadline, isCompleted: task.isCompleted)
         })
         return AgentResponse(message: message, affectedTaskIDs: filtered.map(\.id), taskCards: cards)
+    }
+
+    // MARK: - Action: Reschedule Overdue
+
+    /// Public entry point for directly rescheduling all overdue tasks to today.
+    func rescheduleOverdue(context: AgentContext) -> AgentResponse {
+        isProcessing = true
+        defer { isProcessing = false }
+
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: .now)
+        let overdue = context.tasks.filter {
+            $0.status == .active && ($0.effectiveDate ?? .distantFuture) < today
+        }
+
+        guard !overdue.isEmpty else {
+            let response = AgentResponse(message: "No overdue tasks to reschedule.")
+            lastResponse = response
+            return response
+        }
+
+        var affectedIDs: [UUID] = []
+        var cards: [AgentTaskCard] = []
+
+        for task in overdue {
+            task.whenDate = today
+            task.updatedAt = .now
+            affectedIDs.append(task.id)
+            cards.append(AgentTaskCard(
+                id: task.id, title: task.title,
+                project: task.project?.title, area: task.area?.title,
+                whenDate: today, deadline: task.deadline, isCompleted: false
+            ))
+        }
+
+        try? context.modelContext.save()
+
+        let response = AgentResponse(
+            message: "Rescheduled **\(overdue.count)** overdue task\(overdue.count == 1 ? "" : "s") to today.",
+            affectedTaskIDs: affectedIDs,
+            taskCards: cards
+        )
+        lastResponse = response
+        return response
+    }
+
+    // MARK: - Action: Categorize Inbox
+
+    /// Public entry point for directly triggering inbox categorization (e.g. from inline suggestions).
+    func categorizeInbox(apiKey: String, context: AgentContext) async -> AgentResponse {
+        isProcessing = true
+        defer { isProcessing = false }
+        let response = await doCategorizeInbox(message: "", ctx: context)
+        lastResponse = response
+        return response
+    }
+
+    private func doCategorizeInbox(message: String, ctx: AgentContext) async -> AgentResponse {
+        let apiKey = UserDefaults.standard.string(forKey: "geminiAPIKey") ?? ""
+        let inboxTasks = ctx.tasks.filter { $0.status == .active && $0.isInInbox }
+
+        guard !inboxTasks.isEmpty else {
+            return AgentResponse(message: "Your inbox is already empty — nothing to categorize.")
+        }
+
+        // Use bulk categorization — single API call for all tasks
+        let taskInputs = inboxTasks.map { (title: $0.title, notes: $0.notes) }
+        let classifications = await categorizer.categorizeBulk(
+            tasks: taskInputs,
+            areas: ctx.areas.map { (name: $0.title, description: $0.notes) },
+            projects: ctx.projects.map { (name: $0.title, areaName: $0.area?.title) },
+            apiKey: apiKey
+        )
+
+        var movedCount = 0
+        var affectedIDs: [UUID] = []
+        var cards: [AgentTaskCard] = []
+
+        for (i, task) in inboxTasks.enumerated() {
+            let classification = classifications[i]
+
+            var didMove = false
+            if let projName = classification.project, let project = findProject(named: projName, in: ctx.projects) {
+                task.project = project
+                task.area = project.area
+                task.isInInbox = false
+                didMove = true
+            } else if let areaName = classification.area, let area = findArea(named: areaName, in: ctx.areas) {
+                task.area = area
+                task.isInInbox = false
+                didMove = true
+            }
+
+            if didMove {
+                task.updatedAt = .now
+                movedCount += 1
+                affectedIDs.append(task.id)
+                cards.append(AgentTaskCard(
+                    id: task.id, title: task.title,
+                    project: task.project?.title, area: task.area?.title,
+                    whenDate: task.whenDate, deadline: task.deadline, isCompleted: false
+                ))
+            }
+        }
+
+        try? ctx.modelContext.save()
+
+        let resultMessage: String
+        if movedCount == 0 {
+            resultMessage = "I looked at your inbox tasks but couldn't confidently categorize any of them. You may want to assign them manually."
+        } else if movedCount == inboxTasks.count {
+            resultMessage = "Categorized all **\(movedCount)** inbox tasks into their areas and projects."
+        } else {
+            let remaining = inboxTasks.count - movedCount
+            resultMessage = "Categorized **\(movedCount)** task\(movedCount == 1 ? "" : "s"). \(remaining) task\(remaining == 1 ? "" : "s") couldn't be confidently categorized and remain in your inbox."
+        }
+
+        return AgentResponse(message: resultMessage, affectedTaskIDs: affectedIDs, taskCards: cards.isEmpty ? nil : cards)
     }
 
     // MARK: - Keyword Fallback

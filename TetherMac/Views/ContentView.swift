@@ -50,12 +50,13 @@ struct ContentView: View {
     @State private var showQuickFind = false
     @State private var showAddMenu = false
     @State private var showAddMenuLabels = false
-    @State private var showSidebarRename = false
-    @State private var sidebarRenameText = ""
-    @State private var sidebarRenameTarget: SidebarItemTarget?
+    @State private var editingProject: Project?
+    @State private var editingArea: Area?
     @State private var showSidebarDeleteConfirm = false
     @State private var sidebarDeleteTarget: SidebarItemTarget?
     @State private var showAgent = false
+    @State private var agentHighlightIDs: Set<UUID> = []
+    @State private var agentActivity = AgentActivityService()
     @State private var showSynthesis = false
     @State private var currentSynthesis: DailySynthesis?
     @AppStorage("geminiAPIKey") private var geminiAPIKey = ""
@@ -83,7 +84,14 @@ struct ContentView: View {
         .sheet(isPresented: $showSettingsSheet) {
             SettingsSheet()
         }
+        .sheet(item: $editingProject) { project in
+            ProjectEditSheet(project: project)
+        }
+        .sheet(item: $editingArea) { area in
+            AreaEditSheet(area: area)
+        }
         .tint(.primary)
+        .environment(\.agentActivity, agentActivity)
         .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
         .background {
             AppBackground()
@@ -131,6 +139,41 @@ struct ContentView: View {
             if showAgent {
                 AgentOverlay(
                     onDismiss: { showAgent = false },
+                    onTaskAffected: { taskIDs in
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.75)) {
+                            agentHighlightIDs.formUnion(taskIDs)
+                        }
+                        // Auto-clear highlights after a few seconds
+                        Task {
+                            try? await Task.sleep(for: .seconds(4))
+                            withAnimation(.easeOut(duration: 0.6)) {
+                                agentHighlightIDs.subtract(taskIDs)
+                            }
+                        }
+                        // Broadcast via activity service for glow animations
+                        agentActivity.markTouched(taskIDs)
+
+                        // Auto-navigate to show the affected task
+                        if let firstID = taskIDs.first,
+                           let task = tasks.first(where: { $0.id == firstID }) {
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                if task.isInInbox {
+                                    selection = .inbox
+                                } else if let date = task.whenDate, Calendar.current.isDateInToday(date) {
+                                    selection = .today
+                                } else if let project = task.project {
+                                    selection = .project(project.id)
+                                } else if let area = task.area {
+                                    selection = .area(area.id)
+                                } else if task.status == .someday {
+                                    selection = .someday
+                                } else {
+                                    selection = .anytime
+                                }
+                                expandedTaskID = task.id
+                            }
+                        }
+                    },
                     onSelectTask: { taskID in
                         // Find the task and navigate to its context
                         if let task = tasks.first(where: { $0.id == taskID }) {
@@ -150,7 +193,7 @@ struct ContentView: View {
                         showAgent = false
                     }
                 )
-                .transition(.opacity)
+                .transition(.move(edge: .trailing).combined(with: .opacity))
             }
         }
         .overlay {
@@ -309,11 +352,9 @@ struct ContentView: View {
                     }
                     .contextMenu {
                         Button {
-                            sidebarRenameTarget = .area(area)
-                            sidebarRenameText = area.title
-                            showSidebarRename = true
+                            editingArea = area
                         } label: {
-                            Label("Rename Area", systemImage: "pencil")
+                            Label("Edit Area", systemImage: "pencil")
                         }
 
                         Button {
@@ -356,11 +397,9 @@ struct ContentView: View {
                         }
                         .contextMenu {
                             Button {
-                                sidebarRenameTarget = .project(project)
-                                sidebarRenameText = project.title
-                                showSidebarRename = true
+                                editingProject = project
                             } label: {
-                                Label("Rename Project", systemImage: "pencil")
+                                Label("Edit Project", systemImage: "pencil")
                             }
 
                             Divider()
@@ -412,22 +451,6 @@ struct ContentView: View {
             }
         }
         .onPreferenceChange(SidebarWidthKey.self) { sidebarWidth = $0 }
-        .alert("Rename", isPresented: $showSidebarRename) {
-            TextField("Name", text: $sidebarRenameText)
-            Button("Cancel", role: .cancel) {}
-            Button("Rename") {
-                let newTitle = sidebarRenameText.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !newTitle.isEmpty else { return }
-                switch sidebarRenameTarget {
-                case .area(let area):
-                    area.title = newTitle
-                case .project(let project):
-                    project.title = newTitle
-                case .none: break
-                }
-                try? modelContext.save()
-            }
-        }
         .alert("Delete?", isPresented: $showSidebarDeleteConfirm) {
             Button("Cancel", role: .cancel) {}
             Button("Delete", role: .destructive) {
@@ -564,7 +587,9 @@ struct ContentView: View {
                 events: [],
                 expandedTaskID: $expandedTaskID,
                 completingTaskIDs: $completingTaskIDs,
-                onToggle: toggleTask
+                onToggle: toggleTask,
+                screenType: .inbox,
+                agentHighlightIDs: agentHighlightIDs
             )
         case .today:
             TaskCollectionView(
@@ -576,7 +601,9 @@ struct ContentView: View {
                 completingTaskIDs: $completingTaskIDs,
                 onToggle: toggleTask,
                 synthesis: currentSynthesis,
-                onOpenSynthesis: { withAnimation { showSynthesis = true } }
+                onOpenSynthesis: { withAnimation { showSynthesis = true } },
+                screenType: .today,
+                agentHighlightIDs: agentHighlightIDs
             )
         case .upcoming:
             TaskCollectionView(
