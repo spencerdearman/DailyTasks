@@ -80,7 +80,9 @@ struct AgentOverlay: View {
                     // Chat area
                     if showHistoryList {
                         historyContent
+                            .frame(minHeight: 0)
                         searchBar
+                            .fixedSize(horizontal: false, vertical: true)
                     } else {
                         ScrollView {
                             if hasContent {
@@ -194,6 +196,7 @@ struct AgentOverlay: View {
                     .foregroundStyle(.secondary)
             }
             .padding(.vertical, 6)
+            .listRowInsets(EdgeInsets(top: 0, leading: 18, bottom: 0, trailing: 18))
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
             .onTapGesture {
